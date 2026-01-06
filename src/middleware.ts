@@ -1,8 +1,8 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
-const PUBLIC_ROUTES = ['/', '/login', '/api/webhooks'];
-const PROTECTED_ROUTES = ['/studio', '/billing', '/projects', '/heroes'];
+const PUBLIC_ROUTES = ['/', '/login', '/auth/callback'];
+const PROTECTED_ROUTES = ['/studio', '/api'];
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({
@@ -34,8 +34,15 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const pathname = request.nextUrl.pathname;
+  
+  // Check if route is public
   const isPublicRoute = PUBLIC_ROUTES.some(route => pathname === route || pathname.startsWith(route + '/'));
-  const isProtectedRoute = PROTECTED_ROUTES.some(route => pathname.startsWith(route));
+  
+  // Check if route is webhook (public even though it's under /api)
+  const isWebhook = pathname.startsWith('/api/webhooks');
+  
+  // Check if route is protected
+  const isProtectedRoute = PROTECTED_ROUTES.some(route => pathname.startsWith(route)) && !isWebhook;
 
   // Redirect to login if accessing protected route without auth
   if (isProtectedRoute && !user) {
