@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { PostHogProvider } from "../components/PostHogProvider";
+import { Toaster } from "../components/ui/toast";
 
 export const metadata: Metadata = {
   title: "Myjoe - AI Coloring Book Studio",
@@ -18,6 +19,7 @@ export default function RootLayout({
         <PostHogProvider>
           {children}
         </PostHogProvider>
+        <Toaster />
       </body>
     </html>
   );
