@@ -36,6 +36,17 @@ export const PLAN_LIMITS = {
 } as const;
 
 /**
+ * Project limits per plan
+ * Maximum number of active projects allowed
+ */
+export const PROJECT_LIMITS = {
+  free: 3,
+  starter: 10,
+  creator: 50,
+  pro: Infinity, // Unlimited
+} as const;
+
+/**
  * Trim sizes in pixels at 300 DPI
  * Used for KDP-compatible coloring book pages
  */
@@ -80,3 +91,30 @@ export const MAX_PAGES = 45;
  * Prevents excessive Blot drain
  */
 export const MAX_VERSIONS = 10;
+
+/**
+ * Audience DNA mapping
+ * Auto-derives line weight and complexity based on target audience
+ */
+export const AUDIENCE_DNA_MAPPING = {
+  toddler: {
+    lineWeight: 'thick' as const,
+    complexity: 'minimal' as const,
+  },
+  children: {
+    lineWeight: 'thick' as const,
+    complexity: 'moderate' as const,
+  },
+  tween: {
+    lineWeight: 'medium' as const,
+    complexity: 'moderate' as const,
+  },
+  teen: {
+    lineWeight: 'medium' as const,
+    complexity: 'detailed' as const,
+  },
+  adult: {
+    lineWeight: 'fine' as const,
+    complexity: 'intricate' as const,
+  },
+} as const;

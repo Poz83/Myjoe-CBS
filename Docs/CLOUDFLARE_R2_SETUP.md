@@ -15,7 +15,7 @@ R2_ACCESS_KEY_ID=8a33ba822132bc9da58778bb56a57329
 R2_SECRET_ACCESS_KEY=3b640f651c47035d3ba9274d6db46a1e42dcd2e6fecec17b850cff14aab74706
 R2_BUCKET_NAME=myjoeprod
 R2_ENDPOINT=https://7eabbcd49cfb5790c0d619970229b230.r2.cloudflarestorage.com
-R2_PUBLIC_URL=https://myjoe.app
+R2_PUBLIC_URL=https://cdn.myjoe.app
 ```
 
 ### Bucket Setup
@@ -26,7 +26,7 @@ R2_PUBLIC_URL=https://myjoe.app
    ```json
    [
      {
-       "AllowedOrigins": ["https://myjoe.app"],
+       "AllowedOrigins": ["https://myjoe.app", "https://cdn.myjoe.app"],
        "AllowedMethods": ["GET", "PUT", "POST", "DELETE"],
        "AllowedHeaders": ["*"],
        "ExposeHeaders": ["ETag"],
@@ -35,12 +35,15 @@ R2_PUBLIC_URL=https://myjoe.app
    ]
    ```
 
-### Custom Domain (Optional)
+### Custom Domain Setup
 
-1. Go to R2 bucket settings
-2. Add custom domain: `cdn.myjoe.app`
-3. Update DNS CNAME record
-4. Update `R2_PUBLIC_URL` in `.env.local`
+**IMPORTANT:** Use `cdn.myjoe.app` as the R2 custom domain, NOT `myjoe.app`. The root domain (`myjoe.app`) is reserved for your Vercel deployment.
+
+1. Go to [Cloudflare Dashboard → R2 → myjoeprod bucket → Settings → Domain Access](https://dash.cloudflare.com/)
+2. Remove any existing custom domain for `myjoe.app` if present
+3. Add custom domain: `cdn.myjoe.app`
+4. Cloudflare will automatically create the CNAME record pointing to `public.r2.dev`
+5. Update `R2_PUBLIC_URL` in `.env.local` to `https://cdn.myjoe.app`
 
 ## Storage Structure
 

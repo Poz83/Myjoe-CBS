@@ -54,7 +54,40 @@ export interface Database {
         Insert: Omit<Database['public']['Tables']['projects']['Row'], 'id' | 'created_at' | 'updated_at' | 'deleted_at'>;
         Update: Partial<Database['public']['Tables']['projects']['Insert']>;
       };
-      // Add other tables as needed
+      heroes: {
+        Row: {
+          id: string;
+          owner_id: string;
+          name: string;
+          description: string;
+          audience: 'toddler' | 'children' | 'tween' | 'teen' | 'adult';
+          compiled_prompt: string;
+          negative_prompt: string | null;
+          reference_key: string;
+          thumbnail_key: string | null;
+          style_preset: string | null;
+          times_used: number;
+          created_at: string;
+          updated_at: string;
+          deleted_at: string | null;
+        };
+        Insert: Omit<Database['public']['Tables']['heroes']['Row'], 'id' | 'created_at' | 'updated_at' | 'deleted_at' | 'times_used'>;
+        Update: Partial<Database['public']['Tables']['heroes']['Insert']>;
+      };
+      pages: {
+        Row: {
+          id: string;
+          project_id: string;
+          sort_order: number;
+          page_type: 'illustration' | 'text-focus' | 'pattern' | 'educational';
+          current_version: number;
+          scene_brief: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['pages']['Row'], 'id' | 'created_at' | 'updated_at'>;
+        Update: Partial<Database['public']['Tables']['pages']['Insert']>;
+      };
     };
     Views: {
       [_ in never]: never;
