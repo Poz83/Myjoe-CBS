@@ -1,16 +1,9 @@
 'use client';
 
 import { useLayoutStore } from '@/stores/layout-store';
-import { Cloud, CloudOff, Loader2, Palette, User } from 'lucide-react';
+import { Cloud, CloudOff, Loader2, Palette } from 'lucide-react';
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { UserMenu } from '@/components/features/auth/user-menu';
 
 export function Header() {
   const { autoSaveStatus, blotBalance } = useLayoutStore();
@@ -74,29 +67,7 @@ export function Header() {
           </div>
 
           {/* User menu */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="rounded-full hover:bg-zinc-800"
-              >
-                <User className="h-5 w-5" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem>
-                Profile
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                Settings
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                Sign out
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <UserMenu />
         </div>
       </div>
     </header>

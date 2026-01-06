@@ -7,7 +7,7 @@ import {
   Accordion,
   AccordionContent,
   AccordionItem,
-  AccordionTrigger,
+  AccordionHeader,
 } from '@/components/ui/accordion';
 
 export function Inspector() {
@@ -57,14 +57,14 @@ export function Inspector() {
 
       {/* Scrollable accordion content */}
       <div className="flex-1 overflow-y-auto p-4">
-        <Accordion type="multiple" defaultValue={['properties', 'layout', 'style']}>
+        <Accordion defaultValue="properties">
           <AccordionItem value="properties">
-            <AccordionTrigger className="text-sm font-medium">
+            <AccordionHeader className="text-sm font-medium">
               <div className="flex items-center gap-2">
                 <Settings className="h-4 w-4" />
                 Properties
               </div>
-            </AccordionTrigger>
+            </AccordionHeader>
             <AccordionContent>
               <div className="space-y-3 pt-2">
                 <div>
@@ -88,12 +88,12 @@ export function Inspector() {
           </AccordionItem>
 
           <AccordionItem value="layout">
-            <AccordionTrigger className="text-sm font-medium">
+            <AccordionHeader className="text-sm font-medium">
               <div className="flex items-center gap-2">
                 <Layers className="h-4 w-4" />
                 Layout
               </div>
-            </AccordionTrigger>
+            </AccordionHeader>
             <AccordionContent>
               <div className="space-y-3 pt-2">
                 <div>
@@ -128,12 +128,12 @@ export function Inspector() {
           </AccordionItem>
 
           <AccordionItem value="style">
-            <AccordionTrigger className="text-sm font-medium">
+            <AccordionHeader className="text-sm font-medium">
               <div className="flex items-center gap-2">
                 <Type className="h-4 w-4" />
                 Style
               </div>
-            </AccordionTrigger>
+            </AccordionHeader>
             <AccordionContent>
               <div className="space-y-3 pt-2">
                 <div>
