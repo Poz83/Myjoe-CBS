@@ -1,0 +1,10 @@
+export default function Home() {
+  return (
+    <main className="min-h-screen bg-zinc-950">
+      <div className="container mx-auto px-4 py-8">
+        <h1 className="text-4xl font-bold mb-4">Myjoe</h1>
+        <p className="text-zinc-400">AI Coloring Book Studio</p>
+      </div>
+    </main>
+  );
+}

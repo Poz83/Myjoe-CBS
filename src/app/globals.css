@@ -1,0 +1,15 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-base: #0D0D0D;
+  --bg-surface: #1A1A1A;
+  --bg-elevated: #262626;
+  --bg-canvas: #171717;
+}
+
+body {
+  background-color: var(--bg-base);
+  color: white;
+}

@@ -1,0 +1,7 @@
+{
+  "project": {
+    "name": "Myjoe CBS",
+    "id": "rziohajwncqcgzorjqff"
+  },
+  "notes": "Use this project ID when running Supabase CLI commands or API operations"
+}
