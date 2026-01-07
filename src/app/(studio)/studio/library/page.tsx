@@ -12,7 +12,7 @@ export default function LibraryPage() {
   const deleteHero = useDeleteHero();
 
   const handleCreateHero = () => {
-    router.push('/library/heroes/new');
+    router.push('/studio/library/heroes/new');
   };
 
   const handleDelete = (heroId: string) => {
@@ -21,7 +21,7 @@ export default function LibraryPage() {
 
   const handleHeroClick = (heroId: string) => {
     // For now, just navigate to details (can be expanded later)
-    // router.push(`/library/heroes/${heroId}`);
+    // router.push(`/studio/library/heroes/${heroId}`);
   };
 
   if (error) {

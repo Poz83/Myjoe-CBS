@@ -6,14 +6,15 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useProject } from '@/hooks/use-projects';
 import { useProfile } from '@/hooks/use-profile';
 import { useUser } from '@/hooks/use-user';
-import { ProjectHeader } from '@/components/features/project/project-header';
+import { EditorToolbar } from '@/components/studio/editor-toolbar';
+import { BillingModal } from '@/components/studio/billing-modal';
+import { type ViewMode } from '@/components/studio/view-mode-tabs';
 import { PageThumbnails } from '@/components/features/project/page-thumbnails';
 import { PagePreview } from '@/components/features/project/page-preview';
 import { PageInspector } from '@/components/features/project/page-inspector';
 import {
   StyleCalibrationModal,
   CalibrationBanner,
-  StyleReadyBadge
 } from '@/components/features/project/style-calibration';
 import { GenerationStart } from '@/components/features/project/generation-start';
 import { GenerationProgress } from '@/components/features/project/generation-progress';
@@ -35,7 +36,9 @@ export default function ProjectEditorPage() {
   const [rightPanelCollapsed, setRightPanelCollapsed] = useState(false);
   const [calibrationModalOpen, setCalibrationModalOpen] = useState(false);
   const [exportModalOpen, setExportModalOpen] = useState(false);
+  const [billingModalOpen, setBillingModalOpen] = useState(false);
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<ViewMode>('pages');
 
   // Check if project needs calibration
   const needsCalibration = project && !project.style_anchor_key;
@@ -114,20 +117,30 @@ export default function ProjectEditorPage() {
     queryClient.invalidateQueries({ queryKey: ['projects', projectId] });
   };
 
+  // Handle view mode change - open export modal when export tab selected
+  const handleViewModeChange = (mode: ViewMode) => {
+    setViewMode(mode);
+    if (mode === 'export') {
+      setExportModalOpen(true);
+    }
+  };
+
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
-      <ProjectHeader
+      <EditorToolbar
         projectId={project.id}
         projectName={project.name}
         status={project.status}
         blotBalance={profile?.blots || 0}
         styleReady={!needsCalibration}
+        viewMode={viewMode}
         onNameChange={(name) => {
           // TODO: Implement name update mutation
           console.log('Update project name:', name);
         }}
-        onExport={() => setExportModalOpen(true)}
+        onViewModeChange={handleViewModeChange}
+        onOpenBilling={() => setBillingModalOpen(true)}
       />
 
       {/* Calibration Banner - show if not calibrated */}
@@ -246,9 +259,23 @@ export default function ProjectEditorPage() {
       {/* Export Dialog */}
       <ExportDialog
         open={exportModalOpen}
-        onOpenChange={setExportModalOpen}
+        onOpenChange={(open) => {
+          setExportModalOpen(open);
+          if (!open && viewMode === 'export') {
+            setViewMode('pages');
+          }
+        }}
         projectId={projectId}
         projectName={project.name}
+      />
+
+      {/* Billing Modal */}
+      <BillingModal
+        open={billingModalOpen}
+        onOpenChange={setBillingModalOpen}
+        currentBalance={profile?.blots || 0}
+        plan={profile?.plan}
+        hasStripeCustomer={!!profile?.stripe_customer_id}
       />
     </div>
   );

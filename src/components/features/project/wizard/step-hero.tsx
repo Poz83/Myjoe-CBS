@@ -32,7 +32,7 @@ export function StepHero({ heroId, onUpdate }: StepHeroProps) {
   };
 
   const handleCreateHero = () => {
-    router.push('/library/heroes/new');
+    router.push('/studio/library/heroes/new');
   };
 
   return (

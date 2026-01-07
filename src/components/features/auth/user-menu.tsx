@@ -12,7 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { User, LogOut, Settings, CreditCard } from 'lucide-react';
+import { User, LogOut, Settings, CreditCard, BookOpen } from 'lucide-react';
 
 export function UserMenu() {
   const { user, isLoading: userLoading } = useUser();
@@ -85,20 +85,25 @@ export function UserMenu() {
         {/* Menu items */}
         <div className="py-1">
           <DropdownMenuItem
-            aria-disabled="true"
-            className="flex items-center gap-2 px-4 py-2 text-sm text-zinc-400 cursor-not-allowed"
+            onClick={() => router.push('/studio/settings')}
+            className="flex items-center gap-2 px-4 py-2 text-sm text-zinc-300 hover:text-white hover:bg-zinc-800 cursor-pointer"
           >
             <Settings className="h-4 w-4" />
             Settings
-            <span className="ml-auto text-xs">(Soon)</span>
           </DropdownMenuItem>
           <DropdownMenuItem
-            aria-disabled="true"
-            className="flex items-center gap-2 px-4 py-2 text-sm text-zinc-400 cursor-not-allowed"
+            onClick={() => router.push('/studio/settings?tab=billing')}
+            className="flex items-center gap-2 px-4 py-2 text-sm text-zinc-300 hover:text-white hover:bg-zinc-800 cursor-pointer"
           >
             <CreditCard className="h-4 w-4" />
             Billing
-            <span className="ml-auto text-xs">(Soon)</span>
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => window.open('https://docs.myjoe.app', '_blank')}
+            className="flex items-center gap-2 px-4 py-2 text-sm text-zinc-300 hover:text-white hover:bg-zinc-800 cursor-pointer"
+          >
+            <BookOpen className="h-4 w-4" />
+            Documentation
           </DropdownMenuItem>
         </div>
 

@@ -15,7 +15,7 @@ export default function PageEditorPage() {
   const { data, isLoading, error } = usePageDetail(pageId);
 
   const handleBack = () => {
-    router.push(`/projects/${projectId}`);
+    router.push(`/studio/projects/${projectId}`);
   };
 
   // Error state

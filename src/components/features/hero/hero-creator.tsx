@@ -153,7 +153,7 @@ export function HeroCreator() {
   const handleApprove = () => {
     // Invalidate heroes query and navigate to library
     queryClient.invalidateQueries({ queryKey: ['heroes'] });
-    router.push('/library');
+    router.push('/studio/library');
   };
 
   const hasSafetyError = safetyError?.blocked && safetyError.blocked.length > 0;
