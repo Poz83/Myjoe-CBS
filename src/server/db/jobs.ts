@@ -22,6 +22,7 @@ export interface Job {
   blots_spent: number;
   blots_refunded: number;
   error_message: string | null;
+  metadata: Record<string, unknown>;
   created_at: string;
   started_at: string | null;
   completed_at: string | null;
@@ -33,6 +34,7 @@ export interface JobInsert {
   type: JobType;
   total_items?: number;
   blots_reserved?: number;
+  metadata?: Record<string, unknown>;
 }
 
 export interface JobUpdate {
@@ -92,6 +94,7 @@ export async function createJob(data: JobInsert): Promise<Job> {
       type: data.type,
       total_items: data.total_items || 0,
       blots_reserved: data.blots_reserved || 0,
+      metadata: data.metadata || {},
     })
     .select()
     .single();
