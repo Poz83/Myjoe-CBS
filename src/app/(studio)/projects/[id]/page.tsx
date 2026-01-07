@@ -17,6 +17,7 @@ import {
 } from '@/components/features/project/style-calibration';
 import { GenerationStart } from '@/components/features/project/generation-start';
 import { GenerationProgress } from '@/components/features/project/generation-progress';
+import { ExportDialog } from '@/components/features/export/export-dialog';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -33,6 +34,7 @@ export default function ProjectEditorPage() {
   const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(false);
   const [rightPanelCollapsed, setRightPanelCollapsed] = useState(false);
   const [calibrationModalOpen, setCalibrationModalOpen] = useState(false);
+  const [exportModalOpen, setExportModalOpen] = useState(false);
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
 
   // Check if project needs calibration
@@ -125,10 +127,7 @@ export default function ProjectEditorPage() {
           // TODO: Implement name update mutation
           console.log('Update project name:', name);
         }}
-        onExport={() => {
-          // TODO: Implement export functionality
-          console.log('Export project');
-        }}
+        onExport={() => setExportModalOpen(true)}
       />
 
       {/* Calibration Banner - show if not calibrated */}
@@ -243,6 +242,14 @@ export default function ProjectEditorPage() {
           onCancel={handleGenerationCancel}
         />
       )}
+
+      {/* Export Dialog */}
+      <ExportDialog
+        open={exportModalOpen}
+        onOpenChange={setExportModalOpen}
+        projectId={projectId}
+        projectName={project.name}
+      />
     </div>
   );
 }
