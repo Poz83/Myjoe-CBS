@@ -2,6 +2,7 @@
 
 > Each prompt is self-contained. Just copy, paste, verify, move on.
 > After each section: test it works, then commit.
+> **UPDATED:** Includes Replicate/Flux configuration
 
 ## Git Repository
 ```
@@ -42,12 +43,13 @@ src/
 │   ├── storage/          # R2 storage
 │   └── billing/          # Stripe billing
 ├── lib/                  # Shared utilities
+│   └── constants/        # Configuration constants
 ├── hooks/                # React hooks
 └── types/                # TypeScript types
 
 DEPENDENCIES TO INSTALL:
 npm install @supabase/supabase-js @supabase/ssr @tanstack/react-query zustand zod lucide-react
-npm install sharp stripe openai @aws-sdk/client-s3
+npm install sharp stripe openai replicate @aws-sdk/client-s3
 npm install -D @types/node
 
 TAILWIND CONFIG:
@@ -95,6 +97,7 @@ TABLES NEEDED:
 - stripe_subscription_id (text)
 - storage_used_bytes (bigint, default 0)
 - storage_limit_bytes (bigint, default 1073741824)
+- payment_failed_at (timestamptz, nullable)
 - disabled_at (timestamptz)
 - created_at, updated_at (timestamptz)
 
@@ -194,7 +197,16 @@ TABLES NEEDED:
 - hero_id (uuid, FK, nullable)
 - created_at (timestamptz)
 
-9. global_config
+9. blot_purchases (NEW - for Blot Packs)
+- id (uuid, PK)
+- owner_id (uuid, FK to auth.users)
+- pack_id (text: 'splash'|'bucket'|'barrel')
+- blots (integer)
+- price_cents (integer)
+- stripe_session_id (text)
+- created_at (timestamptz)
+
+10. global_config
 - key (text, PK)
 - value (jsonb)
 - description (text)
@@ -204,6 +216,7 @@ ALSO ADD:
 - Trigger to auto-create profile when auth.users row is created
 - Insert default global_config values (generation_enabled, export_enabled, signup_enabled, maintenance_mode)
 - All appropriate indexes
+- Helper function: add_blots(p_user_id UUID, p_amount INTEGER)
 
 Generate the complete SQL migration file.
 ```
@@ -211,7 +224,7 @@ Generate the complete SQL migration file.
 **After completing: Run migration in Supabase, then commit:**
 ```bash
 git add .
-git commit -m "feat(1.2): database schema migration"
+git commit -m "feat(1.2): database schema migration with blot_purchases"
 ```
 
 ---
@@ -233,7 +246,8 @@ POLICIES NEEDED:
 6. jobs - users can view only their own jobs
 7. job_items - users can view items where they own the parent job
 8. assets - users can CRUD only their own assets
-9. global_config - anyone can read (SELECT), no one can write via client
+9. blot_purchases - users can view only their own purchases
+10. global_config - anyone can read (SELECT), no one can write via client
 
 Use auth.uid() to get current user ID.
 
@@ -271,13 +285,30 @@ R2_BUCKET_NAME=
 R2_ENDPOINT=
 R2_PUBLIC_URL=
 
-# OpenAI
+# OpenAI (planning + moderation + GPT-4V safety)
 OPENAI_API_KEY=
 
-# Stripe
+# Replicate (Flux image generation)
+REPLICATE_API_TOKEN=
+
+# Flux Model Selection
+FLUX_MODEL=flux-lineart
+
+# Stripe - Subscriptions
 STRIPE_SECRET_KEY=
 STRIPE_WEBHOOK_SECRET=
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
+STRIPE_PRICE_STARTER_MONTHLY=
+STRIPE_PRICE_STARTER_YEARLY=
+STRIPE_PRICE_CREATOR_MONTHLY=
+STRIPE_PRICE_CREATOR_YEARLY=
+STRIPE_PRICE_PRO_MONTHLY=
+STRIPE_PRICE_PRO_YEARLY=
+
+# Stripe - Blot Packs
+STRIPE_PRICE_SPLASH=
+STRIPE_PRICE_BUCKET=
+STRIPE_PRICE_BARREL=
 
 # App
 NEXT_PUBLIC_APP_URL=
@@ -294,14 +325,19 @@ RESEND_API_KEY=
 .env.local
 .env*.local
 
-3. Create src/lib/constants.ts with app constants:
-- BLOT_COSTS object (generate: 12, edit: 12, calibration: 10, hero: 15, export: 3)
-- PLAN_LIMITS object (blots and storage for each plan)
-- TRIM_SIZES object (dimensions in pixels at 300 DPI)
-- AUDIENCES array
-- STYLE_PRESETS array
-- MAX_PAGES = 45
-- MAX_VERSIONS = 10
+3. Create src/lib/constants/index.ts with the complete constants file including:
+- BLOT_COSTS
+- PLAN_LIMITS  
+- BLOT_PACKS
+- TRIM_SIZES
+- AUDIENCES
+- STYLE_PRESETS
+- AUDIENCE_DERIVATIONS (with safetyLevel, ageRange, maxElements)
+- FLUX_MODELS
+- FLUX_TRIGGERS
+- LINE_WEIGHT_PROMPTS
+- COMPLEXITY_PROMPTS
+- MAX_PAGES, MAX_VERSIONS, MAX_PROMPT_LENGTH
 
 Generate these files now.
 ```
@@ -309,182 +345,15 @@ Generate these files now.
 **After completing: Create your .env.local with real values, then commit:**
 ```bash
 git add .
-git commit -m "feat(1.4): environment configuration"
+git commit -m "feat(1.4): environment configuration with Flux + Packs"
 ```
 
 ---
 
-## Prompt 1.5 - UI Components (Part 1)
+## Prompt 1.5 - Supabase Clients
 
 ```
 I'm building Myjoe. Environment is configured.
-
-Create UI primitive components in src/components/ui/. Use Tailwind only, dark theme, 4px grid.
-
-DESIGN SYSTEM SPECS:
-- 4px spacing grid (all spacing multiples of 4: 4, 8, 12, 16, 20, 24, 32px)
-- Border radius: 4px (small), 6px (default), 8px (cards), 12px (modals)
-- Button heights: 32px (sm), 40px (md), 48px (lg)
-- Input height: 40px
-- Icon sizes: 16px, 20px, 24px (use w-4, w-5, w-6)
-
-Create these files:
-
-1. button.tsx
-- Variants: primary (blue-600), secondary (zinc-700), ghost (transparent), danger (red-600)
-- Sizes: sm (h-8), md (h-10), lg (h-12)
-- Support: disabled state, loading state with Loader icon spinning, icon + text
-- Use forwardRef, proper TypeScript types
-- Include transition-colors for hover states
-
-2. input.tsx
-- Dark theme: bg-zinc-900, border-zinc-700
-- Height: h-10 (40px)
-- Focus ring: ring-2 ring-blue-500/40 border-blue-500
-- Support: error state (red border), disabled state
-- Use forwardRef
-
-3. card.tsx
-- Background: bg-zinc-900
-- Border: border border-zinc-800 hover:border-zinc-700
-- Padding: p-5 (20px, 4px grid)
-- Rounded: rounded-lg (8px)
-- Variants: default, interactive (with hover effect)
-
-Generate these 3 files.
-```
-
-```bash
-git add . && git commit -m "feat(1.5): button, input, card components"
-```
-
----
-
-## Prompt 1.6 - UI Components (Part 2)
-
-```
-I'm building Myjoe. Button, input, card components are done.
-
-Create more UI components in src/components/ui/:
-
-1. skeleton.tsx
-- Animated placeholder for loading states
-- Use animate-pulse with subtle shimmer effect
-- Variants: text (h-4 rounded), title (h-6 rounded), image (aspect-[3/4] rounded-lg), card
-- Add shimmer gradient animation for premium feel:
-  background: linear-gradient(90deg, #1a1a1a 25%, #262626 50%, #1a1a1a 75%)
-  animation: shimmer 1.5s infinite
-
-2. toast.tsx (using sonner library)
-- Install: npm install sonner
-- Create Toaster component to add to layout
-- Export toast function
-- Styles: dark theme, rounded-lg, border-zinc-800
-- Variants: success (green), error (red), info (blue)
-
-3. tooltip.tsx
-- Simple hover tooltip
-- Dark background (bg-zinc-800), small text
-- Position: top by default
-- Delay: 200ms before showing
-
-4. dialog.tsx (modal)
-- Backdrop: bg-black/60 backdrop-blur-sm
-- Content: bg-zinc-900 rounded-lg border-zinc-800 shadow-modal
-- Close button in top-right
-- Trap focus inside modal
-- Close on Escape key
-
-5. accordion.tsx
-- For collapsible sections in inspector panel
-- Header with ChevronDown icon that rotates
-- Smooth height transition
-- Border bottom between items
-
-6. tabs.tsx
-- Horizontal tabs for panel navigation
-- Active: text-white border-b-2 border-blue-500
-- Inactive: text-zinc-400 hover:text-white
-- No background, just underline indicator
-
-Generate all 6 files.
-```
-
-```bash
-git add . && git commit -m "feat(1.6): skeleton, toast, tooltip, dialog, accordion, tabs"
-```
-
----
-
-## Prompt 1.7 - Global Layout
-
-```
-I'm building Myjoe. UI components are done.
-
-Create the global layout structure with FLUID 3-COLUMN LAYOUT:
-
-1. Create src/app/globals.css:
-- Import Tailwind directives
-- Add Inter font from Google Fonts
-- Body: bg-[#0D0D0D] text-white
-- Add shimmer keyframe animation
-- Set min-width: 1024px on body
-
-2. Create src/components/layout/header.tsx:
-- Fixed header: h-14 (56px), bg-zinc-900/80 backdrop-blur-sm
-- Logo on left
-- Nav links center (optional)
-- Right side: Auto-save indicator, Blot balance (🎨 icon + number), User menu
-- Auto-save shows: "Saving..." with spinner, "Saved" with cloud icon, or error state
-
-3. Create src/components/layout/sidebar.tsx (Left Panel):
-- Width: w-[300px] (300px default)
-- Collapsible via toggle button
-- Contains tabs at top: Pages | Assets | History
-- Scrollable content area below tabs
-- Sticky at full viewport height
-
-4. Create src/components/layout/inspector.tsx (Right Panel):
-- Width: w-[360px] (360px default)
-- Collapsible via toggle button
-- Context-sensitive content using accordion sections
-- Sticky at full viewport height
-
-5. Create src/app/(studio)/layout.tsx:
-- Import header, sidebar, inspector
-- FLUID 3-column grid layout:
-  grid-template-columns: auto 1fr auto
-- Main content fills remaining space (min-w-[400px])
-- Full viewport height: h-screen
-- Panels can be toggled via state
-
-RESPONSIVE BEHAVIOR:
-- ≥1440px: All panels visible
-- 1280-1439px: All visible, tighter spacing  
-- 1024-1279px: Right panel auto-collapses to overlay
-- <1024px: Show "Desktop required" message
-
-Generate all these files.
-```
-
-**After completing: Verify layout renders at localhost:3000, then commit:**
-```bash
-git add .
-git commit -m "feat(1.7): global styles and fluid 3-column studio layout"
-git tag -a v0.1 -m "Phase 1 complete: Foundation"
-git push origin main --tags
-```
-
----
-
-# PHASE 2: AUTHENTICATION
-
----
-
-## Prompt 2.1 - Supabase Clients
-
-```
-I'm building Myjoe. Phase 1 (Foundation) is complete.
 
 Create Supabase client utilities:
 
@@ -509,18 +378,122 @@ Create Supabase client utilities:
 Generate these files with proper TypeScript types.
 ```
 
-**After completing: Test import works, then commit:**
 ```bash
-git add .
-git commit -m "feat(2.1): supabase client utilities"
+git add . && git commit -m "feat(1.5): supabase client utilities"
 ```
 
 ---
 
-## Prompt 2.2 - Auth Middleware
+## Prompt 1.6 - UI Primitives
 
 ```
-I'm building Myjoe. Supabase clients are set up.
+I'm building Myjoe. Supabase clients are ready.
+
+Create UI component primitives:
+
+1. src/components/ui/button.tsx
+- Variants: primary, secondary, outline, ghost, danger
+- Sizes: sm, md, lg
+- States: loading (with spinner), disabled
+- Use class-variance-authority pattern
+- Dark theme colors
+
+2. src/components/ui/input.tsx
+- Label support
+- Error state with message
+- Disabled state
+- Dark theme: bg-zinc-900 border-zinc-800
+
+3. src/components/ui/card.tsx
+- Standard card wrapper
+- bg-zinc-900 border-zinc-800 rounded-lg
+
+4. src/components/ui/skeleton.tsx
+- Shimmer animation for loading states
+- bg-zinc-800 with shimmer gradient
+
+5. src/components/ui/toast.tsx
+- Toast notification system
+- Variants: success, error, warning, info
+- Auto-dismiss with progress
+
+6. src/components/ui/badge.tsx
+- Small status badges
+- Variants: default, success, warning, error, info
+
+All components should be dark theme by default.
+Use Tailwind classes, no external CSS.
+
+Generate all files.
+```
+
+```bash
+git add . && git commit -m "feat(1.6): UI primitives"
+```
+
+---
+
+## Prompt 1.7 - Global Styles & Layout
+
+```
+I'm building Myjoe. UI primitives are done.
+
+Create global styles and studio layout:
+
+1. src/app/globals.css
+- Dark theme variables
+- Skeleton shimmer animation
+- Focus ring styles
+- Scrollbar styling
+
+2. src/app/layout.tsx
+- Root layout with Inter font
+- Dark theme body
+- Providers wrapper
+
+3. src/app/(studio)/layout.tsx
+- Fluid 3-column layout using CSS Grid
+- Left sidebar (300px, collapsible)
+- Center content (fluid, min 400px)
+- Right panel (360px, collapsible)
+- Header with Blot balance
+
+4. src/components/layout/header.tsx
+- Logo (text: "Myjoe")
+- Navigation links
+- Blot balance display (🎨 847)
+- User menu placeholder
+
+5. src/components/layout/sidebar.tsx
+- Navigation: Projects, Library, Billing, Settings
+- Active state styling
+- Icons from Lucide
+
+CSS Grid for layout:
+grid-template-columns: auto 1fr auto
+Each panel can collapse to 0
+
+Generate all these files.
+```
+
+**After completing: Verify layout renders at localhost:3000, then commit:**
+```bash
+git add .
+git commit -m "feat(1.7): global styles and fluid 3-column studio layout"
+git tag -a v0.1 -m "Phase 1 complete: Foundation"
+git push origin main --tags
+```
+
+---
+
+# PHASE 2: AUTHENTICATION
+
+---
+
+## Prompt 2.1 - Auth Middleware
+
+```
+I'm building Myjoe. Phase 1 (Foundation) is complete.
 
 Create authentication middleware:
 
@@ -552,15 +525,13 @@ LOGIC:
 Generate these files.
 ```
 
-**After completing: Test middleware redirects, then commit:**
 ```bash
-git add .
-git commit -m "feat(2.2): auth middleware with route protection"
+git add . && git commit -m "feat(2.1): auth middleware with route protection"
 ```
 
 ---
 
-## Prompt 2.3 - Login Page
+## Prompt 2.2 - Login Page
 
 ```
 I'm building Myjoe. Auth middleware is set up.
@@ -570,7 +541,7 @@ Create the login page at src/app/(auth)/login/page.tsx:
 LAYOUT:
 - Centered card on dark background (#0D0D0D)
 - Card: bg-zinc-900, max-w-md, p-8, rounded-lg
-- Logo at top (placeholder or text "Myjoe")
+- Logo at top (text "Myjoe" styled)
 - "Welcome to Myjoe" heading (text-2xl font-semibold)
 - Subtext: "Create beautiful coloring books with AI" (text-zinc-400)
 
@@ -601,15 +572,13 @@ Also create src/app/(auth)/layout.tsx:
 Generate both files.
 ```
 
-**After completing: Test Google OAuth button works, then commit:**
 ```bash
-git add .
-git commit -m "feat(2.3): login page with Google and magic link"
+git add . && git commit -m "feat(2.2): login page with Google and magic link"
 ```
 
 ---
 
-## Prompt 2.4 - Auth Callback
+## Prompt 2.3 - Auth Callback
 
 ```
 I'm building Myjoe. Login page is done.
@@ -634,15 +603,13 @@ Make sure to use the request origin for redirect URLs.
 Generate the route handler file.
 ```
 
-**After completing: Test full OAuth flow, then commit:**
 ```bash
-git add .
-git commit -m "feat(2.4): OAuth callback handler"
+git add . && git commit -m "feat(2.3): OAuth callback handler"
 ```
 
 ---
 
-## Prompt 2.5 - User Session Hook
+## Prompt 2.4 - User Session Hook
 
 ```
 I'm building Myjoe. Auth callback is working.
@@ -676,15 +643,13 @@ Create user session management:
 Generate all these files.
 ```
 
-**After completing: Test user menu works, then commit:**
 ```bash
-git add .
-git commit -m "feat(2.5): user session and profile hooks"
+git add . && git commit -m "feat(2.4): user session and profile hooks"
 ```
 
 ---
 
-## Prompt 2.6 - Auth Testing & Cleanup
+## Prompt 2.5 - Auth Flow Completion
 
 ```
 I'm building Myjoe. User session is working.
@@ -720,7 +685,7 @@ Generate the files and confirm auth flow is complete.
 **After completing: Full auth test, then commit and tag:**
 ```bash
 git add .
-git commit -m "feat(2.6): auth flow complete"
+git commit -m "feat(2.5): auth flow complete"
 git tag -a v0.2 -m "Phase 2 complete: Authentication"
 git push origin main --tags
 ```
@@ -730,10 +695,8 @@ git push origin main --tags
 # REMAINING PHASES
 
 Continue to Phase 3 in `prompts/PROMPTS_3-6.md`.
-Each prompt follows the same pattern:
-- Self-contained with full context
-- Specifies exact files to create
-- Includes the git commit command
+
+**IMPORTANT:** If you're upgrading an existing codebase at Phase 5, use the special `PROMPT_5.2a_UPGRADE.md` first!
 
 ---
 

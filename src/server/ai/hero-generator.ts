@@ -55,5 +55,9 @@ export async function generateHeroSheet(compiledPrompt: string): Promise<Buffer>
     response_format: 'b64_json',
   });
   
-  return Buffer.from(response.data[0].b64_json!, 'base64');
+  if (!response.data?.[0]?.b64_json) {
+    throw new Error('OpenAI returned empty or invalid response');
+  }
+  
+  return Buffer.from(response.data[0].b64_json, 'base64');
 }

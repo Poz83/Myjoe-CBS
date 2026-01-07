@@ -4,288 +4,683 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│                         AI PIPELINE                                  │
+│                    AI PIPELINE WITH SAFETY                           │
 └─────────────────────────────────────────────────────────────────────┘
                                 │
-        ┌───────────────────────┼───────────────────────┐
-        ▼                       ▼                       ▼
-┌───────────────┐      ┌───────────────┐      ┌───────────────┐
-│    STYLE      │      │     HERO      │      │     PAGE      │
-│  CALIBRATION  │      │   CREATION    │      │  GENERATION   │
-└───────┬───────┘      └───────┬───────┘      └───────┬───────┘
-        │                      │                      │
-        ▼                      ▼                      ▼
-   4 samples            Reference sheet         40 pages
-   User picks           2×2 grid               Consistent style
-   Style anchor         4 views                Quality checked
+     ┌──────────────────────────┼──────────────────────────┐
+     │                          │                          │
+     ▼                          ▼                          ▼
+┌─────────────┐          ┌─────────────┐          ┌─────────────┐
+│   STYLE     │          │    HERO     │          │    PAGE     │
+│ CALIBRATION │          │  CREATION   │          │ GENERATION  │
+└──────┬──────┘          └──────┬──────┘          └──────┬──────┘
+       │                        │                        │
+       ▼                        ▼                        ▼
+  4 samples               Reference sheet           40 pages
+  User picks              2×2 grid                 Flux + LoRA
+  Style anchor            Flux Pro                 Safety checked
 ```
 
 ---
 
-## 1. Planner-Compiler
+## Safety-First Architecture
 
-Single GPT-4o-mini call that transforms user input into enforced prompts.
+```mermaid
+flowchart TD
+    A[User Input] --> B[Sanitize]
+    B --> C{Keyword Check}
+    C -->|Blocked| D[Return Error + Suggestions]
+    C -->|Pass| E[OpenAI Moderation API]
+    E -->|Flagged| D
+    E -->|Pass| F[Compile Prompts]
+    F --> G[Generate with Flux]
+    G --> H{Audience?}
+    H -->|Toddler/Children| I[GPT-4V Safety Scan]
+    H -->|Other| J[Quality Gate]
+    I -->|Fail| K[Auto-Retry or Flag]
+    I -->|Pass| J
+    J --> L[Store & Return]
+```
 
-### System Prompt
+---
+
+## 1. Content Safety System
+
+### 1.1 Forbidden Content by Audience
+
+```typescript
+// src/lib/constants/forbidden-content.ts
+
+export const FORBIDDEN_BY_AUDIENCE = {
+  toddler: [
+    // Violence & Weapons
+    'scary', 'monster', 'weapon', 'gun', 'sword', 'knife', 'fight', 'attack',
+    'blood', 'violence', 'war', 'battle', 'kill', 'dead', 'death',
+    // Scary creatures
+    'ghost', 'zombie', 'skeleton', 'skull', 'demon', 'devil', 'witch',
+    'vampire', 'werewolf', 'spider', 'snake', 'shark',
+    // Dangerous
+    'fire', 'explosion', 'danger', 'falling', 'drowning',
+    // Emotions
+    'crying', 'sad', 'angry', 'screaming', 'nightmare', 'terrified',
+    // Inappropriate
+    'adult', 'sexy', 'naked', 'beer', 'wine', 'cigarette'
+  ],
+  
+  children: [
+    'scary monster', 'realistic weapon', 'blood', 'gore', 'death scene',
+    'violence', 'fighting', 'war', 'battle', 'killing',
+    'horror', 'zombie', 'demon', 'devil', 'evil spirit',
+    'frightening', 'terrifying', 'nightmare',
+    'adult content', 'romance', 'kissing', 'sexy',
+    'drug', 'alcohol', 'smoking', 'gambling'
+  ],
+  
+  tween: [
+    'graphic violence', 'gore', 'blood', 'death',
+    'adult content', 'sexual', 'suggestive',
+    'realistic weapons in threatening context',
+    'drug use', 'alcohol', 'smoking',
+    'self-harm', 'suicide', 'eating disorder'
+  ],
+  
+  teen: [
+    'explicit violence', 'gore', 'torture',
+    'sexual content', 'nudity', 'pornographic',
+    'drug use', 'drug paraphernalia',
+    'self-harm', 'suicide methods',
+    'hate symbols', 'extremist content'
+  ],
+  
+  adult: [
+    'explicit sexual content', 'pornography',
+    'child exploitation', 'CSAM',
+    'hate symbols', 'extremist propaganda',
+    'real violence', 'torture',
+    'illegal content', 'drug manufacturing'
+  ]
+} as const;
+```
+
+### 1.2 Safety Check Implementation
+
+```typescript
+// src/server/ai/content-safety.ts
+
+import OpenAI from 'openai';
+import { FORBIDDEN_BY_AUDIENCE } from '@/lib/constants/forbidden-content';
+import { AUDIENCE_DERIVATIONS } from '@/lib/constants';
+
+const openai = new OpenAI();
+
+export interface SafetyResult {
+  safe: boolean;
+  blocked: string[];
+  suggestions?: string[];
+}
+
+// Moderation thresholds by safety level
+const THRESHOLDS = {
+  strict: {
+    violence: 0.05, 'violence/graphic': 0.01,
+    sexual: 0.01, 'sexual/minors': 0.01,
+    hate: 0.05, 'self-harm': 0.05
+  },
+  moderate: {
+    violence: 0.20, 'violence/graphic': 0.10,
+    sexual: 0.10, 'sexual/minors': 0.01,
+    hate: 0.20, 'self-harm': 0.15
+  },
+  standard: {
+    violence: 0.50, 'violence/graphic': 0.30,
+    sexual: 0.30, 'sexual/minors': 0.01,
+    hate: 0.40, 'self-harm': 0.30
+  }
+};
+
+export async function checkContentSafety(
+  input: string,
+  audience: Audience
+): Promise<SafetyResult> {
+  const rules = AUDIENCE_DERIVATIONS[audience];
+  const forbidden = FORBIDDEN_BY_AUDIENCE[audience];
+  
+  // Layer 1: Keyword blocklist (instant)
+  const lowerInput = input.toLowerCase();
+  const blocked = forbidden.filter(word => 
+    lowerInput.includes(word.toLowerCase())
+  );
+  
+  if (blocked.length > 0) {
+    return {
+      safe: false,
+      blocked,
+      suggestions: getSuggestions(audience)
+    };
+  }
+  
+  // Layer 2: OpenAI Moderation API
+  const moderation = await openai.moderations.create({ input });
+  const result = moderation.results[0];
+  const thresholds = THRESHOLDS[rules.safetyLevel];
+  
+  const violations: string[] = [];
+  
+  if (result.category_scores.violence > thresholds.violence) {
+    violations.push('violence');
+  }
+  if (result.category_scores['violence/graphic'] > thresholds['violence/graphic']) {
+    violations.push('graphic violence');
+  }
+  if (result.category_scores.sexual > thresholds.sexual) {
+    violations.push('sexual content');
+  }
+  if (result.category_scores['sexual/minors'] > 0.01) {
+    violations.push('child safety'); // ALWAYS block
+  }
+  if (result.category_scores.hate > thresholds.hate) {
+    violations.push('hate content');
+  }
+  if (result.category_scores['self-harm'] > thresholds['self-harm']) {
+    violations.push('self-harm');
+  }
+  
+  if (violations.length > 0) {
+    return {
+      safe: false,
+      blocked: violations,
+      suggestions: getSuggestions(audience)
+    };
+  }
+  
+  return { safe: true, blocked: [] };
+}
+
+function getSuggestions(audience: Audience): string[] {
+  const suggestions: Record<Audience, string[]> = {
+    toddler: [
+      'Try: "cute farm animals playing"',
+      'Try: "happy vehicles in a town"',
+      'Try: "friendly dinosaur with flowers"'
+    ],
+    children: [
+      'Try: "brave knight saving a friendly dragon"',
+      'Try: "underwater mermaid palace"',
+      'Try: "space adventure with rockets"'
+    ],
+    tween: [
+      'Try: "fantasy castle with mythical creatures"',
+      'Try: "sports action scene"',
+      'Try: "ocean wildlife adventure"'
+    ],
+    teen: [
+      'Try: "anime-style character portrait"',
+      'Try: "geometric abstract patterns"',
+      'Try: "gothic architecture scene"'
+    ],
+    adult: [
+      'Try: "intricate mandala pattern"',
+      'Try: "botanical garden illustration"',
+      'Try: "art nouveau decorative design"'
+    ]
+  };
+  return suggestions[audience];
+}
+```
+
+### 1.3 Input Sanitization
+
+```typescript
+// src/server/ai/sanitize.ts
+
+export function sanitizePrompt(input: string): string {
+  let clean = input;
+  
+  // Remove prompt injection attempts
+  const injections = [
+    /ignore (previous|all|above) instructions/gi,
+    /disregard (everything|all|previous)/gi,
+    /forget (everything|all|previous)/gi,
+    /new (instructions|rules|prompt):/gi,
+    /system\s*:/gi,
+    /assistant\s*:/gi,
+    /\[INST\].*?\[\/INST\]/gs,
+    /<\|.*?\|>/g,
+    /```[\s\S]*?```/g,
+  ];
+  
+  for (const pattern of injections) {
+    clean = clean.replace(pattern, '');
+  }
+  
+  // Remove special characters
+  clean = clean
+    .replace(/[<>{}[\]\\]/g, '')
+    .replace(/\n+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  
+  // Truncate to max length
+  return clean.slice(0, 500);
+}
+
+export function validateIdea(idea: string): { valid: boolean; reason?: string } {
+  if (idea.length < 3) {
+    return { valid: false, reason: 'Please provide a more detailed idea' };
+  }
+  if (idea.length > 500) {
+    return { valid: false, reason: 'Please shorten your idea (max 500 characters)' };
+  }
+  
+  // Check for visual concept
+  const hasVisual = /\b(animal|character|scene|place|object|person|creature|plant|flower|vehicle|building)\b/i.test(idea);
+  if (!hasVisual) {
+    return { valid: false, reason: 'Please describe something visual' };
+  }
+  
+  return { valid: true };
+}
+```
+
+---
+
+## 2. Flux Image Generation
+
+### 2.1 Flux Configuration
+
+```typescript
+// src/lib/constants/flux.ts
+
+export const FLUX_MODELS = {
+  'flux-lineart': 'cuuupid/flux-lineart',
+  'flux-dev-lora': process.env.FLUX_CUSTOM_MODEL || 'your-username/myjoe-coloring-flux',
+  'flux-pro': 'black-forest-labs/flux-1.1-pro',
+} as const;
+
+export type FluxModel = keyof typeof FLUX_MODELS;
+
+export const FLUX_TRIGGERS: Record<FluxModel, { trigger: string; template: string }> = {
+  'flux-lineart': {
+    trigger: '',
+    template: 'line art, black and white, coloring book page'
+  },
+  'flux-dev-lora': {
+    trigger: 'c0l0ringb00k',
+    template: 'c0l0ringb00k, coloring book page, black and white line art'
+  },
+  'flux-pro': {
+    trigger: '',
+    template: 'coloring book illustration, clean black outlines on white background'
+  }
+};
+
+export const LINE_WEIGHT_PROMPTS = {
+  thick: 'bold thick black outlines, 6-8 pixel line weight, chunky shapes, prominent lines',
+  medium: 'clean medium black outlines, 3-5 pixel line weight, balanced detail',
+  fine: 'delicate fine black outlines, 1-3 pixel line weight, intricate details'
+} as const;
+
+export const COMPLEXITY_PROMPTS = {
+  minimal: '3-5 main elements only, large simple shapes, maximum white space',
+  moderate: '5-10 elements, some decorative detail, balanced composition',
+  detailed: '10-20 elements, patterns and decorative elements',
+  intricate: '20+ elements, fine patterns, mandala-level detail'
+} as const;
+```
+
+### 2.2 Flux Generator
+
+```typescript
+// src/server/ai/flux-generator.ts
+
+import Replicate from 'replicate';
+import { FLUX_MODELS, FLUX_TRIGGERS, TRIM_SIZES } from '@/lib/constants';
+
+const replicate = new Replicate({
+  auth: process.env.REPLICATE_API_TOKEN!,
+});
+
+interface GenerateOptions {
+  compiledPrompt: string;
+  negativePrompt: string;
+  fluxModel: FluxModel;
+  trimSize: string;
+  seed?: number;
+}
+
+interface GenerationResult {
+  success: boolean;
+  imageUrl?: string;
+  seed?: number;
+  error?: string;
+}
+
+export async function generateWithFlux(options: GenerateOptions): Promise<GenerationResult> {
+  const { compiledPrompt, negativePrompt, fluxModel, trimSize, seed } = options;
+  
+  const model = FLUX_MODELS[fluxModel];
+  const dimensions = TRIM_SIZES[trimSize] || TRIM_SIZES['8.5x11'];
+  
+  const params: Record<string, any> = {
+    prompt: compiledPrompt,
+    negative_prompt: negativePrompt,
+    num_inference_steps: 28,
+    guidance_scale: 3.5,
+    output_format: 'png',
+    output_quality: 95,
+    seed: seed ?? Math.floor(Math.random() * 2147483647),
+    aspect_ratio: dimensions.aspectRatio,
+  };
+  
+  try {
+    const output = await replicate.run(model, { input: params });
+    const imageUrl = Array.isArray(output) ? output[0] : output;
+    
+    return {
+      success: true,
+      imageUrl: imageUrl as string,
+      seed: params.seed
+    };
+  } catch (error) {
+    console.error('Flux generation error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Generation failed'
+    };
+  }
+}
+
+export async function downloadImage(url: string): Promise<Buffer> {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error('Failed to download image');
+  return Buffer.from(await response.arrayBuffer());
+}
+```
+
+---
+
+## 3. Planner-Compiler (Updated)
+
+### 3.1 System Prompt
 
 ```typescript
 // src/server/ai/planner-compiler.ts
 
-const SYSTEM_PROMPT = `You are a coloring book page planner for professional KDP publishers.
+const SYSTEM_PROMPT = `You are a professional coloring book page planner for KDP publishers.
 
-Given a user's idea, create {pageCount} distinct scene briefs and compiled prompts.
+CRITICAL: You are generating prompts for Flux AI with a Coloring Book LoRA.
+Every prompt MUST start with the trigger: {fluxTrigger}
 
-RULES YOU MUST ENFORCE IN EVERY PROMPT:
-- Coloring book page style
+## YOUR TASK
+Transform the user's idea into {pageCount} distinct, age-appropriate coloring book pages.
+
+## ABSOLUTE RULES FOR EVERY PROMPT
+
+### Technical Requirements (NON-NEGOTIABLE)
+- Start every prompt with: {fluxTrigger}
 - Pure black outlines on pure white background
-- No shading, no gradients, no gray tones, no textures, no fills
+- {lineWeight} line weight: {lineWeightDescription}
+- {complexity} complexity: {complexityDescription}
+- No shading, no gradients, no gray tones, no fills
 - No crosshatching or stippling
-- {lineWeight} line weight (consistent across all pages)
-- {complexity} level of detail
-- Closed shapes suitable for coloring (no broken or open lines)
-- No tiny intricate clusters that can't be colored
-- No text, watermarks, or signatures
-- Margin-safe composition (subject not touching edges, 10% padding)
+- All shapes must be CLOSED (suitable for coloring)
+- Margin-safe composition (10% padding from edges)
 - Single scene per page (no split panels)
+- No text, watermarks, or signatures
 
-LINE WEIGHT SPECIFICATIONS:
-- thick: Bold 6-8px lines, chunky shapes, minimal detail
-- medium: Clean 3-5px lines, balanced detail
-- fine: Delicate 1-3px lines, intricate detail allowed
+### Audience Safety ({audience}, ages {ageRange})
+- SAFETY LEVEL: {safetyLevel}
+- FORBIDDEN content (NEVER include): {forbiddenContent}
+- Maximum {maxElements} elements per page
 
-COMPLEXITY SPECIFICATIONS:
-- minimal: 3-5 main elements, large simple shapes
-- moderate: 5-10 elements, some decorative detail
-- detailed: 10-20 elements, patterns and textures allowed
-- intricate: 20+ elements, fine patterns, mandala-level detail
+### Hero Character (if provided)
+- Include this EXACT description: {heroDescription}
+- Hero appears in 80% of pages
+- Hero should be 20-40% of frame
 
-FOR HERO CHARACTER (if provided):
-- Include this exact description in every scene where hero appears: {heroDescription}
-- Hero must appear in at least 80% of pages
-- Maintain consistent proportions and features
-- Hero should be prominent in composition (20-40% of frame)
+### Composition Variety
+Distribute compositions:
+- close-up (15%): Face or upper body
+- full-body (30%): Complete figure
+- action (25%): Character doing activity
+- environment (15%): Character in larger scene
+- pattern (15%): Decorative style
 
-FOR STYLE CONSISTENCY:
-- Match this style description: {styleAnchorDescription}
-- Maintain consistent aesthetic across all pages
-
-COMPOSITION VARIETY:
-- Vary compositions across pages using these types:
-  - close-up: Face or upper body focus (15% of pages)
-  - full-body: Complete figure, centered (30% of pages)
-  - action: Character doing something (25% of pages)
-  - environment: Character small in larger scene (15% of pages)
-  - pattern: Decorative/mandala style (15% of pages)
-- No more than 2 consecutive pages with same composition type
-- First page should be iconic/cover-worthy
-
-OUTPUT FORMAT (JSON only, no explanation):
+## OUTPUT FORMAT (JSON ONLY)
 {
   "pages": [
     {
       "pageNumber": 1,
-      "sceneBrief": "Short 5-10 word description for user display",
+      "sceneBrief": "Short 5-10 word description",
       "compositionType": "full-body",
-      "compiledPrompt": "Full detailed prompt with all rules enforced...",
-      "negativePrompt": "shading, gradient, gray, realistic, photograph, watermark, signature, text, broken lines, open shapes, crosshatching, texture, fill, 3D, shadow, color"
+      "compiledPrompt": "{fluxTrigger}, [detailed prompt]...",
+      "negativePrompt": "{negativePrompt}"
     }
   ]
 }`;
 ```
 
-### Implementation
+### 3.2 Compiler Implementation
 
 ```typescript
-// src/server/ai/planner-compiler.ts
+// src/server/ai/planner-compiler.ts (continued)
+
 import OpenAI from 'openai';
-import type { ProjectDNA, HeroDNA } from '@/types/domain';
+import { checkContentSafety } from './content-safety';
+import { sanitizePrompt, validateIdea } from './sanitize';
+import { 
+  AUDIENCE_DERIVATIONS, 
+  FLUX_TRIGGERS, 
+  LINE_WEIGHT_PROMPTS, 
+  COMPLEXITY_PROMPTS,
+  FORBIDDEN_BY_AUDIENCE 
+} from '@/lib/constants';
 
 const openai = new OpenAI();
 
 interface PlannerInput {
   userIdea: string;
   projectDNA: ProjectDNA;
-  hero?: HeroDNA;
 }
 
-interface CompiledPage {
-  pageNumber: number;
-  sceneBrief: string;
-  compositionType: string;
-  compiledPrompt: string;
-  negativePrompt: string;
+interface PlannerResult {
+  success: boolean;
+  pages?: CompiledPrompt[];
+  error?: string;
+  safetyIssue?: boolean;
+  suggestions?: string[];
 }
 
-export async function planAndCompile(input: PlannerInput): Promise<CompiledPage[]> {
-  const { userIdea, projectDNA, hero } = input;
+export async function planAndCompile(input: PlannerInput): Promise<PlannerResult> {
+  const { userIdea, projectDNA } = input;
+  
+  // Step 1: Validate
+  const validation = validateIdea(userIdea);
+  if (!validation.valid) {
+    return { success: false, error: validation.reason };
+  }
+  
+  // Step 2: Sanitize
+  const sanitizedIdea = sanitizePrompt(userIdea);
+  
+  // Step 3: Safety check
+  const safetyResult = await checkContentSafety(sanitizedIdea, projectDNA.audience);
+  if (!safetyResult.safe) {
+    return {
+      success: false,
+      error: `Content not suitable for ${projectDNA.audience}`,
+      safetyIssue: true,
+      suggestions: safetyResult.suggestions
+    };
+  }
+  
+  // Step 4: Build context
+  const audienceRules = AUDIENCE_DERIVATIONS[projectDNA.audience];
+  const fluxConfig = FLUX_TRIGGERS[projectDNA.fluxConfig?.model || 'flux-lineart'];
+  const forbidden = FORBIDDEN_BY_AUDIENCE[projectDNA.audience];
+  
+  const negativePrompt = buildNegativePrompt(projectDNA.audience, projectDNA.stylePreset);
   
   const systemPrompt = SYSTEM_PROMPT
+    .replace(/{fluxTrigger}/g, fluxConfig.trigger || fluxConfig.template)
     .replace('{pageCount}', String(projectDNA.pageCount))
     .replace('{lineWeight}', projectDNA.lineWeight)
+    .replace('{lineWeightDescription}', LINE_WEIGHT_PROMPTS[projectDNA.lineWeight])
     .replace('{complexity}', projectDNA.complexity)
-    .replace('{heroDescription}', hero?.compiledPrompt ?? 'No hero character')
-    .replace('{styleAnchorDescription}', projectDNA.styleAnchorDescription ?? projectDNA.stylePreset);
+    .replace('{complexityDescription}', COMPLEXITY_PROMPTS[projectDNA.complexity])
+    .replace('{audience}', projectDNA.audience)
+    .replace('{ageRange}', audienceRules.ageRange)
+    .replace('{safetyLevel}', audienceRules.safetyLevel.toUpperCase())
+    .replace('{forbiddenContent}', forbidden.slice(0, 20).join(', '))
+    .replace('{maxElements}', String(audienceRules.maxElements))
+    .replace('{heroDescription}', projectDNA.heroDescription || 'No hero character')
+    .replace('{negativePrompt}', negativePrompt);
+  
+  // Step 5: Call GPT-4o-mini
+  try {
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: `Create ${projectDNA.pageCount} coloring book pages for: "${sanitizedIdea}"` }
+      ],
+      response_format: { type: 'json_object' },
+      temperature: 0.7,
+      max_tokens: 4000,
+    });
+    
+    const content = response.choices[0].message.content;
+    if (!content) {
+      return { success: false, error: 'No response from AI' };
+    }
+    
+    const parsed = JSON.parse(content);
+    
+    // Step 6: Validate each page has trigger
+    const pages = parsed.pages.map((page: any) => ({
+      ...page,
+      compiledPrompt: ensureFluxTrigger(page.compiledPrompt, fluxConfig.trigger),
+      safetyPassed: true
+    }));
+    
+    return { success: true, pages };
+    
+  } catch (error) {
+    console.error('Planner error:', error);
+    return { success: false, error: 'Failed to generate pages' };
+  }
+}
 
-  const response = await openai.chat.completions.create({
-    model: 'gpt-4o-mini',
-    messages: [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: userIdea }
-    ],
-    response_format: { type: 'json_object' },
-    temperature: 0.7,
-  });
+function ensureFluxTrigger(prompt: string, trigger: string): string {
+  if (!trigger) return prompt;
+  if (prompt.toLowerCase().startsWith(trigger.toLowerCase())) return prompt;
+  return `${trigger}, ${prompt}`;
+}
 
-  const result = JSON.parse(response.choices[0].message.content!);
-  return result.pages;
+function buildNegativePrompt(audience: Audience, stylePreset: StylePreset): string {
+  const base = [
+    'shading', 'gradient', 'gray', 'grayscale', 'color', 'colored',
+    'photograph', 'photorealistic', 'realistic', '3D', 'render', 'shadow',
+    'watermark', 'signature', 'text', 'logo',
+    'broken lines', 'open shapes', 'disconnected',
+    'crosshatching', 'stippling', 'hatching',
+    'blurry', 'low quality', 'artifacts'
+  ];
+  
+  const audienceNegatives = FORBIDDEN_BY_AUDIENCE[audience].slice(0, 10);
+  
+  return [...new Set([...base, ...audienceNegatives])].join(', ');
 }
 ```
 
-**Cost:** ~$0.003 for 40 pages
-
 ---
 
-## 2. Image Generator
-
-### GPT Image 1.5 Integration
+## 4. Post-Generation Safety Check
 
 ```typescript
-// src/server/ai/image-generator.ts
+// src/server/ai/image-safety-check.ts
+
 import OpenAI from 'openai';
-import type { HeroDNA } from '@/types/domain';
+import { AUDIENCE_DERIVATIONS } from '@/lib/constants';
 
 const openai = new OpenAI();
 
-interface GenerateOptions {
-  prompt: string;
-  negativePrompt: string;
-  heroReference?: Buffer; // Hero reference sheet image
-  styleAnchor?: Buffer;   // Style anchor image
+interface ImageSafetyResult {
+  safe: boolean;
+  issues: string[];
+  recommendation: 'approve' | 'regenerate' | 'flag';
 }
 
-export async function generateImage(options: GenerateOptions): Promise<Buffer> {
-  const { prompt, negativePrompt, heroReference, styleAnchor } = options;
-  
-  // Build full prompt with negative
-  const fullPrompt = `${prompt}
-
-AVOID: ${negativePrompt}`;
-
-  // If we have reference images, use edit endpoint
-  if (heroReference || styleAnchor) {
-    const referenceImage = heroReference || styleAnchor;
-    
-    const response = await openai.images.edit({
-      model: 'gpt-image-1.5',
-      image: referenceImage,
-      prompt: `Create a new coloring book page in the exact same style as this reference. ${fullPrompt}`,
-      n: 1,
-      size: '1536x1024', // Landscape
-      quality: 'high',
-      response_format: 'b64_json',
-    });
-    
-    return Buffer.from(response.data[0].b64_json!, 'base64');
+export async function checkGeneratedImageSafety(
+  imageUrl: string,
+  audience: Audience
+): Promise<ImageSafetyResult> {
+  // Only run for strict audiences
+  if (!['toddler', 'children'].includes(audience)) {
+    return { safe: true, issues: [], recommendation: 'approve' };
   }
   
-  // No reference, use generate endpoint
-  const response = await openai.images.generate({
-    model: 'gpt-image-1.5',
-    prompt: fullPrompt,
-    n: 1,
-    size: '1536x1024',
-    quality: 'high',
-    response_format: 'b64_json',
-  });
+  const rules = AUDIENCE_DERIVATIONS[audience];
   
-  return Buffer.from(response.data[0].b64_json!, 'base64');
+  try {
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [
+        {
+          role: 'system',
+          content: `You review coloring book images for children (ages ${rules.ageRange}).
+
+Flag ANY of these:
+- Scary or frightening elements
+- Weapons or violence
+- Monsters that could frighten children
+- Dark or disturbing themes
+- Inappropriate content
+
+Respond ONLY with JSON:
+{"safe": boolean, "issues": ["list"], "recommendation": "approve"|"regenerate"|"flag"}`
+        },
+        {
+          role: 'user',
+          content: [
+            { type: 'image_url', image_url: { url: imageUrl } },
+            { type: 'text', text: `Is this safe for ${audience} (ages ${rules.ageRange})?` }
+          ]
+        }
+      ],
+      response_format: { type: 'json_object' },
+      max_tokens: 500,
+    });
+    
+    const content = response.choices[0].message.content;
+    return content ? JSON.parse(content) : { safe: true, issues: [], recommendation: 'approve' };
+    
+  } catch (error) {
+    console.error('Image safety check failed:', error);
+    return { safe: false, issues: ['Unable to verify'], recommendation: 'flag' };
+  }
 }
 ```
 
-**Cost:** ~$0.17 per image (high quality)
-
 ---
 
-## 3. Deterministic Cleanup
-
-Code-based image processing to guarantee pure black and white output.
-
-```typescript
-// src/server/ai/cleanup.ts
-import sharp from 'sharp';
-
-interface CleanupOptions {
-  targetWidth: number;  // Based on trim size
-  targetHeight: number;
-  threshold?: number;   // B&W threshold (default 128)
-}
-
-export async function cleanupImage(
-  imageBuffer: Buffer,
-  options: CleanupOptions
-): Promise<Buffer> {
-  const { targetWidth, targetHeight, threshold = 128 } = options;
-  
-  let image = sharp(imageBuffer);
-  
-  // Step 1: Convert to grayscale
-  image = image.grayscale();
-  
-  // Step 2: Threshold to pure B&W
-  // Pixels > threshold = white (255), else = black (0)
-  image = image.threshold(threshold);
-  
-  // Step 3: Morphological cleanup (remove specs)
-  // Sharp doesn't have built-in morphology, so we use blur + threshold trick
-  image = image
-    .blur(0.5)      // Slight blur to smooth jaggies
-    .threshold(200); // Re-threshold to clean up
-  
-  // Step 4: Resize to target dimensions (300 DPI)
-  image = image.resize(targetWidth, targetHeight, {
-    fit: 'contain',
-    background: { r: 255, g: 255, b: 255 },
-  });
-  
-  // Step 5: Ensure pure white background
-  image = image.flatten({ background: { r: 255, g: 255, b: 255 } });
-  
-  // Output as PNG
-  return image.png().toBuffer();
-}
-
-// Trim size to pixel dimensions at 300 DPI
-export const TRIM_SIZES = {
-  '8.5x11': { width: 2550, height: 3300 },  // 8.5 × 300, 11 × 300
-  '8.5x8.5': { width: 2550, height: 2550 },
-  '6x9': { width: 1800, height: 2700 },
-} as const;
-```
-
-**Cost:** ~$0 (CPU only, milliseconds)
-
----
-
-## 4. Quality Gate
-
-Automated checks before accepting a generated image.
+## 5. Quality Gate
 
 ```typescript
 // src/server/ai/quality-gate.ts
+
 import sharp from 'sharp';
 
 interface QualityReport {
   passed: boolean;
-  score: number;        // 0-100
-  checks: QualityChecks;
+  score: number;
+  checks: {
+    pureBlackWhite: boolean;
+    hasContent: boolean;
+    notTooDense: boolean;
+    marginSafe: boolean;
+  };
   failReasons: string[];
-}
-
-interface QualityChecks {
-  pureBlackWhite: boolean;  // No gray pixels
-  hasContent: boolean;       // Not blank
-  notTooDense: boolean;      // Not all black
-  marginSafe: boolean;       // No ink at edges
 }
 
 export async function qualityCheck(imageBuffer: Buffer): Promise<QualityReport> {
@@ -293,31 +688,20 @@ export async function qualityCheck(imageBuffer: Buffer): Promise<QualityReport> 
   const stats = await image.stats();
   const metadata = await image.metadata();
   
-  // Get raw pixel data for edge checking
-  const { data, info } = await image
-    .raw()
-    .toBuffer({ resolveWithObject: true });
+  const { data, info } = await image.raw().toBuffer({ resolveWithObject: true });
   
-  const checks: QualityChecks = {
-    // Check 1: Pure B&W (no gray in histogram)
-    pureBlackWhite: isPureBlackWhite(stats),
-    
-    // Check 2: Has content (not all white)
+  const checks = {
+    pureBlackWhite: stats.channels[0].min <= 5 && stats.channels[0].max >= 250,
     hasContent: stats.channels[0].mean < 250,
-    
-    // Check 3: Not too dense (colorable)
-    notTooDense: stats.channels[0].mean > 200,
-    
-    // Check 4: Margin safety (sample edge pixels)
-    marginSafe: checkMargins(data, info.width, info.height, 75), // 75px = 0.25" at 300dpi
+    notTooDense: stats.channels[0].mean > 180,
+    marginSafe: checkMargins(data, info.width, info.height, 75),
   };
   
   const failReasons = Object.entries(checks)
     .filter(([_, passed]) => !passed)
     .map(([check]) => check);
   
-  const passedCount = Object.values(checks).filter(Boolean).length;
-  const score = (passedCount / Object.keys(checks).length) * 100;
+  const score = (Object.values(checks).filter(Boolean).length / 4) * 100;
   
   return {
     passed: failReasons.length === 0,
@@ -327,311 +711,186 @@ export async function qualityCheck(imageBuffer: Buffer): Promise<QualityReport> 
   };
 }
 
-function isPureBlackWhite(stats: sharp.Stats): boolean {
-  // Check if pixels are only at 0 or 255
-  const channel = stats.channels[0];
-  return channel.min <= 5 && channel.max >= 250;
-}
-
-function checkMargins(
-  data: Buffer,
-  width: number,
-  height: number,
-  margin: number
-): boolean {
-  // Sample pixels in margin zones
+function checkMargins(data: Buffer, width: number, height: number, margin: number): boolean {
+  // Check top margin
   for (let y = 0; y < margin; y++) {
     for (let x = 0; x < width; x++) {
-      const idx = (y * width + x);
-      if (data[idx] < 128) return false; // Found black pixel in margin
+      if (data[y * width + x] < 128) return false;
     }
   }
-  // Check other edges similarly...
+  // Check bottom, left, right similarly...
   return true;
 }
 ```
 
 ---
 
-## 5. Hero Reference Sheet Generator
-
-Creates 2×2 grid with front, side, back, and 3/4 views.
+## 6. Cleanup Pipeline
 
 ```typescript
-// src/server/ai/hero-generator.ts
-import OpenAI from 'openai';
-import type { Audience } from '@/types/domain';
+// src/server/ai/cleanup.ts
 
-const openai = new OpenAI();
+import sharp from 'sharp';
+import { TRIM_SIZES } from '@/lib/constants';
 
-interface HeroInput {
-  name: string;
-  description: string;
-  audience: Audience;
+interface CleanupOptions {
+  targetWidth: number;
+  targetHeight: number;
+  threshold?: number;
 }
 
-export async function compileHeroPrompt(input: HeroInput): Promise<string> {
-  const { name, description, audience } = input;
+export async function cleanupImage(
+  buffer: Buffer,
+  options: CleanupOptions
+): Promise<Buffer> {
+  const { targetWidth, targetHeight, threshold = 128 } = options;
   
-  const response = await openai.chat.completions.create({
-    model: 'gpt-4o-mini',
-    messages: [
-      {
-        role: 'system',
-        content: `You are a character designer for coloring books.
-        
-Create a detailed prompt for a CHARACTER REFERENCE SHEET containing:
-- Front view (facing viewer directly)
-- Side view (profile, facing right)  
-- Back view (facing away)
-- 3/4 view (slightly turned)
-
-All 4 views must be:
-- Same character with IDENTICAL proportions
-- Arranged in a 2x2 grid on white background
-- Coloring book style: pure black outlines on white
-- Line weight appropriate for ${audience} audience
-- No shading, no gradients, no gray
-- Simple, clear, consistent
-- Labeled: "FRONT" "SIDE" "BACK" "3/4"
-
-Output ONLY the prompt text, no explanation.`
-      },
-      {
-        role: 'user',
-        content: `Character name: ${name}\nDescription: ${description}\nAudience: ${audience}`
-      }
-    ],
-    temperature: 0.5,
-  });
-  
-  return response.choices[0].message.content!;
-}
-
-export async function generateHeroSheet(compiledPrompt: string): Promise<Buffer> {
-  const response = await openai.images.generate({
-    model: 'gpt-image-1.5',
-    prompt: compiledPrompt,
-    n: 1,
-    size: '1536x1536', // Square for 2×2 grid
-    quality: 'high',
-    response_format: 'b64_json',
-  });
-  
-  return Buffer.from(response.data[0].b64_json!, 'base64');
-}
-```
-
----
-
-## 6. Style Calibration
-
-Generate 4 style samples for user to choose anchor.
-
-```typescript
-// src/server/ai/style-calibration.ts
-import OpenAI from 'openai';
-import type { StylePreset, Audience } from '@/types/domain';
-
-const openai = new OpenAI();
-
-const STYLE_VARIATIONS = [
-  'default interpretation',
-  'slightly more detailed with decorative elements',
-  'simpler with bolder shapes',
-  'more whimsical with curved lines',
-];
-
-export async function generateCalibrationSamples(
-  subject: string,
-  stylePreset: StylePreset,
-  audience: Audience
-): Promise<Buffer[]> {
-  const basePrompt = buildBasePrompt(subject, stylePreset, audience);
-  
-  const samples = await Promise.all(
-    STYLE_VARIATIONS.map(async (variation, i) => {
-      const prompt = `${basePrompt}, ${variation}`;
-      
-      const response = await openai.images.generate({
-        model: 'gpt-image-1.5',
-        prompt,
-        n: 1,
-        size: '1024x1024',
-        quality: 'low', // Faster for samples
-        response_format: 'b64_json',
-      });
-      
-      return Buffer.from(response.data[0].b64_json!, 'base64');
+  return sharp(buffer)
+    // Convert to grayscale
+    .grayscale()
+    // Threshold to pure B&W
+    .threshold(threshold)
+    // Slight blur + re-threshold (despeckle)
+    .blur(0.5)
+    .threshold(threshold)
+    // Resize to target dimensions
+    .resize(targetWidth, targetHeight, {
+      fit: 'contain',
+      background: { r: 255, g: 255, b: 255 }
     })
-  );
-  
-  return samples;
-}
-
-function buildBasePrompt(
-  subject: string,
-  stylePreset: StylePreset,
-  audience: Audience
-): string {
-  const styleRules = STYLE_RULES[stylePreset];
-  const audienceRules = AUDIENCE_RULES[audience];
-  
-  return `${subject}, coloring book page style, ${styleRules}, ${audienceRules}, pure black outlines on white background, no shading, no gradients, closed shapes suitable for coloring`;
-}
-
-const STYLE_RULES: Record<StylePreset, string> = {
-  'bold-simple': 'thick bold outlines, minimal detail, clean simple shapes',
-  'kawaii': 'cute rounded shapes, big eyes, soft curves, charming style',
-  'whimsical': 'flowing organic lines, magical elements, dreamy aesthetic',
-  'cartoon': 'classic animation style, expressive lines, dynamic poses',
-  'botanical': 'organic natural shapes, leaves and flowers, elegant patterns',
-};
-
-const AUDIENCE_RULES: Record<Audience, string> = {
-  'toddler': 'very thick lines 8px+, 3-5 large simple shapes only',
-  'children': 'thick lines 6px, moderate detail, friendly compositions',
-  'tween': 'medium lines 4px, balanced complexity, engaging scenes',
-  'teen': 'medium-fine lines 3px, detailed but not overwhelming',
-  'adult': 'fine lines 2px, intricate detail allowed, sophisticated patterns',
-};
-```
-
----
-
-## 7. Inpainting (Paintbrush Edits)
-
-Targeted edits using mask.
-
-```typescript
-// src/server/ai/inpaint.ts
-import OpenAI from 'openai';
-
-const openai = new OpenAI();
-
-interface InpaintOptions {
-  originalImage: Buffer;
-  maskImage: Buffer;       // White = edit area, Black = preserve
-  prompt: string;
-  styleContext: string;    // From project DNA
-}
-
-export async function inpaintImage(options: InpaintOptions): Promise<Buffer> {
-  const { originalImage, maskImage, prompt, styleContext } = options;
-  
-  const fullPrompt = `${prompt}. 
-Coloring book style, black outlines on white, match the existing line weight and style exactly.
-Style context: ${styleContext}
-AVOID: shading, gradient, gray, different style, broken lines`;
-
-  const response = await openai.images.edit({
-    model: 'gpt-image-1.5',
-    image: originalImage,
-    mask: maskImage,
-    prompt: fullPrompt,
-    n: 1,
-    size: '1536x1024',
-    quality: 'high',
-    response_format: 'b64_json',
-  });
-  
-  return Buffer.from(response.data[0].b64_json!, 'base64');
+    // Flatten with white background
+    .flatten({ background: { r: 255, g: 255, b: 255 } })
+    // Output as PNG
+    .png()
+    .toBuffer();
 }
 ```
 
 ---
 
-## Complete Page Generation Flow
+## 7. Complete Generation Pipeline
 
 ```typescript
 // src/server/ai/generate-page.ts
-import { planAndCompile } from './planner-compiler';
-import { generateImage } from './image-generator';
-import { cleanupImage, TRIM_SIZES } from './cleanup';
+
+import { generateWithFlux, downloadImage } from './flux-generator';
+import { cleanupImage } from './cleanup';
 import { qualityCheck } from './quality-gate';
-import { storeImage } from '../storage/r2-client';
-import type { Job, JobItem, Project, Hero } from '@/types/domain';
+import { checkGeneratedImageSafety } from './image-safety-check';
 
-const MAX_RETRIES = 2;
+interface GeneratePageOptions {
+  compiledPrompt: string;
+  negativePrompt: string;
+  projectDNA: ProjectDNA;
+  maxRetries?: number;
+}
 
-export async function generatePage(
-  item: JobItem,
-  project: Project,
-  hero: Hero | null,
-  compiledPage: CompiledPage
-): Promise<{ assetKey: string; qualityScore: number }> {
-  let attempt = 0;
-  let lastError: Error | null = null;
+interface PageResult {
+  success: boolean;
+  imageBuffer?: Buffer;
+  seed?: number;
+  qualityScore?: number;
+  safetyPassed?: boolean;
+  error?: string;
+}
+
+export async function generatePage(options: GeneratePageOptions): Promise<PageResult> {
+  const { compiledPrompt, negativePrompt, projectDNA, maxRetries = 2 } = options;
   
-  while (attempt <= MAX_RETRIES) {
-    try {
-      // 1. Generate raw image
-      const rawImage = await generateImage({
-        prompt: compiledPage.compiledPrompt,
-        negativePrompt: compiledPage.negativePrompt,
-        heroReference: hero ? await getHeroReference(hero.referenceKey) : undefined,
-        styleAnchor: project.styleAnchorKey 
-          ? await getStyleAnchor(project.styleAnchorKey) 
-          : undefined,
-      });
-      
-      // 2. Cleanup (deterministic)
-      const trimSize = TRIM_SIZES[project.trimSize];
-      const cleanedImage = await cleanupImage(rawImage, {
-        targetWidth: trimSize.width,
-        targetHeight: trimSize.height,
-      });
-      
-      // 3. Quality check
-      const quality = await qualityCheck(cleanedImage);
-      
-      if (quality.passed || attempt === MAX_RETRIES) {
-        // 4. Store to R2
-        const assetKey = await storeImage(cleanedImage, {
-          userId: project.ownerId,
-          projectId: project.id,
-          pageId: item.pageId,
-          version: item.version,
-        });
-        
-        // 5. Create thumbnail
-        const thumbnail = await sharp(cleanedImage)
-          .resize(300, 300, { fit: 'cover' })
-          .jpeg({ quality: 80 })
-          .toBuffer();
-        
-        await storeThumbnail(thumbnail, { ... });
-        
-        return {
-          assetKey,
-          qualityScore: quality.score,
-        };
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    // 1. Generate with Flux
+    const genResult = await generateWithFlux({
+      compiledPrompt,
+      negativePrompt,
+      fluxModel: projectDNA.fluxConfig?.model || 'flux-lineart',
+      trimSize: projectDNA.trimSize,
+    });
+    
+    if (!genResult.success) {
+      if (attempt === maxRetries) {
+        return { success: false, error: genResult.error };
       }
+      continue;
+    }
+    
+    // 2. Download image
+    const rawBuffer = await downloadImage(genResult.imageUrl!);
+    
+    // 3. Run cleanup
+    const dimensions = TRIM_SIZES[projectDNA.trimSize];
+    const cleanedBuffer = await cleanupImage(rawBuffer, {
+      targetWidth: dimensions.width,
+      targetHeight: dimensions.height,
+    });
+    
+    // 4. Quality gate
+    const quality = await qualityCheck(cleanedBuffer);
+    
+    // 5. Safety check (for children)
+    let safetyPassed = true;
+    if (['toddler', 'children'].includes(projectDNA.audience)) {
+      const safetyResult = await checkGeneratedImageSafety(
+        genResult.imageUrl!,
+        projectDNA.audience
+      );
+      safetyPassed = safetyResult.safe;
       
-      // Quality failed, retry
-      attempt++;
-      
-    } catch (error) {
-      lastError = error as Error;
-      attempt++;
+      if (!safetyPassed && attempt < maxRetries) {
+        continue; // Auto-retry
+      }
+    }
+    
+    // 6. Return result
+    if (quality.passed && safetyPassed) {
+      return {
+        success: true,
+        imageBuffer: cleanedBuffer,
+        seed: genResult.seed,
+        qualityScore: quality.score,
+        safetyPassed: true,
+      };
+    }
+    
+    // Quality or safety failed on last attempt
+    if (attempt === maxRetries) {
+      return {
+        success: true, // Still return, but flagged
+        imageBuffer: cleanedBuffer,
+        seed: genResult.seed,
+        qualityScore: quality.score,
+        safetyPassed,
+        error: !safetyPassed ? 'Safety check failed' : 'Quality check failed',
+      };
     }
   }
   
-  throw lastError || new Error('Generation failed after retries');
+  return { success: false, error: 'Max retries exceeded' };
 }
 ```
 
 ---
 
-## Cost Summary
+## Cost Analysis
 
-| Operation | Model | Cost |
-|-----------|-------|------|
-| Plan 40 pages | GPT-4o-mini | ~$0.003 |
-| Generate 1 page | GPT Image 1.5 (high) | ~$0.17 |
-| Style calibration (4) | GPT Image 1.5 (low) | ~$0.16 |
-| Hero sheet | GPT Image 1.5 (high) | ~$0.17 |
-| Cleanup | Sharp (CPU) | ~$0 |
-| Quality check | Sharp (CPU) | ~$0 |
+### Per-Image Costs
 
-**40-page book total:** ~$7-8
+| Model | Cost | Best For |
+|-------|------|----------|
+| flux-lineart | $0.013 | Production, MVP |
+| flux-dev-lora | $0.025 | Custom style |
+| flux-pro | $0.040 | Hero sheets |
+
+### Per-Book Costs (40 pages)
+
+| Approach | Generation | Safety | Total |
+|----------|------------|--------|-------|
+| Flux-LineArt (adult) | $0.52 | $0 | ~$0.60 |
+| Flux-LineArt (children) | $0.52 | $0.40 | ~$1.00 |
+| Flux-Dev-LoRA | $1.00 | $0-0.40 | ~$1.20 |
+
+### Blot Margins
+
+| User Type | Pays (per Blot) | Your Cost | Margin |
+|-----------|-----------------|-----------|--------|
+| Subscriber | $0.043 | $0.013-0.025 | 40-70% |
+| Pack Buyer | $0.035-0.050 | $0.013-0.025 | 50-75% |

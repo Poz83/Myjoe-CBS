@@ -3,8 +3,8 @@ import { Loader } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
-  size?: 'sm' | 'md' | 'lg';
+  variant?: 'primary' | 'secondary' | 'ghost' | 'danger' | 'outline';
+  size?: 'sm' | 'md' | 'lg' | 'icon';
   loading?: boolean;
   icon?: React.ReactNode;
 }
@@ -30,18 +30,21 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       secondary: 'bg-zinc-700 text-white hover:bg-zinc-600',
       ghost: 'bg-transparent text-zinc-300 hover:bg-zinc-800',
       danger: 'bg-red-600 text-white hover:bg-red-500',
+      outline: 'border border-zinc-600 bg-transparent text-zinc-300 hover:bg-zinc-800',
     };
     
     const sizeStyles = {
       sm: 'h-8 px-3 text-sm',
       md: 'h-10 px-4 text-base',
       lg: 'h-12 px-6 text-lg',
+      icon: 'h-10 w-10 p-0',
     };
     
     const iconSizeStyles = {
       sm: 'w-4 h-4',
       md: 'w-5 h-5',
       lg: 'w-5 h-5',
+      icon: 'w-5 h-5',
     };
 
     return (
@@ -59,7 +62,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         {loading ? (
           <Loader className={cn('animate-spin', iconSizeStyles[size])} />
         ) : icon ? (
-          <span className={cn(iconSizeStyles[size], children && 'mr-2')}>
+          <span className={cn(iconSizeStyles[size], children ? 'mr-2' : undefined)}>
             {icon}
           </span>
         ) : null}

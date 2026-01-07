@@ -1,6 +1,7 @@
 # Cursor Prompts - Phases 3-6
 
 > Continuation of copy-paste prompts. See CURSOR_PROMPTS.md for Phases 1-2.
+> **UPDATED:** Includes Flux + Safety system integration
 
 ---
 
@@ -321,186 +322,842 @@ git push origin main --tags
 
 ---
 
-# PHASE 4: AI PIPELINE
+# PHASE 4: AI PIPELINE (Updated for Flux + Safety)
 
 ---
 
-## Prompt 4.1 - Planner-Compiler
+## Prompt 4.1 - Constants & Types
 
 ```
 I'm building Myjoe. Phase 3 (Projects) is complete.
 
-Create the AI planner-compiler:
+Create the constants and types for the AI pipeline:
 
-Create src/server/ai/planner-compiler.ts:
+1. Create src/lib/constants/index.ts with ALL constants:
 
-This uses GPT-4o-mini to transform a user's idea into page prompts.
+// === BLOT COSTS (REVISED) ===
+export const BLOT_COSTS = {
+  styleCalibration: 4,      // 4 samples
+  heroReferenceSheet: 8,    // Flux-Pro
+  generatePage: 5,          // Flux-LineArt
+  regeneratePage: 5,
+  editPage: 5,
+  coverGeneration: 6,
+  exportPDF: 0,             // FREE - don't charge for downloads
+} as const;
 
-SYSTEM PROMPT (include in file as constant):
-- Role: coloring book page planner for KDP publishers
-- Rules to enforce: coloring book style, pure black on white, no shading, correct line weight, closed shapes, margin-safe
-- Line weight specs: thick (6-8px), medium (3-5px), fine (1-3px)
-- Complexity specs: minimal (3-5 elements), moderate (5-10), detailed (10-20), intricate (20+)
-- Hero instructions if provided
-- Composition variety: close-up, full-body, action, environment, pattern
-- Output: JSON array of pages with pageNumber, sceneBrief, compositionType, compiledPrompt, negativePrompt
+// === PLAN LIMITS (REVISED) ===
+export const PLAN_LIMITS = {
+  free: { blots: 50, storageBytes: 1073741824, priceCents: 0 },
+  starter: { blots: 250, storageBytes: 5368709120, priceCents: 900 },
+  creator: { blots: 800, storageBytes: 16106127360, priceCents: 2400 },
+  pro: { blots: 2500, storageBytes: 53687091200, priceCents: 5900 },
+} as const;
 
-FUNCTION: planAndCompile(input: PlannerInput): Promise<CompiledPage[]>
+// === BLOT PACKS (REVISED) ===
+export const BLOT_PACKS = {
+  splash: { blots: 100, priceCents: 400 },   // $4
+  bucket: { blots: 350, priceCents: 1200 },  // $12
+  barrel: { blots: 1200, priceCents: 3500 }, // $35
+} as const;
 
-Input type:
-- userIdea: string
-- pageCount: number
-- audience, stylePreset, lineWeight, complexity
-- heroDescription?: string
-- styleAnchorDescription?: string
+// === TRIM SIZES (300 DPI) ===
+export const TRIM_SIZES = {
+  '8.5x11': { width: 2550, height: 3300, aspectRatio: '3:4' },
+  '8.5x8.5': { width: 2550, height: 2550, aspectRatio: '1:1' },
+  '6x9': { width: 1800, height: 2700, aspectRatio: '2:3' },
+} as const;
 
-Use OpenAI SDK with gpt-4o-mini, temperature 0.7, JSON response format.
+// === AUDIENCES ===
+export const AUDIENCES = ['toddler', 'children', 'tween', 'teen', 'adult'] as const;
+export type Audience = typeof AUDIENCES[number];
 
-Generate the file.
-```
+// === STYLE PRESETS ===
+export const STYLE_PRESETS = ['bold-simple', 'kawaii', 'whimsical', 'cartoon', 'botanical'] as const;
+export type StylePreset = typeof STYLE_PRESETS[number];
 
-```bash
-git add . && git commit -m "feat(4.1): planner-compiler AI module"
-```
+// === SAFETY LEVELS ===
+export type SafetyLevel = 'strict' | 'moderate' | 'standard';
 
----
+// === AUDIENCE DERIVATIONS (with safety) ===
+export const AUDIENCE_DERIVATIONS: Record<Audience, {
+  lineWeight: 'thick' | 'medium' | 'fine';
+  complexity: 'minimal' | 'moderate' | 'detailed' | 'intricate';
+  safetyLevel: SafetyLevel;
+  ageRange: string;
+  maxElements: number;
+}> = {
+  toddler: { lineWeight: 'thick', complexity: 'minimal', safetyLevel: 'strict', ageRange: '2-4', maxElements: 5 },
+  children: { lineWeight: 'thick', complexity: 'moderate', safetyLevel: 'strict', ageRange: '5-8', maxElements: 10 },
+  tween: { lineWeight: 'medium', complexity: 'moderate', safetyLevel: 'moderate', ageRange: '9-12', maxElements: 15 },
+  teen: { lineWeight: 'medium', complexity: 'detailed', safetyLevel: 'moderate', ageRange: '13-17', maxElements: 20 },
+  adult: { lineWeight: 'fine', complexity: 'intricate', safetyLevel: 'standard', ageRange: '18+', maxElements: 30 },
+};
 
-## Prompt 4.2 - Image Generator
+// === FLUX CONFIGURATION ===
+export const FLUX_MODELS = {
+  'flux-lineart': 'cuuupid/flux-lineart',
+  'flux-dev-lora': process.env.FLUX_CUSTOM_MODEL || 'your-username/myjoe-coloring-flux',
+  'flux-pro': 'black-forest-labs/flux-1.1-pro',
+} as const;
 
-```
-I'm building Myjoe. Planner-compiler is done.
+export type FluxModel = keyof typeof FLUX_MODELS;
 
-Create the image generator:
+export const FLUX_TRIGGERS: Record<FluxModel, { trigger: string; template: string }> = {
+  'flux-lineart': { trigger: '', template: 'line art, black and white, coloring book page' },
+  'flux-dev-lora': { trigger: 'c0l0ringb00k', template: 'c0l0ringb00k, coloring book page, black and white line art' },
+  'flux-pro': { trigger: '', template: 'coloring book illustration, clean black outlines on white background' },
+};
 
-Create src/server/ai/image-generator.ts:
+export const LINE_WEIGHT_PROMPTS = {
+  thick: 'bold thick black outlines, 6-8 pixel line weight, chunky shapes, prominent lines',
+  medium: 'clean medium black outlines, 3-5 pixel line weight, balanced detail',
+  fine: 'delicate fine black outlines, 1-3 pixel line weight, intricate details',
+} as const;
 
-FUNCTION: generateImage(options: GenerateOptions): Promise<Buffer>
+export const COMPLEXITY_PROMPTS = {
+  minimal: '3-5 main elements only, large simple shapes, maximum white space',
+  moderate: '5-10 elements, some decorative detail, balanced composition',
+  detailed: '10-20 elements, patterns and decorative elements',
+  intricate: '20+ elements, fine patterns, mandala-level detail',
+} as const;
 
-Options:
-- prompt: string
-- negativePrompt: string
-- heroReference?: Buffer
-- styleAnchor?: Buffer
+// === LIMITS ===
+export const MAX_PAGES = 45;
+export const MAX_VERSIONS = 10;
+export const MAX_PROMPT_LENGTH = 500;
 
-LOGIC:
-1. Combine prompt with "AVOID: {negativePrompt}"
-2. If references provided: use images.edit endpoint with reference as image
-3. If no references: use images.generate endpoint
-4. Settings: model 'gpt-image-1.5', size '1536x1024', quality 'high', response_format 'b64_json'
-5. Decode base64 and return Buffer
-
-Include retry logic (max 2 retries) and error handling.
-
-Generate the file.
-```
-
-```bash
-git add . && git commit -m "feat(4.2): image generator module"
-```
-
----
-
-## Prompt 4.3 - Cleanup Pipeline
-
-```
-I'm building Myjoe. Image generator is done.
-
-Create the cleanup pipeline:
-
-Create src/server/ai/cleanup.ts:
-
-FUNCTION: cleanupImage(buffer: Buffer, options: CleanupOptions): Promise<Buffer>
-
-Options: targetWidth, targetHeight, threshold (default 128)
-
-STEPS using Sharp:
-1. Convert to grayscale
-2. Threshold to pure B&W
-3. Slight blur + re-threshold to clean edges
-4. Resize to target dimensions with white background
-5. Flatten with white background
-6. Output as PNG
-
-EXPORT: TRIM_SIZES constant
-- '8.5x11': { width: 2550, height: 3300 }
-- '8.5x8.5': { width: 2550, height: 2550 }
-- '6x9': { width: 1800, height: 2700 }
-
-Also create: createThumbnail(buffer, size = 300) → JPEG thumbnail
-
-Generate the file.
-```
-
-```bash
-git add . && git commit -m "feat(4.3): cleanup pipeline"
-```
-
----
-
-## Prompt 4.4 - Quality Gate
-
-```
-I'm building Myjoe. Cleanup pipeline is done.
-
-Create the quality gate:
-
-Create src/server/ai/quality-gate.ts:
-
-FUNCTION: qualityCheck(buffer: Buffer): Promise<QualityReport>
-
-QualityReport type:
-- passed: boolean
-- score: 0-100
-- checks: { pureBlackWhite, hasContent, notTooDense, marginSafe }
-- failReasons: string[]
-
-CHECKS using Sharp stats():
-1. pureBlackWhite: min < 10 and max > 245
-2. hasContent: mean < 250 (not blank)
-3. notTooDense: mean > 200 (colorable)
-4. marginSafe: edge pixels all > 250
-
-Score: 25 points per passed check.
-
-Generate the file.
-```
-
-```bash
-git add . && git commit -m "feat(4.4): quality gate"
-```
-
----
-
-## Prompt 4.5 - Pipeline Integration
-
-```
-I'm building Myjoe. All AI modules are done.
-
-Create the integrated pipeline:
-
-Create src/server/ai/generate-page.ts:
-
-FUNCTION: generateSinglePage(input): Promise<PageGenerationResult>
-
-Input: compiledPrompt, negativePrompt, trimSize, heroReferenceBuffer?, styleAnchorBuffer?
-
-Result: imageBuffer, thumbnailBuffer, qualityReport
-
-LOGIC:
-1. generateImage with prompt and references
-2. cleanupImage with trim size dimensions
-3. qualityCheck
-4. If passed OR retried twice: create thumbnail, return result
-5. If failed and retries < 2: retry from step 1
-
-Also create src/server/ai/index.ts that exports all functions.
+2. Create src/types/ai.ts with TypeScript types for:
+- ProjectDNA
+- CompiledPrompt
+- FluxConfig
+- SafetyResult
+- GenerationResult
 
 Generate both files.
 ```
 
 ```bash
-git add . && git commit -m "feat(4.5): integrated pipeline"
-git tag -a v0.4 -m "Phase 4 complete: AI Pipeline"
+git add . && git commit -m "feat(4.1): constants and types for AI pipeline"
+```
+
+---
+
+## Prompt 4.2 - Forbidden Content
+
+```
+I'm building Myjoe. Constants are set up.
+
+Create the forbidden content lists for content safety:
+
+Create src/lib/constants/forbidden-content.ts:
+
+export const FORBIDDEN_BY_AUDIENCE = {
+  toddler: [
+    // Violence & Weapons
+    'scary', 'monster', 'weapon', 'gun', 'sword', 'knife', 'fight', 'attack',
+    'blood', 'violence', 'war', 'battle', 'kill', 'dead', 'death',
+    // Scary creatures
+    'ghost', 'zombie', 'skeleton', 'skull', 'demon', 'devil', 'witch',
+    'vampire', 'werewolf', 'spider', 'snake', 'shark', 'wolf attacking',
+    // Dangerous situations
+    'fire', 'explosion', 'danger', 'falling', 'drowning',
+    // Negative emotions
+    'crying', 'sad', 'angry', 'screaming', 'nightmare', 'terrified',
+    // Inappropriate
+    'adult', 'sexy', 'naked', 'beer', 'wine', 'cigarette'
+  ],
+  
+  children: [
+    'scary monster', 'realistic weapon', 'blood', 'gore', 'death scene',
+    'violence', 'fighting', 'war', 'battle', 'killing',
+    'horror', 'zombie', 'demon', 'devil', 'evil spirit',
+    'frightening', 'terrifying', 'nightmare',
+    'adult content', 'romance', 'kissing', 'sexy',
+    'drug', 'alcohol', 'smoking', 'gambling'
+  ],
+  
+  tween: [
+    'graphic violence', 'gore', 'blood', 'death',
+    'adult content', 'sexual', 'suggestive',
+    'realistic weapons in threatening context',
+    'drug use', 'alcohol', 'smoking',
+    'self-harm', 'suicide', 'eating disorder'
+  ],
+  
+  teen: [
+    'explicit violence', 'gore', 'torture',
+    'sexual content', 'nudity', 'pornographic',
+    'drug use', 'drug paraphernalia',
+    'self-harm', 'suicide methods',
+    'hate symbols', 'extremist content'
+  ],
+  
+  adult: [
+    'explicit sexual content', 'pornography',
+    'child exploitation', 'CSAM',
+    'hate symbols', 'extremist propaganda',
+    'real violence', 'torture',
+    'illegal content', 'drug manufacturing'
+  ]
+} as const;
+
+export const SAFE_SUGGESTIONS: Record<Audience, string[]> = {
+  toddler: [
+    'Try: "cute farm animals playing"',
+    'Try: "happy vehicles in a town"',
+    'Try: "friendly dinosaur with flowers"'
+  ],
+  children: [
+    'Try: "brave knight saving a friendly dragon"',
+    'Try: "underwater mermaid palace"',
+    'Try: "space adventure with rockets"'
+  ],
+  tween: [
+    'Try: "fantasy castle with mythical creatures"',
+    'Try: "sports action scene"',
+    'Try: "ocean wildlife adventure"'
+  ],
+  teen: [
+    'Try: "anime-style character portrait"',
+    'Try: "geometric abstract patterns"',
+    'Try: "gothic architecture scene"'
+  ],
+  adult: [
+    'Try: "intricate mandala pattern"',
+    'Try: "botanical garden illustration"',
+    'Try: "art nouveau decorative design"'
+  ]
+};
+
+Update src/lib/constants/index.ts to re-export from forbidden-content.ts.
+
+Generate the file.
+```
+
+```bash
+git add . && git commit -m "feat(4.2): forbidden content lists for safety"
+```
+
+---
+
+## Prompt 4.3 - Content Safety System
+
+```
+I'm building Myjoe. Forbidden content lists are ready.
+
+Create the content safety system:
+
+1. Create src/server/ai/sanitize.ts:
+
+export function sanitizePrompt(input: string): string {
+  let clean = input;
+  
+  // Remove prompt injection attempts
+  const injections = [
+    /ignore (previous|all|above) instructions/gi,
+    /disregard (everything|all|previous)/gi,
+    /forget (everything|all|previous)/gi,
+    /new (instructions|rules|prompt):/gi,
+    /system\s*:/gi,
+    /assistant\s*:/gi,
+    /\[INST\].*?\[\/INST\]/gs,
+    /<\|.*?\|>/g,
+    /```[\s\S]*?```/g,
+  ];
+  
+  for (const pattern of injections) {
+    clean = clean.replace(pattern, '');
+  }
+  
+  // Remove special characters
+  clean = clean
+    .replace(/[<>{}[\]\\]/g, '')
+    .replace(/\n+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  
+  return clean.slice(0, 500);
+}
+
+export function validateIdea(idea: string): { valid: boolean; reason?: string } {
+  if (idea.length < 3) return { valid: false, reason: 'Please provide more detail' };
+  if (idea.length > 500) return { valid: false, reason: 'Please shorten (max 500 chars)' };
+  
+  const hasVisual = /\b(animal|character|scene|place|object|person|creature|plant|flower|vehicle|building)\b/i.test(idea);
+  if (!hasVisual) return { valid: false, reason: 'Please describe something visual' };
+  
+  return { valid: true };
+}
+
+2. Create src/server/ai/content-safety.ts:
+
+import OpenAI from 'openai';
+import { AUDIENCE_DERIVATIONS } from '@/lib/constants';
+import { FORBIDDEN_BY_AUDIENCE, SAFE_SUGGESTIONS } from '@/lib/constants/forbidden-content';
+
+const openai = new OpenAI();
+
+export interface SafetyResult {
+  safe: boolean;
+  blocked: string[];
+  suggestions?: string[];
+}
+
+const THRESHOLDS = {
+  strict: { violence: 0.05, 'violence/graphic': 0.01, sexual: 0.01, hate: 0.05, 'self-harm': 0.05 },
+  moderate: { violence: 0.20, 'violence/graphic': 0.10, sexual: 0.10, hate: 0.20, 'self-harm': 0.15 },
+  standard: { violence: 0.50, 'violence/graphic': 0.30, sexual: 0.30, hate: 0.40, 'self-harm': 0.30 },
+};
+
+export async function checkContentSafety(input: string, audience: Audience): Promise<SafetyResult> {
+  const rules = AUDIENCE_DERIVATIONS[audience];
+  const forbidden = FORBIDDEN_BY_AUDIENCE[audience];
+  
+  // Layer 1: Keyword blocklist
+  const lowerInput = input.toLowerCase();
+  const blocked = forbidden.filter(word => lowerInput.includes(word.toLowerCase()));
+  
+  if (blocked.length > 0) {
+    return { safe: false, blocked, suggestions: SAFE_SUGGESTIONS[audience] };
+  }
+  
+  // Layer 2: OpenAI Moderation API
+  const moderation = await openai.moderations.create({ input });
+  const result = moderation.results[0];
+  const thresholds = THRESHOLDS[rules.safetyLevel];
+  
+  const violations: string[] = [];
+  if (result.category_scores.violence > thresholds.violence) violations.push('violence');
+  if (result.category_scores['violence/graphic'] > thresholds['violence/graphic']) violations.push('graphic violence');
+  if (result.category_scores.sexual > thresholds.sexual) violations.push('sexual content');
+  if (result.category_scores['sexual/minors'] > 0.01) violations.push('child safety');
+  if (result.category_scores.hate > thresholds.hate) violations.push('hate content');
+  if (result.category_scores['self-harm'] > thresholds['self-harm']) violations.push('self-harm');
+  
+  if (violations.length > 0) {
+    return { safe: false, blocked: violations, suggestions: SAFE_SUGGESTIONS[audience] };
+  }
+  
+  return { safe: true, blocked: [] };
+}
+
+Generate both files.
+```
+
+```bash
+git add . && git commit -m "feat(4.3): content safety system with moderation"
+```
+
+---
+
+## Prompt 4.4 - Flux Image Generator
+
+```
+I'm building Myjoe. Content safety is ready.
+
+Install Replicate and create the Flux generator:
+
+npm install replicate
+
+Create src/server/ai/flux-generator.ts:
+
+import Replicate from 'replicate';
+import { FLUX_MODELS, TRIM_SIZES } from '@/lib/constants';
+import type { FluxModel } from '@/lib/constants';
+
+const replicate = new Replicate({
+  auth: process.env.REPLICATE_API_TOKEN!,
+});
+
+interface GenerateOptions {
+  compiledPrompt: string;
+  negativePrompt: string;
+  fluxModel: FluxModel;
+  trimSize: string;
+  seed?: number;
+}
+
+interface GenerationResult {
+  success: boolean;
+  imageUrl?: string;
+  seed?: number;
+  error?: string;
+}
+
+export async function generateWithFlux(options: GenerateOptions): Promise<GenerationResult> {
+  const { compiledPrompt, negativePrompt, fluxModel, trimSize, seed } = options;
+  
+  const model = FLUX_MODELS[fluxModel];
+  const dimensions = TRIM_SIZES[trimSize as keyof typeof TRIM_SIZES] || TRIM_SIZES['8.5x11'];
+  
+  const params: Record<string, any> = {
+    prompt: compiledPrompt,
+    negative_prompt: negativePrompt,
+    num_inference_steps: 28,
+    guidance_scale: 3.5,
+    output_format: 'png',
+    output_quality: 95,
+    seed: seed ?? Math.floor(Math.random() * 2147483647),
+    aspect_ratio: dimensions.aspectRatio,
+  };
+  
+  try {
+    const output = await replicate.run(model as `${string}/${string}`, { input: params });
+    const imageUrl = Array.isArray(output) ? output[0] : output;
+    
+    return {
+      success: true,
+      imageUrl: imageUrl as string,
+      seed: params.seed,
+    };
+  } catch (error) {
+    console.error('Flux generation error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Generation failed',
+    };
+  }
+}
+
+export async function downloadImage(url: string): Promise<Buffer> {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error('Failed to download image');
+  return Buffer.from(await response.arrayBuffer());
+}
+
+Generate the file.
+```
+
+```bash
+git add . && git commit -m "feat(4.4): Flux image generator via Replicate"
+```
+
+---
+
+## Prompt 4.5 - Planner-Compiler
+
+```
+I'm building Myjoe. Flux generator is ready.
+
+Create the planner-compiler that transforms user ideas into Flux-optimized prompts:
+
+Create src/server/ai/planner-compiler.ts:
+
+import OpenAI from 'openai';
+import { checkContentSafety } from './content-safety';
+import { sanitizePrompt, validateIdea } from './sanitize';
+import { 
+  AUDIENCE_DERIVATIONS, 
+  FLUX_TRIGGERS, 
+  LINE_WEIGHT_PROMPTS, 
+  COMPLEXITY_PROMPTS,
+} from '@/lib/constants';
+import { FORBIDDEN_BY_AUDIENCE } from '@/lib/constants/forbidden-content';
+import type { Audience, StylePreset, FluxModel } from '@/lib/constants';
+
+const openai = new OpenAI();
+
+// Full system prompt - see 05_AI_PIPELINE.md for complete version
+const SYSTEM_PROMPT = `You are a professional coloring book page planner for KDP publishers.
+
+CRITICAL: Every prompt MUST start with the trigger: {fluxTrigger}
+
+Create {pageCount} distinct, age-appropriate coloring book pages.
+
+RULES:
+- Start every prompt with: {fluxTrigger}
+- Pure black outlines on pure white background
+- {lineWeight} line weight: {lineWeightDescription}
+- {complexity} complexity: {complexityDescription}
+- No shading, gradients, gray tones, or fills
+- All shapes must be CLOSED (suitable for coloring)
+- Margin-safe composition (10% padding)
+- No text, watermarks, signatures
+
+AUDIENCE: {audience} (ages {ageRange})
+SAFETY: {safetyLevel}
+FORBIDDEN: {forbiddenContent}
+MAX ELEMENTS: {maxElements}
+
+HERO (if provided): {heroDescription}
+
+OUTPUT JSON ONLY:
+{
+  "pages": [
+    {
+      "pageNumber": 1,
+      "sceneBrief": "Short description",
+      "compositionType": "full-body",
+      "compiledPrompt": "{fluxTrigger}, [detailed prompt]...",
+      "negativePrompt": "{negativePrompt}"
+    }
+  ]
+}`;
+
+interface PlannerInput {
+  userIdea: string;
+  pageCount: number;
+  audience: Audience;
+  stylePreset: StylePreset;
+  lineWeight: string;
+  complexity: string;
+  heroDescription?: string;
+  fluxModel?: FluxModel;
+}
+
+interface PlannerResult {
+  success: boolean;
+  pages?: CompiledPrompt[];
+  error?: string;
+  safetyIssue?: boolean;
+  suggestions?: string[];
+}
+
+export async function planAndCompile(input: PlannerInput): Promise<PlannerResult> {
+  // 1. Validate
+  const validation = validateIdea(input.userIdea);
+  if (!validation.valid) return { success: false, error: validation.reason };
+  
+  // 2. Sanitize
+  const sanitizedIdea = sanitizePrompt(input.userIdea);
+  
+  // 3. Safety check
+  const safetyResult = await checkContentSafety(sanitizedIdea, input.audience);
+  if (!safetyResult.safe) {
+    return {
+      success: false,
+      error: `Content not suitable for ${input.audience}`,
+      safetyIssue: true,
+      suggestions: safetyResult.suggestions,
+    };
+  }
+  
+  // 4. Build context
+  const rules = AUDIENCE_DERIVATIONS[input.audience];
+  const fluxConfig = FLUX_TRIGGERS[input.fluxModel || 'flux-lineart'];
+  const negativePrompt = buildNegativePrompt(input.audience);
+  
+  const prompt = SYSTEM_PROMPT
+    .replace(/{fluxTrigger}/g, fluxConfig.trigger || fluxConfig.template)
+    .replace('{pageCount}', String(input.pageCount))
+    .replace('{lineWeight}', input.lineWeight)
+    .replace('{lineWeightDescription}', LINE_WEIGHT_PROMPTS[input.lineWeight as keyof typeof LINE_WEIGHT_PROMPTS])
+    .replace('{complexity}', input.complexity)
+    .replace('{complexityDescription}', COMPLEXITY_PROMPTS[input.complexity as keyof typeof COMPLEXITY_PROMPTS])
+    .replace('{audience}', input.audience)
+    .replace('{ageRange}', rules.ageRange)
+    .replace('{safetyLevel}', rules.safetyLevel.toUpperCase())
+    .replace('{forbiddenContent}', FORBIDDEN_BY_AUDIENCE[input.audience].slice(0, 15).join(', '))
+    .replace('{maxElements}', String(rules.maxElements))
+    .replace('{heroDescription}', input.heroDescription || 'No hero character')
+    .replace('{negativePrompt}', negativePrompt);
+  
+  // 5. Call GPT-4o-mini
+  try {
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: prompt },
+        { role: 'user', content: `Create ${input.pageCount} coloring pages for: "${sanitizedIdea}"` }
+      ],
+      response_format: { type: 'json_object' },
+      temperature: 0.7,
+    });
+    
+    const content = response.choices[0].message.content;
+    if (!content) return { success: false, error: 'No response' };
+    
+    const parsed = JSON.parse(content);
+    return { success: true, pages: parsed.pages };
+    
+  } catch (error) {
+    console.error('Planner error:', error);
+    return { success: false, error: 'Failed to generate pages' };
+  }
+}
+
+function buildNegativePrompt(audience: Audience): string {
+  const base = [
+    'shading', 'gradient', 'gray', 'color', 'photorealistic', '3D', 'shadow',
+    'watermark', 'signature', 'text', 'broken lines', 'crosshatching', 'blurry'
+  ];
+  const audienceNegatives = FORBIDDEN_BY_AUDIENCE[audience].slice(0, 10);
+  return [...new Set([...base, ...audienceNegatives])].join(', ');
+}
+
+Generate the file with full implementation.
+```
+
+```bash
+git add . && git commit -m "feat(4.5): planner-compiler with safety integration"
+```
+
+---
+
+## Prompt 4.6 - Cleanup & Quality Gate
+
+```
+I'm building Myjoe. Planner-compiler is done.
+
+Create cleanup pipeline and quality gate:
+
+1. Create src/server/ai/cleanup.ts:
+
+import sharp from 'sharp';
+import { TRIM_SIZES } from '@/lib/constants';
+
+interface CleanupOptions {
+  targetWidth: number;
+  targetHeight: number;
+  threshold?: number;
+}
+
+export async function cleanupImage(buffer: Buffer, options: CleanupOptions): Promise<Buffer> {
+  const { targetWidth, targetHeight, threshold = 128 } = options;
+  
+  return sharp(buffer)
+    .grayscale()
+    .threshold(threshold)
+    .blur(0.5)
+    .threshold(threshold)
+    .resize(targetWidth, targetHeight, {
+      fit: 'contain',
+      background: { r: 255, g: 255, b: 255 }
+    })
+    .flatten({ background: { r: 255, g: 255, b: 255 } })
+    .png()
+    .toBuffer();
+}
+
+2. Create src/server/ai/quality-gate.ts:
+
+import sharp from 'sharp';
+
+interface QualityReport {
+  passed: boolean;
+  score: number;
+  checks: {
+    pureBlackWhite: boolean;
+    hasContent: boolean;
+    notTooDense: boolean;
+    marginSafe: boolean;
+  };
+  failReasons: string[];
+}
+
+export async function qualityCheck(imageBuffer: Buffer): Promise<QualityReport> {
+  const image = sharp(imageBuffer);
+  const stats = await image.stats();
+  const { data, info } = await image.raw().toBuffer({ resolveWithObject: true });
+  
+  const checks = {
+    pureBlackWhite: stats.channels[0].min <= 5 && stats.channels[0].max >= 250,
+    hasContent: stats.channels[0].mean < 250,
+    notTooDense: stats.channels[0].mean > 180,
+    marginSafe: checkMargins(data, info.width, info.height, 75),
+  };
+  
+  const failReasons = Object.entries(checks).filter(([_, v]) => !v).map(([k]) => k);
+  const score = (Object.values(checks).filter(Boolean).length / 4) * 100;
+  
+  return { passed: failReasons.length === 0, score, checks, failReasons };
+}
+
+function checkMargins(data: Buffer, width: number, height: number, margin: number): boolean {
+  for (let y = 0; y < margin; y++) {
+    for (let x = 0; x < width; x++) {
+      if (data[y * width + x] < 128) return false;
+    }
+  }
+  return true;
+}
+
+Generate both files.
+```
+
+```bash
+git add . && git commit -m "feat(4.6): cleanup pipeline and quality gate"
+```
+
+---
+
+## Prompt 4.7 - Post-Generation Safety
+
+```
+I'm building Myjoe. Cleanup and quality gate are done.
+
+Create post-generation safety check for children's content:
+
+Create src/server/ai/image-safety-check.ts:
+
+import OpenAI from 'openai';
+import { AUDIENCE_DERIVATIONS } from '@/lib/constants';
+import type { Audience } from '@/lib/constants';
+
+const openai = new OpenAI();
+
+interface ImageSafetyResult {
+  safe: boolean;
+  issues: string[];
+  recommendation: 'approve' | 'regenerate' | 'flag';
+}
+
+export async function checkGeneratedImageSafety(
+  imageUrl: string,
+  audience: Audience
+): Promise<ImageSafetyResult> {
+  // Only run for strict audiences (toddler, children)
+  if (!['toddler', 'children'].includes(audience)) {
+    return { safe: true, issues: [], recommendation: 'approve' };
+  }
+  
+  const rules = AUDIENCE_DERIVATIONS[audience];
+  
+  try {
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [
+        {
+          role: 'system',
+          content: `You review coloring book images for children (ages ${rules.ageRange}).
+
+Flag ANY of these:
+- Scary or frightening elements
+- Weapons or violence
+- Monsters that could frighten children
+- Dark or disturbing themes
+- Inappropriate content
+
+Respond ONLY with JSON:
+{"safe": boolean, "issues": ["list"], "recommendation": "approve"|"regenerate"|"flag"}`
+        },
+        {
+          role: 'user',
+          content: [
+            { type: 'image_url', image_url: { url: imageUrl } },
+            { type: 'text', text: `Is this safe for ${audience} (ages ${rules.ageRange})?` }
+          ]
+        }
+      ],
+      response_format: { type: 'json_object' },
+      max_tokens: 500,
+    });
+    
+    const content = response.choices[0].message.content;
+    return content ? JSON.parse(content) : { safe: true, issues: [], recommendation: 'approve' };
+    
+  } catch (error) {
+    console.error('Image safety check failed:', error);
+    return { safe: false, issues: ['Unable to verify'], recommendation: 'flag' };
+  }
+}
+
+Generate the file.
+```
+
+```bash
+git add . && git commit -m "feat(4.7): post-generation safety check with GPT-4V"
+```
+
+---
+
+## Prompt 4.8 - Complete Generation Pipeline
+
+```
+I'm building Myjoe. All AI components are ready.
+
+Create the complete page generation pipeline:
+
+Create src/server/ai/generate-page.ts:
+
+import { generateWithFlux, downloadImage } from './flux-generator';
+import { cleanupImage } from './cleanup';
+import { qualityCheck } from './quality-gate';
+import { checkGeneratedImageSafety } from './image-safety-check';
+import { TRIM_SIZES } from '@/lib/constants';
+import type { Audience, FluxModel } from '@/lib/constants';
+
+interface GeneratePageOptions {
+  compiledPrompt: string;
+  negativePrompt: string;
+  audience: Audience;
+  fluxModel: FluxModel;
+  trimSize: string;
+  maxRetries?: number;
+}
+
+interface PageResult {
+  success: boolean;
+  imageBuffer?: Buffer;
+  seed?: number;
+  qualityScore?: number;
+  safetyPassed?: boolean;
+  needsReview?: boolean;
+  error?: string;
+}
+
+export async function generatePage(options: GeneratePageOptions): Promise<PageResult> {
+  const { compiledPrompt, negativePrompt, audience, fluxModel, trimSize, maxRetries = 2 } = options;
+  const dimensions = TRIM_SIZES[trimSize as keyof typeof TRIM_SIZES] || TRIM_SIZES['8.5x11'];
+  
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    // 1. Generate with Flux
+    const genResult = await generateWithFlux({
+      compiledPrompt,
+      negativePrompt,
+      fluxModel,
+      trimSize,
+    });
+    
+    if (!genResult.success) {
+      if (attempt === maxRetries) return { success: false, error: genResult.error };
+      continue;
+    }
+    
+    // 2. Download image
+    const rawBuffer = await downloadImage(genResult.imageUrl!);
+    
+    // 3. Cleanup
+    const cleanedBuffer = await cleanupImage(rawBuffer, {
+      targetWidth: dimensions.width,
+      targetHeight: dimensions.height,
+    });
+    
+    // 4. Quality gate
+    const quality = await qualityCheck(cleanedBuffer);
+    
+    // 5. Safety check for children
+    let safetyPassed = true;
+    if (['toddler', 'children'].includes(audience)) {
+      const safetyResult = await checkGeneratedImageSafety(genResult.imageUrl!, audience);
+      safetyPassed = safetyResult.safe;
+      
+      if (!safetyPassed && safetyResult.recommendation === 'regenerate' && attempt < maxRetries) {
+        continue; // Auto-retry
+      }
+    }
+    
+    // 6. Return result
+    return {
+      success: true,
+      imageBuffer: cleanedBuffer,
+      seed: genResult.seed,
+      qualityScore: quality.score,
+      safetyPassed,
+      needsReview: !quality.passed || !safetyPassed,
+    };
+  }
+  
+  return { success: false, error: 'Max retries exceeded' };
+}
+
+Generate the file.
+```
+
+```bash
+git add . && git commit -m "feat(4.8): complete generation pipeline with safety"
+git tag -a v0.4 -m "Phase 4 complete: AI Pipeline with Flux + Safety"
 git push origin main --tags
 ```
 
@@ -515,23 +1172,87 @@ git push origin main --tags
 ```
 I'm building Myjoe. Phase 4 (AI Pipeline) is complete.
 
-Create style calibration:
+Create style calibration generator:
 
 Create src/server/ai/style-calibration.ts:
 
-FUNCTION: generateCalibrationSamples(input): Promise<CalibrationSample[]>
+import { generateWithFlux, downloadImage } from './flux-generator';
+import { cleanupImage } from './cleanup';
+import { FLUX_TRIGGERS, LINE_WEIGHT_PROMPTS, TRIM_SIZES } from '@/lib/constants';
+import type { Audience, StylePreset, FluxModel } from '@/lib/constants';
 
-Input: subject, stylePreset, audience
+interface CalibrationInput {
+  subject: string;
+  audience: Audience;
+  stylePreset: StylePreset;
+  lineWeight: string;
+  fluxModel?: FluxModel;
+}
 
-Output: 4 samples with id, imageBuffer, variation
+interface CalibrationSample {
+  id: string;
+  imageBuffer: Buffer;
+  variation: string;
+}
 
-VARIATIONS:
-1. "balanced interpretation"
-2. "more detailed with decorative accents"
-3. "simpler with bolder shapes"
-4. "more playful with curved lines"
+const VARIATIONS = [
+  'balanced interpretation',
+  'more detailed with decorative accents',
+  'simpler with bolder shapes',
+  'more playful with curved lines',
+];
 
-For each: build prompt with subject + style + audience + variation, generate with low quality, run through cleanup at smaller size.
+export async function generateCalibrationSamples(
+  input: CalibrationInput
+): Promise<CalibrationSample[]> {
+  const { subject, audience, stylePreset, lineWeight, fluxModel = 'flux-lineart' } = input;
+  
+  const fluxConfig = FLUX_TRIGGERS[fluxModel];
+  const linePrompt = LINE_WEIGHT_PROMPTS[lineWeight as keyof typeof LINE_WEIGHT_PROMPTS];
+  const dimensions = TRIM_SIZES['8.5x11'];
+  
+  const samples: CalibrationSample[] = [];
+  
+  for (let i = 0; i < 4; i++) {
+    const variation = VARIATIONS[i];
+    
+    const prompt = [
+      fluxConfig.trigger || fluxConfig.template,
+      subject,
+      'coloring book page',
+      linePrompt,
+      `${stylePreset} style`,
+      variation,
+      'pure black outlines on white background',
+      'no shading, no gradients',
+    ].filter(Boolean).join(', ');
+    
+    const negativePrompt = 'shading, gradient, gray, color, photorealistic, 3D, blurry';
+    
+    const result = await generateWithFlux({
+      compiledPrompt: prompt,
+      negativePrompt,
+      fluxModel,
+      trimSize: '8.5x11',
+    });
+    
+    if (result.success && result.imageUrl) {
+      const rawBuffer = await downloadImage(result.imageUrl);
+      const cleanedBuffer = await cleanupImage(rawBuffer, {
+        targetWidth: 512, // Smaller for calibration
+        targetHeight: 512,
+      });
+      
+      samples.push({
+        id: String(i + 1),
+        imageBuffer: cleanedBuffer,
+        variation,
+      });
+    }
+  }
+  
+  return samples;
+}
 
 Generate the file.
 ```
@@ -550,15 +1271,20 @@ I'm building Myjoe. Calibration generator is done.
 Create calibration API:
 
 1. src/app/api/projects/[id]/calibrate/route.ts
+
 POST: Generate 4 samples
-- Verify ownership, check Blots (10), deduct
+- Verify ownership
+- Check Blots (10 required)
+- Deduct Blots
 - Call generateCalibrationSamples
 - Store in temp R2 location
 - Return { samples: [{ id, url }], blotsSpent: 10 }
 
 2. src/app/api/projects/[id]/calibrate/select/route.ts
+
 POST: Select style anchor
-- Copy selected to permanent storage
+- Verify ownership
+- Copy selected sample to permanent storage
 - Generate description with GPT-4o-mini
 - Update project with style_anchor_key and description
 - Delete temp samples
@@ -584,14 +1310,32 @@ Create src/components/features/project/style-calibration.tsx:
 
 STATES: 'input' | 'generating' | 'select' | 'confirming'
 
-INPUT: Subject textarea, "Generate Samples" button (10 Blots)
-GENERATING: Loading spinner
-SELECT: 2x2 grid of samples, click to select, "Use This Style" button
-CONFIRMING: Loading, then auto-close
+INPUT STATE:
+- "What subject should we use to calibrate your style?" label
+- Subject textarea with placeholder: "e.g., a friendly cat sitting"
+- "Generate Samples" button (shows cost: 10 Blots)
+- Blot balance display
 
-Integrate into project editor:
-- Show calibration prompt if no style_anchor_key
-- After complete, show "Style Ready ✓"
+GENERATING STATE:
+- Loading spinner
+- "Generating 4 style samples..."
+- Progress indicator
+
+SELECT STATE:
+- "Choose your preferred style" heading
+- 2x2 grid of samples
+- Each sample is a clickable card with blue border on select
+- "Use This Style" button (enabled when selected)
+
+CONFIRMING STATE:
+- Loading spinner
+- "Setting up your style..."
+- Auto-closes on completion
+
+Integration:
+- Show calibration if project has no style_anchor_key
+- After complete, update project in cache
+- Show "Style Ready ✓" indicator when calibrated
 
 Generate the component.
 ```
@@ -613,25 +1357,63 @@ git push origin main --tags
 ```
 I'm building Myjoe. Phase 5 (Calibration) is complete.
 
-Create R2 storage:
+Create R2 storage client:
 
 Create src/server/storage/r2-client.ts:
 
-S3 client configured for Cloudflare R2.
+import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
-FUNCTIONS:
-- uploadImage(buffer, key, contentType): Promise<void>
-- getImage(key): Promise<Buffer>
-- deleteImage(key): Promise<void>
-- deletePrefix(prefix): Promise<void>
-- getSignedUrl(key, expiresIn = 3600): Promise<string>
-- getSignedUploadUrl(key, contentType, expiresIn = 300): Promise<string>
+const s3 = new S3Client({
+  region: 'auto',
+  endpoint: process.env.R2_ENDPOINT!,
+  credentials: {
+    accessKeyId: process.env.R2_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
+  },
+});
 
-KEY HELPERS:
-- getPageKey(userId, projectId, pageId, version)
-- getThumbnailKey(userId, projectId, pageId, version)
-- getHeroKey(userId, heroId)
-- getExportKey(userId, projectId, timestamp)
+const BUCKET = process.env.R2_BUCKET_NAME!;
+
+// Upload functions
+export async function uploadImage(buffer: Buffer, key: string, contentType: string): Promise<void> {
+  await s3.send(new PutObjectCommand({
+    Bucket: BUCKET,
+    Key: key,
+    Body: buffer,
+    ContentType: contentType,
+  }));
+}
+
+export async function getImage(key: string): Promise<Buffer> {
+  const response = await s3.send(new GetObjectCommand({ Bucket: BUCKET, Key: key }));
+  return Buffer.from(await response.Body!.transformToByteArray());
+}
+
+export async function deleteImage(key: string): Promise<void> {
+  await s3.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: key }));
+}
+
+export async function getSignedDownloadUrl(key: string, expiresIn = 3600): Promise<string> {
+  return getSignedUrl(s3, new GetObjectCommand({ Bucket: BUCKET, Key: key }), { expiresIn });
+}
+
+export async function getSignedUploadUrl(key: string, contentType: string, expiresIn = 300): Promise<string> {
+  return getSignedUrl(s3, new PutObjectCommand({ Bucket: BUCKET, Key: key, ContentType: contentType }), { expiresIn });
+}
+
+// Key helpers
+export const getPageKey = (userId: string, projectId: string, pageId: string, version: number) =>
+  `assets/${userId}/projects/${projectId}/pages/${pageId}/v${version}.png`;
+
+export const getThumbnailKey = (userId: string, projectId: string, pageId: string, version: number) =>
+  `assets/${userId}/projects/${projectId}/thumbs/${pageId}/v${version}.jpg`;
+
+export const getHeroKey = (userId: string, heroId: string) =>
+  `assets/${userId}/heroes/${heroId}/reference.png`;
+
+export const getExportKey = (userId: string, projectId: string, timestamp: string) =>
+  `assets/${userId}/exports/${projectId}/${timestamp}/interior.pdf`;
 
 Generate the file.
 ```
@@ -647,15 +1429,28 @@ git add . && git commit -m "feat(6.1): R2 storage client"
 ```
 I'm building Myjoe. R2 storage is done.
 
-Create job and page database functions:
+Create database functions for jobs and pages:
 
 1. src/server/db/jobs.ts:
-- createJob, createJobItems, getJob, getJobItems
-- updateJob, updateJobItem, getPendingJobItems
+
+Functions:
+- createJob(data): Create job record
+- createJobItems(jobId, items): Create job items
+- getJob(jobId, userId): Get job with verification
+- getJobItems(jobId): Get all items for job
+- updateJob(jobId, data): Update job status/progress
+- updateJobItem(itemId, data): Update item status
+- getPendingJobItems(jobId): Get items with status 'pending'
 
 2. src/server/db/pages.ts:
-- createPage, createPageVersion
-- getPage, getPageVersions, updatePage
+
+Functions:
+- createPage(data): Create page record
+- createPageVersion(data): Create page version
+- getPage(pageId, userId): Get page with ownership check
+- getPageVersions(pageId): Get all versions
+- updatePage(pageId, data): Update page
+- setCurrentVersion(pageId, version): Set current version
 
 Include proper TypeScript types.
 
@@ -676,19 +1471,23 @@ I'm building Myjoe. Job database is done.
 Create Blot management:
 
 1. src/server/billing/blots.ts:
-- getBlotBalance(userId): Promise<number>
-- checkBlotBalance(userId, required): Promise<boolean>
-- spendBlots(userId, amount, reason): Promise<void>
-- reserveBlots(userId, amount, jobId): Promise<void>
-- refundBlots(userId, amount, jobId, reason): Promise<void>
+
+Functions:
+- getBlotBalance(userId): Get current balance
+- checkBlotBalance(userId, required): Check if sufficient
+- spendBlots(userId, amount, reason): Deduct blots
+- reserveBlots(userId, amount, jobId): Reserve for job
+- refundBlots(userId, amount, jobId, reason): Refund unused
 
 2. src/lib/errors.ts:
+
 Custom error classes:
-- AppError (base)
+- AppError (base class)
 - InsufficientBlotsError
 - StorageFullError
 - NotFoundError
 - ForbiddenError
+- SafetyBlockedError (NEW - for safety rejections)
 
 Generate both files.
 ```
@@ -707,24 +1506,29 @@ I'm building Myjoe. Blot management is done.
 Create generation API:
 
 1. src/app/api/generate/route.ts
-POST: Start job
+
+POST: Start generation job
 - Validate { projectId, idea, pageNumbers? }
+- Check content safety for the idea
+- If safety blocked, return 400 with suggestions
 - Verify style anchor exists
 - Calculate and reserve Blots
 - Create job and job_items
 - Return { jobId, status, totalItems, blotsReserved }
 
 2. src/app/api/generate/[jobId]/route.ts
+
 GET: Job status with page thumbnails
 
 3. src/app/api/generate/[jobId]/cancel/route.ts
+
 POST: Cancel and refund unspent Blots
 
-Generate all files.
+Generate all files with safety integration.
 ```
 
 ```bash
-git add . && git commit -m "feat(6.4): generation API"
+git add . && git commit -m "feat(6.4): generation API with safety"
 ```
 
 ---
@@ -734,7 +1538,7 @@ git add . && git commit -m "feat(6.4): generation API"
 ```
 I'm building Myjoe. Generation API is done.
 
-Create job processor:
+Create job processor with safety checks:
 
 Create src/server/jobs/process-generation.ts:
 
@@ -743,11 +1547,16 @@ FUNCTION: processGenerationJob(jobId): Promise<void>
 1. Get job, update to 'processing'
 2. Get project with hero and style anchor
 3. Call planAndCompile for all page prompts
+   - If safety blocks the idea, fail job with reason
 4. Process in batches of 3:
-   - For each: generate, cleanup, quality check, store to R2, create page_version
-   - Handle failures with retry
-   - Update progress
-5. Update job to 'completed'
+   - For each page:
+     a. Call generatePage with all safety checks
+     b. If needsReview is true, mark for review
+     c. Upload to R2
+     d. Create page_version
+     e. Update progress
+5. Handle failures with retry (max 2)
+6. Update job to 'completed'
 
 Also create src/server/jobs/trigger.ts with triggerGenerationJob function.
 
@@ -755,7 +1564,7 @@ Generate both files.
 ```
 
 ```bash
-git add . && git commit -m "feat(6.5): job processor"
+git add . && git commit -m "feat(6.5): job processor with safety"
 ```
 
 ---
@@ -765,52 +1574,43 @@ git add . && git commit -m "feat(6.5): job processor"
 ```
 I'm building Myjoe. Job processor is done.
 
-Create generation UI with PROGRESS FEEDBACK PATTERNS:
+Create generation UI with safety feedback:
 
 1. src/hooks/use-generation.ts:
-- useGenerationJob(jobId): Poll every 2s, return progress data
-- useStartGeneration(): Mutation with optimistic UI
+- useGenerationJob(jobId): Poll every 2s
+- useStartGeneration(): Mutation
 - useCancelGeneration(): Mutation
 
 2. src/components/features/project/generation-progress.tsx:
-Full-screen generation progress view based on research patterns:
 
-LAYOUT:
+Full-screen generation progress:
 - Centered content, max-w-xl
 - "✨ Generating your coloring book..." heading
-- Progress bar with percentage (15 / 40)
-- Current stage text: "Creating page 16: Bella discovers a hidden treehouse..."
-- Grid of thumbnail placeholders that fill in as pages complete:
-  - Complete: show thumbnail with ✓ overlay
-  - Generating: show skeleton with Loader spinner
-  - Pending: show empty skeleton (bg-zinc-800/50)
+- Progress bar with percentage
+- Current stage text
+- Grid of thumbnail placeholders filling in
 - Estimated time remaining
-- Cancel button (secondary style)
-
-PROGRESS BAR:
-- Height: h-2
-- Background: bg-zinc-800 rounded-full
-- Fill: bg-blue-500 with smooth transition (duration-300 ease-out)
+- Cancel button
 
 3. src/components/features/project/generation-start.tsx:
-Generation start dialog in inspector panel:
-- "What's your coloring book about?" label
-- Idea textarea (min 3 lines)
-- Example prompts as clickable pills below
-- Blot cost calculation: "{pageCount} pages × 12 = {total} Blots"
-- "Generate" button (primary, full width)
-- Shows InsufficientBlotsError inline if not enough
 
-4. Update project editor:
-- If project.status === 'generating': show generation-progress
-- If project has no pages: show generation-start in center
-- If project has pages: show normal editor view
+Generation start in inspector:
+- "What's your coloring book about?" label
+- Idea textarea
+- SAFETY FEEDBACK: Show error inline if safety blocked
+  - Red border on textarea
+  - Error message: "This content isn't suitable for [audience]"
+  - Suggestions list: "Try instead: ..."
+- Blot cost calculation
+- "Generate" button
+
+4. Update project editor to show appropriate view.
 
 Generate all files.
 ```
 
 ```bash
-git add . && git commit -m "feat(6.6): generation UI with progress feedback"
+git add . && git commit -m "feat(6.6): generation UI with safety feedback"
 git tag -a v0.6 -m "Phase 6 complete: Generation Jobs"
 git push origin main --tags
 ```

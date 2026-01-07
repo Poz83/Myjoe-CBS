@@ -85,7 +85,7 @@ export function UserMenu() {
         {/* Menu items */}
         <div className="py-1">
           <DropdownMenuItem
-            disabled
+            aria-disabled="true"
             className="flex items-center gap-2 px-4 py-2 text-sm text-zinc-400 cursor-not-allowed"
           >
             <Settings className="h-4 w-4" />
@@ -93,7 +93,7 @@ export function UserMenu() {
             <span className="ml-auto text-xs">(Soon)</span>
           </DropdownMenuItem>
           <DropdownMenuItem
-            disabled
+            aria-disabled="true"
             className="flex items-center gap-2 px-4 py-2 text-sm text-zinc-400 cursor-not-allowed"
           >
             <CreditCard className="h-4 w-4" />

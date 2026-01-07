@@ -1,132 +1,201 @@
-# Billing System
+# Billing & Blots
+
+## Overview
+
+```mermaid
+flowchart LR
+    subgraph Revenue
+        A[Subscriptions] --> D[Blots Pool]
+        B[Blot Packs] --> D
+    end
+    
+    subgraph Spending
+        D --> E[Generate Pages]
+        D --> F[Edit Pages]
+        D --> G[Create Heroes]
+        D --> H[Export PDF]
+    end
+```
+
+---
 
 ## Currency: Blots
-
-### Overview
 
 | Attribute | Value |
 |-----------|-------|
 | Name | Blots |
-| Symbol | 🎨 (optional in UI) |
-| Base value | 1 Blot ≈ $0.026 |
-| Refresh | Monthly RESET (unused expire) |
-| Storage | `profiles.blots` column |
+| Symbol | 🎨 (optional) |
+| Display | Always in header |
+| Pool | Single (subscription + packs combined) |
 
-### Blot Costs
+### Blot Costs (REVISED ✅)
 
-| Action | Your Cost | Blots | User Pays |
-|--------|-----------|-------|-----------|
-| Generate 1 page | $0.186 | 12 | $0.31 |
-| Edit 1 page (any type) | $0.186 | 12 | $0.31 |
-| Style calibration | $0.163 | 10 | $0.26 |
-| Hero reference sheet | $0.20 | 15 | $0.39 |
-| Export PDF | $0.05 | 3 | $0.08 |
+| Action | Blots | Your Cost (USD) |
+|--------|-------|-----------------|
+| Generate 1 page | **5** | ~$0.013 |
+| Edit 1 page | **5** | ~$0.013 |
+| Style calibration (4 samples) | **4** | ~$0.05 |
+| Hero Reference Sheet | **8** | ~$0.04 |
+| Cover generation | **6** | ~$0.02 |
+| Export PDF | **FREE** | ~$0.01 |
 
-### Cost Estimates
+### Full 40-Page Book
 
-| Book Type | Pages | Hero | Total Blots | User Cost |
-|-----------|-------|------|-------------|-----------|
-| Simple (no hero) | 20 | ❌ | ~250 | $6.50 |
-| Standard | 40 | ❌ | ~490 | $12.75 |
-| Standard + Hero | 40 | ✅ | ~505 | $13.15 |
-| Premium + Hero + Edits | 40 | ✅ | ~600 | $15.60 |
+| Component | Blots |
+|-----------|-------|
+| 40 pages @ 5 Blots | 200 |
+| Calibration | 4 |
+| Hero sheet | 8 |
+| Export | FREE |
+| **TOTAL** | **212 Blots** |
 
 ---
 
-## Subscription Tiers
+## Subscription Tiers (REVISED ✅)
 
-### Plan Details
+| Plan | Price (USD) | Blots/mo | Storage | Books/Mo | Commercial |
+|------|-------------|----------|---------|----------|------------|
+| **Free** | $0 | 50 | 1 GB | Trial | ❌ |
+| **Starter** | **$9/mo** | **250** | 5 GB | ~1 | ✅ |
+| **Creator** | **$24/mo** | **800** | 15 GB | ~3-4 | ✅ |
+| **Pro** | **$59/mo** | **2,500** | 50 GB | ~11 | ✅ |
 
-| Plan | Price | Blots/mo | Storage | ≈ Books/mo | Margin |
-|------|-------|----------|---------|------------|--------|
-| **Free** | $0 | 50 | 1 GB | Trial only | -$1.30 |
-| **Starter** | $12/mo | 300 | 5 GB | ~0.6 | 48% |
-| **Creator** | $29/mo | 900 | 15 GB | ~1.8 | 42% |
-| **Pro** | $79/mo | 2,800 | 50 GB | ~5.6 | 28% |
+### Yearly Pricing (2 months free)
 
-### Annual Pricing (16% discount)
-
-| Plan | Monthly | Annual | Savings |
+| Plan | Monthly | Yearly | Savings |
 |------|---------|--------|---------|
-| Starter | $12 | $120/yr ($10/mo) | $24 |
-| Creator | $29 | $290/yr ($24.17/mo) | $58 |
-| Pro | $79 | $790/yr ($65.83/mo) | $158 |
+| Starter | $9/mo | $90/yr | $18 |
+| Creator | $24/mo | $240/yr | $48 |
+| Pro | $59/mo | $590/yr | $118 |
+
+### Subscription Rules
+
+- Blots **RESET** monthly (no rollover in v1)
+- Storage is cumulative (doesn't reset)
+- Downgrade: immediate access reduction
+- Upgrade: immediate access increase + prorated charge
 
 ---
 
-## Stripe Integration
+## Blot Packs (One-Time Purchases) ✅ NEW
 
-### Architecture
+### Available Packs
 
-```
-User clicks "Upgrade"
-        │
-        ▼
-┌───────────────────┐
-│ POST /api/billing │
-│     /checkout     │
-└─────────┬─────────┘
-          │
-          ▼
-┌───────────────────┐
-│  Create Stripe    │
-│ Checkout Session  │
-└─────────┬─────────┘
-          │
-          ▼
-┌───────────────────┐
-│   Return URL to   │
-│   checkout.stripe │
-└─────────┬─────────┘
-          │
-          ▼
-    User completes
-    payment on Stripe
-          │
-          ▼
-┌───────────────────┐
-│  Stripe Webhook   │
-│ checkout.session  │
-│    .completed     │
-└─────────┬─────────┘
-          │
-          ▼
-┌───────────────────┐
-│   Update profile  │
-│  plan + blots     │
-└───────────────────┘
-```
+| Pack | Blots | Price | Per-Blot | Per-Book |
+|------|-------|-------|----------|----------|
+| **Splash** 💧 | 100 | $4 | $0.040 | ~$8.56 |
+| **Bucket** 🪣 | 350 | $12 | $0.034 | ~$7.34 |
+| **Barrel** 🛢️ | 1,200 | $35 | $0.029 | ~$6.24 |
 
-### Stripe Product Setup
+### Pack Rules
+
+- **Never expire** (user-friendly)
+- **Single pool** (combined with subscription Blots)
+- **Stack** with subscription (buy packs even if subscribed)
+- **No refunds** (Stripe handles this)
+
+### Design Rationale
+
+1. **Packs cost MORE per-Blot than subscriptions** → Won't cannibalize subscriptions
+2. **Solve the "50 Blots short" problem** → Users can finish projects
+3. **Simple single pool** → No complex tracking
+4. **Never expire** → User-friendly, no pressure
+
+---
+
+## Stripe Configuration
+
+### Products to Create
+
+#### Subscriptions (mode: subscription)
 
 ```
-Product: "Myjoe Subscription"
-├── Price: starter_monthly
-│   └── $12/month, quantity: 300 (Blots)
-├── Price: starter_yearly
-│   └── $120/year, quantity: 300 (Blots)
-├── Price: creator_monthly
-│   └── $29/month, quantity: 900 (Blots)
-├── Price: creator_yearly
-│   └── $290/year, quantity: 900 (Blots)
-├── Price: pro_monthly
-│   └── $79/month, quantity: 2800 (Blots)
-└── Price: pro_yearly
-    └── $790/year, quantity: 2800 (Blots)
+Product: Myjoe Starter
+├── Price: $9/month (recurring, monthly)
+└── Price: $90/year (recurring, yearly)
+
+Product: Myjoe Creator
+├── Price: $24/month (recurring, monthly)
+└── Price: $240/year (recurring, yearly)
+
+Product: Myjoe Pro
+├── Price: $59/month (recurring, monthly)
+└── Price: $590/year (recurring, yearly)
 ```
 
-### Price IDs (Configure in env)
+#### Blot Packs (mode: payment)
+
+```
+Product: Blot Pack - Splash
+├── Price: $4 (one-time)
+└── Metadata: { blots: 100, type: 'blot_pack' }
+
+Product: Blot Pack - Bucket
+├── Price: $12 (one-time)
+└── Metadata: { blots: 350, type: 'blot_pack' }
+
+Product: Blot Pack - Barrel
+├── Price: $35 (one-time)
+└── Metadata: { blots: 1200, type: 'blot_pack' }
+```
+
+### Environment Variables
 
 ```bash
+# Subscription Prices
 STRIPE_PRICE_STARTER_MONTHLY=price_xxx
 STRIPE_PRICE_STARTER_YEARLY=price_xxx
 STRIPE_PRICE_CREATOR_MONTHLY=price_xxx
 STRIPE_PRICE_CREATOR_YEARLY=price_xxx
 STRIPE_PRICE_PRO_MONTHLY=price_xxx
 STRIPE_PRICE_PRO_YEARLY=price_xxx
+
+# Blot Pack Prices
+STRIPE_PRICE_SPLASH=price_xxx
+STRIPE_PRICE_BUCKET=price_xxx
+STRIPE_PRICE_BARREL=price_xxx
 ```
 
-### Checkout Session
+---
+
+## Database Schema
+
+### blot_purchases Table
+
+```sql
+CREATE TABLE blot_purchases (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  owner_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  pack_id TEXT NOT NULL,          -- 'splash', 'bucket', 'barrel'
+  blots INTEGER NOT NULL,         -- 100, 350, 1200
+  price_cents INTEGER NOT NULL,   -- 400, 1200, 3500
+  stripe_session_id TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_blot_purchases_owner ON blot_purchases(owner_id);
+
+-- RLS
+ALTER TABLE blot_purchases ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view own purchases"
+  ON blot_purchases FOR SELECT
+  USING (auth.uid() = owner_id);
+```
+
+### Profile Blot Fields
+
+```sql
+-- In profiles table
+blots INTEGER DEFAULT 50,
+blots_reset_at TIMESTAMPTZ,
+```
+
+---
+
+## Implementation
+
+### Checkout Flow
 
 ```typescript
 // src/server/billing/stripe.ts
@@ -134,45 +203,81 @@ import Stripe from 'stripe';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
-interface CheckoutParams {
-  userId: string;
-  email: string;
-  plan: 'starter' | 'creator' | 'pro';
-  interval: 'monthly' | 'yearly';
-}
+const SUBSCRIPTION_PRICES = {
+  starter: {
+    monthly: process.env.STRIPE_PRICE_STARTER_MONTHLY!,
+    yearly: process.env.STRIPE_PRICE_STARTER_YEARLY!,
+  },
+  creator: {
+    monthly: process.env.STRIPE_PRICE_CREATOR_MONTHLY!,
+    yearly: process.env.STRIPE_PRICE_CREATOR_YEARLY!,
+  },
+  pro: {
+    monthly: process.env.STRIPE_PRICE_PRO_MONTHLY!,
+    yearly: process.env.STRIPE_PRICE_PRO_YEARLY!,
+  },
+};
 
-export async function createCheckoutSession(params: CheckoutParams): Promise<string> {
-  const { userId, email, plan, interval } = params;
-  
-  const priceId = getPriceId(plan, interval);
-  
-  // Get or create Stripe customer
+const PACK_PRICES = {
+  splash: { priceId: process.env.STRIPE_PRICE_SPLASH!, blots: 100 },
+  bucket: { priceId: process.env.STRIPE_PRICE_BUCKET!, blots: 350 },
+  barrel: { priceId: process.env.STRIPE_PRICE_BARREL!, blots: 1200 },
+};
+
+export async function createSubscriptionCheckout(
+  userId: string,
+  email: string,
+  plan: 'starter' | 'creator' | 'pro',
+  interval: 'monthly' | 'yearly'
+): Promise<string> {
   let customerId = await getStripeCustomerId(userId);
+  
   if (!customerId) {
-    const customer = await stripe.customers.create({
-      email,
-      metadata: { userId },
-    });
+    const customer = await stripe.customers.create({ email, metadata: { userId } });
     customerId = customer.id;
-    await updateStripeCustomerId(userId, customerId);
+    await saveStripeCustomerId(userId, customerId);
   }
   
   const session = await stripe.checkout.sessions.create({
-    customer: customerId,
     mode: 'subscription',
-    payment_method_types: ['card'],
-    line_items: [{ price: priceId, quantity: 1 }],
-    success_url: `${process.env.NEXT_PUBLIC_APP_URL}/billing?success=true`,
+    customer: customerId,
+    line_items: [{
+      price: SUBSCRIPTION_PRICES[plan][interval],
+      quantity: 1,
+    }],
+    metadata: { userId, plan, interval, type: 'subscription' },
+    success_url: `${process.env.NEXT_PUBLIC_APP_URL}/billing?success=subscription`,
     cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/billing?canceled=true`,
-    metadata: { userId, plan },
   });
   
   return session.url!;
 }
 
-function getPriceId(plan: string, interval: string): string {
-  const key = `STRIPE_PRICE_${plan.toUpperCase()}_${interval.toUpperCase()}`;
-  return process.env[key]!;
+export async function createPackCheckout(
+  userId: string,
+  email: string,
+  packId: 'splash' | 'bucket' | 'barrel'
+): Promise<string> {
+  const pack = PACK_PRICES[packId];
+  
+  const session = await stripe.checkout.sessions.create({
+    mode: 'payment',
+    customer_email: email,
+    line_items: [{
+      price: pack.priceId,
+      quantity: 1,
+    }],
+    metadata: { 
+      userId, 
+      packId, 
+      blots: pack.blots.toString(),
+      type: 'blot_pack'
+    },
+    success_url: `${process.env.NEXT_PUBLIC_APP_URL}/billing?success=pack&blots=${pack.blots}`,
+    cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/billing?canceled=true`,
+  });
+  
+  return session.url!;
 }
 ```
 
@@ -180,347 +285,157 @@ function getPriceId(plan: string, interval: string): string {
 
 ```typescript
 // src/app/api/webhooks/stripe/route.ts
-import { headers } from 'next/headers';
-import Stripe from 'stripe';
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
-
-const PLAN_BLOTS: Record<string, number> = {
-  starter: 300,
-  creator: 900,
-  pro: 2800,
-};
-
-const PLAN_STORAGE: Record<string, number> = {
-  starter: 5 * 1024 * 1024 * 1024,    // 5 GB
-  creator: 15 * 1024 * 1024 * 1024,   // 15 GB
-  pro: 50 * 1024 * 1024 * 1024,       // 50 GB
-};
+import { PLAN_LIMITS } from '@/lib/constants';
 
 export async function POST(request: Request) {
   const body = await request.text();
-  const signature = headers().get('stripe-signature')!;
+  const signature = request.headers.get('stripe-signature')!;
   
-  let event: Stripe.Event;
-  
-  try {
-    event = stripe.webhooks.constructEvent(
-      body,
-      signature,
-      process.env.STRIPE_WEBHOOK_SECRET!
-    );
-  } catch (err) {
-    return Response.json({ error: 'Invalid signature' }, { status: 400 });
-  }
+  const event = stripe.webhooks.constructEvent(
+    body,
+    signature,
+    process.env.STRIPE_WEBHOOK_SECRET!
+  );
   
   switch (event.type) {
-    case 'checkout.session.completed':
-      await handleCheckoutComplete(event.data.object as Stripe.Checkout.Session);
-      break;
+    case 'checkout.session.completed': {
+      const session = event.data.object as Stripe.Checkout.Session;
+      const { userId, type } = session.metadata || {};
       
-    case 'invoice.payment_succeeded':
-      await handlePaymentSucceeded(event.data.object as Stripe.Invoice);
+      if (type === 'subscription') {
+        const { plan } = session.metadata!;
+        const limits = PLAN_LIMITS[plan as keyof typeof PLAN_LIMITS];
+        
+        await updateProfile(userId, {
+          plan,
+          blots: limits.blots,
+          storage_limit_bytes: limits.storageBytes,
+          blots_reset_at: getNextResetDate(),
+          stripe_customer_id: session.customer as string,
+          stripe_subscription_id: session.subscription as string,
+        });
+      } else if (type === 'blot_pack') {
+        const { packId, blots } = session.metadata!;
+        
+        // Add blots to user
+        await addBlots(userId, parseInt(blots));
+        
+        // Record purchase
+        await recordPackPurchase(userId, {
+          packId,
+          blots: parseInt(blots),
+          priceCents: session.amount_total!,
+          stripeSessionId: session.id,
+        });
+      }
       break;
+    }
+    
+    case 'invoice.payment_succeeded': {
+      const invoice = event.data.object as Stripe.Invoice;
+      if (invoice.billing_reason === 'subscription_cycle') {
+        const customerId = invoice.customer as string;
+        const profile = await getProfileByStripeCustomer(customerId);
+        const limits = PLAN_LIMITS[profile.plan as keyof typeof PLAN_LIMITS];
+        
+        await updateProfile(profile.owner_id, {
+          blots: limits.blots,
+          blots_reset_at: getNextResetDate(),
+          payment_failed_at: null,
+        });
+      }
+      break;
+    }
+    
+    case 'invoice.payment_failed': {
+      const invoice = event.data.object as Stripe.Invoice;
+      const customerId = invoice.customer as string;
+      const profile = await getProfileByStripeCustomer(customerId);
       
-    case 'invoice.payment_failed':
-      await handlePaymentFailed(event.data.object as Stripe.Invoice);
+      await updateProfile(profile.owner_id, {
+        payment_failed_at: new Date().toISOString(),
+      });
       break;
+    }
+    
+    case 'customer.subscription.deleted': {
+      const subscription = event.data.object as Stripe.Subscription;
+      const customerId = subscription.customer as string;
+      const profile = await getProfileByStripeCustomer(customerId);
       
-    case 'customer.subscription.updated':
-      await handleSubscriptionUpdated(event.data.object as Stripe.Subscription);
+      await updateProfile(profile.owner_id, {
+        plan: 'free',
+        blots: PLAN_LIMITS.free.blots,
+        storage_limit_bytes: PLAN_LIMITS.free.storageBytes,
+        stripe_subscription_id: null,
+      });
       break;
-      
-    case 'customer.subscription.deleted':
-      await handleSubscriptionDeleted(event.data.object as Stripe.Subscription);
-      break;
+    }
   }
   
   return Response.json({ received: true });
 }
-
-async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
-  const userId = session.metadata?.userId;
-  const plan = session.metadata?.plan as string;
-  
-  if (!userId || !plan) return;
-  
-  await updateProfile(userId, {
-    plan,
-    blots: PLAN_BLOTS[plan],
-    storage_limit_bytes: PLAN_STORAGE[plan],
-    stripe_subscription_id: session.subscription as string,
-    blots_reset_at: getNextResetDate(),
-  });
-  
-  // Send welcome email
-  await sendEmail({
-    to: session.customer_email!,
-    template: 'subscription-welcome',
-    data: { plan },
-  });
-}
-
-async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
-  // Monthly renewal - RESET blots to plan amount
-  const subscription = await stripe.subscriptions.retrieve(
-    invoice.subscription as string
-  );
-  const customerId = invoice.customer as string;
-  const userId = await getUserIdByStripeCustomer(customerId);
-  
-  if (!userId) return;
-  
-  const plan = getPlanFromSubscription(subscription);
-  
-  await updateProfile(userId, {
-    blots: PLAN_BLOTS[plan], // RESET, not add
-    blots_reset_at: getNextResetDate(),
-  });
-}
-
-async function handlePaymentFailed(invoice: Stripe.Invoice) {
-  const customerId = invoice.customer as string;
-  const userId = await getUserIdByStripeCustomer(customerId);
-  
-  if (!userId) return;
-  
-  // Flag account, send email
-  await updateProfile(userId, {
-    payment_failed_at: new Date().toISOString(),
-  });
-  
-  await sendEmail({
-    to: invoice.customer_email!,
-    template: 'payment-failed',
-    data: { invoiceUrl: invoice.hosted_invoice_url },
-  });
-}
-
-async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
-  const customerId = subscription.customer as string;
-  const userId = await getUserIdByStripeCustomer(customerId);
-  
-  if (!userId) return;
-  
-  // Downgrade to free
-  await updateProfile(userId, {
-    plan: 'free',
-    blots: 50,
-    storage_limit_bytes: 1 * 1024 * 1024 * 1024, // 1 GB
-    stripe_subscription_id: null,
-  });
-  
-  await sendEmail({
-    to: subscription.customer_email,
-    template: 'subscription-cancelled',
-  });
-}
-
-function getNextResetDate(): string {
-  const now = new Date();
-  const next = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-  return next.toISOString();
-}
-```
-
----
-
-## Blot Management
-
-### Spending Blots
-
-```typescript
-// src/server/billing/blots.ts
-
-export async function spendBlots(
-  userId: string,
-  amount: number,
-  reason: string
-): Promise<void> {
-  const profile = await getProfile(userId);
-  
-  if (profile.blots < amount) {
-    throw new InsufficientBlotsError(amount, profile.blots);
-  }
-  
-  await updateProfile(userId, {
-    blots: profile.blots - amount,
-  });
-  
-  // Log transaction for audit
-  await logBlotTransaction(userId, -amount, reason);
-}
-
-export async function reserveBlots(
-  userId: string,
-  amount: number,
-  jobId: string
-): Promise<void> {
-  // Atomic operation: check and reserve
-  const { error } = await supabase.rpc('reserve_blots', {
-    p_user_id: userId,
-    p_amount: amount,
-    p_job_id: jobId,
-  });
-  
-  if (error) {
-    if (error.code === 'INSUFFICIENT_BLOTS') {
-      throw new InsufficientBlotsError(amount, 0);
-    }
-    throw error;
-  }
-}
-
-export async function refundBlots(
-  userId: string,
-  amount: number,
-  reason: string
-): Promise<void> {
-  await updateProfile(userId, {
-    blots: supabase.raw(`blots + ${amount}`),
-  });
-  
-  await logBlotTransaction(userId, amount, `refund: ${reason}`);
-}
-```
-
-### Database Function for Atomic Reserve
-
-```sql
-CREATE OR REPLACE FUNCTION reserve_blots(
-  p_user_id UUID,
-  p_amount INTEGER,
-  p_job_id UUID
-) RETURNS VOID AS $$
-DECLARE
-  v_current_blots INTEGER;
-BEGIN
-  -- Lock row and get current blots
-  SELECT blots INTO v_current_blots
-  FROM profiles
-  WHERE owner_id = p_user_id
-  FOR UPDATE;
-  
-  IF v_current_blots < p_amount THEN
-    RAISE EXCEPTION 'INSUFFICIENT_BLOTS';
-  END IF;
-  
-  -- Deduct blots
-  UPDATE profiles
-  SET blots = blots - p_amount
-  WHERE owner_id = p_user_id;
-  
-  -- Record in job
-  UPDATE jobs
-  SET blots_reserved = p_amount
-  WHERE id = p_job_id;
-END;
-$$ LANGUAGE plpgsql;
 ```
 
 ---
 
 ## UI Components
 
-### Blot Balance Display (Header)
+### Blot Pack Selector
 
-```tsx
-// src/components/features/billing/blot-display.tsx
-'use client';
+```typescript
+// src/components/features/billing/blot-pack-selector.tsx
+const PACKS = [
+  { id: 'splash', name: 'Splash', emoji: '💧', blots: 100, price: 4 },
+  { id: 'bucket', name: 'Bucket', emoji: '🪣', blots: 350, price: 12, popular: true },
+  { id: 'barrel', name: 'Barrel', emoji: '🛢️', blots: 1200, price: 35, bestValue: true },
+];
 
-import { useBlots } from '@/hooks/use-blots';
-
-export function BlotDisplay() {
-  const { blots, isLoading } = useBlots();
+export function BlotPackSelector() {
+  const [loading, setLoading] = useState<string | null>(null);
   
-  if (isLoading) {
-    return <div className="h-8 w-24 bg-zinc-800 animate-pulse rounded" />;
-  }
-  
-  const isLow = blots < 50;
-  
-  return (
-    <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg ${
-      isLow ? 'bg-amber-500/20 text-amber-400' : 'bg-zinc-800 text-zinc-300'
-    }`}>
-      <span>🎨</span>
-      <span className="font-medium">{blots.toLocaleString()}</span>
-      <span className="text-sm opacity-70">Blots</span>
-    </div>
-  );
-}
-```
-
-### Cost Preview Modal
-
-```tsx
-// src/components/features/billing/cost-preview.tsx
-'use client';
-
-interface CostPreviewProps {
-  items: { label: string; blots: number }[];
-  onConfirm: () => void;
-  onCancel: () => void;
-}
-
-export function CostPreview({ items, onConfirm, onCancel }: CostPreviewProps) {
-  const { blots } = useBlots();
-  const total = items.reduce((sum, item) => sum + item.blots, 0);
-  const remaining = blots - total;
-  const canAfford = remaining >= 0;
+  const handlePurchase = async (packId: string) => {
+    setLoading(packId);
+    const res = await fetch('/api/billing/pack-checkout', {
+      method: 'POST',
+      body: JSON.stringify({ packId }),
+    });
+    const { checkoutUrl } = await res.json();
+    window.location.href = checkoutUrl;
+  };
   
   return (
-    <div className="p-6 space-y-4">
-      <h3 className="text-lg font-semibold">Confirm Action</h3>
-      
-      <div className="space-y-2">
-        {items.map((item, i) => (
-          <div key={i} className="flex justify-between text-sm">
-            <span className="text-zinc-400">{item.label}</span>
-            <span>{item.blots} Blots</span>
-          </div>
-        ))}
-        
-        <div className="border-t border-zinc-700 pt-2 flex justify-between font-medium">
-          <span>Total</span>
-          <span>{total} Blots</span>
-        </div>
-      </div>
-      
-      <div className="p-3 bg-zinc-800 rounded-lg">
-        <div className="flex justify-between text-sm">
-          <span className="text-zinc-400">Your balance</span>
-          <span>{blots} Blots</span>
-        </div>
-        <div className="flex justify-between text-sm mt-1">
-          <span className="text-zinc-400">After</span>
-          <span className={canAfford ? 'text-green-400' : 'text-red-400'}>
-            {remaining} Blots
-          </span>
-        </div>
-      </div>
-      
-      {!canAfford && (
-        <p className="text-sm text-red-400">
-          Not enough Blots. <a href="/billing" className="underline">Upgrade your plan</a>
-        </p>
-      )}
-      
-      <div className="flex gap-3">
-        <button
-          onClick={onCancel}
-          className="flex-1 px-4 py-2 bg-zinc-700 rounded-lg hover:bg-zinc-600"
+    <div className="grid grid-cols-3 gap-4">
+      {PACKS.map((pack) => (
+        <div
+          key={pack.id}
+          className="relative bg-zinc-900 border border-zinc-800 rounded-lg p-4 text-center"
         >
-          Cancel
-        </button>
-        <button
-          onClick={onConfirm}
-          disabled={!canAfford}
-          className="flex-1 px-4 py-2 bg-blue-600 rounded-lg hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          Confirm
-        </button>
-      </div>
+          {pack.popular && (
+            <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-blue-600 text-xs px-2 py-0.5 rounded">
+              Popular
+            </span>
+          )}
+          {pack.bestValue && (
+            <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-green-600 text-xs px-2 py-0.5 rounded">
+              Best Value
+            </span>
+          )}
+          
+          <div className="text-4xl mb-2">{pack.emoji}</div>
+          <div className="text-lg font-semibold">{pack.name}</div>
+          <div className="text-2xl font-bold text-blue-400">{pack.blots}</div>
+          <div className="text-sm text-zinc-400 mb-4">Blots</div>
+          
+          <Button
+            onClick={() => handlePurchase(pack.id)}
+            loading={loading === pack.id}
+            className="w-full"
+          >
+            ${pack.price}
+          </Button>
+        </div>
+      ))}
     </div>
   );
 }
@@ -528,71 +443,84 @@ export function CostPreview({ items, onConfirm, onCancel }: CostPreviewProps) {
 
 ---
 
-## Grace Period (Payment Failed)
-
-| Day | Action |
-|-----|--------|
-| 0 | Payment fails, banner shown, email sent |
-| 1-2 | User can still use app (existing Blots) |
-| 3 | Auto-downgrade to Free tier |
+## Blot Deduction Logic
 
 ```typescript
-// src/server/billing/grace-period.ts
+// src/server/billing/blots.ts
 
-export async function checkGracePeriod(userId: string): Promise<void> {
+export async function deductBlots(
+  userId: string, 
+  amount: number,
+  action: string
+): Promise<{ success: boolean; remaining: number }> {
   const profile = await getProfile(userId);
   
-  if (!profile.payment_failed_at) return;
-  
-  const failedAt = new Date(profile.payment_failed_at);
-  const daysSinceFailed = Math.floor(
-    (Date.now() - failedAt.getTime()) / (1000 * 60 * 60 * 24)
-  );
-  
-  if (daysSinceFailed >= 3) {
-    // Auto-downgrade
-    await updateProfile(userId, {
-      plan: 'free',
-      blots: Math.min(profile.blots, 50), // Keep existing but cap at 50
-      storage_limit_bytes: 1 * 1024 * 1024 * 1024,
-      payment_failed_at: null,
-    });
+  if (profile.blots < amount) {
+    return { success: false, remaining: profile.blots };
   }
+  
+  const newBalance = profile.blots - amount;
+  await updateProfile(userId, { blots: newBalance });
+  
+  return { success: true, remaining: newBalance };
+}
+
+export async function checkBlotBalance(
+  userId: string,
+  required: number
+): Promise<{ sufficient: boolean; current: number; required: number }> {
+  const profile = await getProfile(userId);
+  
+  return {
+    sufficient: profile.blots >= required,
+    current: profile.blots,
+    required,
+  };
 }
 ```
 
 ---
 
-## Emails
+## Revenue Projections
 
-### Templates Needed
+### Monthly Revenue Model
 
-| Template | Trigger | Content |
-|----------|---------|---------|
-| `subscription-welcome` | Checkout complete | Welcome, plan details |
-| `payment-failed` | Invoice failed | Update card link |
-| `subscription-cancelled` | Subscription deleted | Confirmation, resubscribe CTA |
-| `blots-low` | < 20% remaining | Upgrade prompt |
-| `blots-depleted` | 0 Blots | Upgrade prompt |
+| Subscribers | Revenue | Fixed Costs | Variable | Net Profit |
+|-------------|---------|-------------|----------|------------|
+| 25 | ~$500 | $87 | ~$50 | ~$363 |
+| 50 | ~$1,000 | $87 | ~$100 | ~$813 |
+| 100 | ~$2,000 | $87 | ~$200 | ~$1,713 |
+| 500 | ~$10,000 | $200 | ~$1,000 | ~$8,800 |
 
-```typescript
-// src/server/email/templates.tsx
-import { Html, Text, Button, Section } from '@react-email/components';
+### Blot Pack Revenue (Estimate)
 
-export function PaymentFailedEmail({ invoiceUrl }: { invoiceUrl: string }) {
-  return (
-    <Html>
-      <Section>
-        <Text>Your payment couldn't be processed.</Text>
-        <Text>
-          Please update your payment method to continue using Myjoe without interruption.
-          You have 3 days before your account is downgraded.
-        </Text>
-        <Button href={invoiceUrl}>
-          Update Payment Method
-        </Button>
-      </Section>
-    </Html>
-  );
-}
+| Adoption | Pack Sales/Mo | Revenue |
+|----------|---------------|---------|
+| 10% | ~10 packs | ~$120 |
+| 15% | ~15 packs | ~$180 |
+| 20% | ~20 packs | ~$240 |
+
+---
+
+## Edge Cases
+
+### Scenario: User runs out mid-generation
+
 ```
+- Creator plan: 800 Blots/month
+- User starts 40-page job (200 Blots required)
+- User has 180 Blots
+→ Job rejected BEFORE starting
+→ Show: "Need 20 more Blots. Buy a Splash pack?"
+```
+
+### Scenario: Pack + Subscription stacking
+
+```
+- Pro plan: 2,500 Blots/month
+- User buys Barrel pack: +1,200 Blots
+- Total available: 3,700 Blots
+- Renewal hits: Reset to 2,500 (pack Blots preserved? NO - simplified single pool)
+```
+
+**Decision:** Subscription reset replaces ALL Blots. Packs are best bought when running low.

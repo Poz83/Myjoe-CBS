@@ -10,11 +10,11 @@
 | [02_ARCHITECTURE](./02_ARCHITECTURE.md) | System design |
 | [03_DATA_MODEL](./03_DATA_MODEL.md) | Database schema |
 | [04_API_CONTRACTS](./04_API_CONTRACTS.md) | Endpoints |
-| [05_AI_PIPELINE](./05_AI_PIPELINE.md) | Generation system |
+| [05_AI_PIPELINE](./05_AI_PIPELINE.md) | Generation system (Flux + Safety) |
 | [06_STYLE_SYSTEM](./06_STYLE_SYSTEM.md) | Styles, heroes, calibration |
-| [07_BILLING](./07_BILLING.md) | Blots + Stripe |
+| [07_BILLING](./07_BILLING.md) | Blots + Blot Packs + Stripe |
 | [08_UI_UX](./08_UI_UX.md) | Design system |
-| [09_SECURITY](./09_SECURITY.md) | Auth, RLS, limits |
+| [09_SECURITY](./09_SECURITY.md) | Auth, RLS, Content Safety |
 | [10_EXECUTION_PLAN](./10_EXECUTION_PLAN.md) | Build phases with git checkpoints |
 | [CURSOR_PROMPTS](./CURSOR_PROMPTS.md) | Copy-paste prompts for Cursor |
 
@@ -28,41 +28,14 @@ AI-powered coloring book studio for Amazon KDP publishers. Users create professi
 
 ---
 
-## Competitive Analysis
+## Key Differentiators
 
-| Competitor | Price Range | Credits/Gen | Key Features | Weakness |
-|------------|-------------|-------------|--------------|----------|
-| **ColorBliss** | $7-83/mo | 250-5000/mo | Rollover credits, batch gen, photo-to-page | No character consistency |
-| **Colorin.ai** | $12.99-49.99/mo | 150-700/mo | KDP export, styles | No hero system |
-| **ColoringBook.AI** | $6.99+/mo | 100+/mo | Story mode, 20-page books | Basic, no pro features |
-| **Coloring-Pages.app** | $4.90-29.90/mo | 100-1000/mo | Cheap, simple | Very basic |
-| **Automateed** | Varies | Batch 10-20 | KDP-focused, covers | No consistency |
-
-### Our Differentiators
-
-1. **Hero Reference Sheets** — Character stays consistent across 40 pages (competitors can't do this)
+1. **Hero Reference Sheets** — Character stays consistent across 40 pages
 2. **Style Calibration** — User picks visual anchor, all pages match
-3. **Project DNA Lock** — Prevents AI drift mid-book
-4. **Audience Presets** — Automatic line weight/complexity for age groups
-5. **Paintbrush Inpainting** — Precise AI edits (competitors use chat only)
+3. **Child-Safe Generation** — Multi-layer content moderation for kids' books
+4. **Flux-Powered** — 67% cheaper than competitors, better line art quality
+5. **Audience Presets** — Automatic line weight/complexity for age groups
 6. **KDP-Ready Export** — 300 DPI PDF with correct margins
-
----
-
-## Myjoe Pricing (Competitive Position)
-
-| Plan | Price | Blots | ≈ Books | vs Competition |
-|------|-------|-------|---------|----------------|
-| **Free** | $0 | 50/mo | Trial | Standard |
-| **Starter** | $12/mo | 300 | ~0.6 | Matches Colorin Launch |
-| **Creator** | $29/mo | 900 | ~1.8 | Below ColorBliss Artist |
-| **Pro** | $79/mo | 2,800 | ~5.6 | Below ColorBliss Business |
-
-**Storage by plan:**
-- Free: 1 GB
-- Starter: 5 GB  
-- Creator: 15 GB
-- Pro: 50 GB
 
 ---
 
@@ -74,44 +47,76 @@ AI-powered coloring book studio for Amazon KDP publishers. Users create professi
 | Backend | Next.js API Routes + Server Actions |
 | Database | Supabase (Postgres + Auth + RLS) |
 | Storage | Cloudflare R2 |
-| AI | GPT-4o-mini (planning) + GPT Image 1.5 (generation) |
-| Payments | Stripe (subscriptions + webhooks) |
+| AI Planning | GPT-4o-mini |
+| AI Images | **Flux via Replicate** (with LoRA support) |
+| AI Safety | OpenAI Moderation API + GPT-4V |
+| Payments | Stripe (subscriptions + one-time packs) |
 | Hosting | Vercel |
 | Analytics | PostHog |
 | Errors | Sentry |
-| Email | Resend + React Email |
 
 ---
 
-## Timeline
+## Cost Comparison (Per 40-Page Book)
 
-**30-Day Internal Testing → Commercial Launch**
-
-| Week | Focus |
-|------|-------|
-| 1 | Auth + Project CRUD + Basic UI |
-| 2 | Generation Pipeline + Style Calibration |
-| 3 | Hero System + Page Editor + Export |
-| 4 | Billing + Polish + Deploy |
+| Provider | Cost | Notes |
+|----------|------|-------|
+| **Myjoe (Flux-LineArt)** | ~$0.65 | Best value |
+| **Myjoe (Flux Dev+LoRA)** | ~$1.00 | Best quality |
+| GPT Image 1.5 | ~$2.00 | Previous approach |
+| DALL-E 3 | ~$1.60 | No consistency |
 
 ---
 
-## Key Commands
+## Safety Architecture
 
-```bash
-# Development
-npm run dev           # Start Next.js
-npx supabase start    # Start local Supabase
-stripe listen --forward-to localhost:3000/api/webhooks/stripe
-
-# Database
-npx supabase db reset # Reset database
-npx supabase gen types typescript --local > src/types/database.ts
-
-# Deploy
-vercel deploy         # Preview
-vercel --prod        # Production
 ```
+┌─────────────────────────────────────────────────────────────┐
+│                    CONTENT SAFETY PIPELINE                   │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  User Input                                                 │
+│      │                                                      │
+│      ▼                                                      │
+│  ┌─────────────┐   ┌─────────────┐   ┌─────────────┐       │
+│  │  Sanitize   │ → │  Keyword    │ → │  OpenAI     │       │
+│  │  Input      │   │  Blocklist  │   │  Moderation │       │
+│  └─────────────┘   └─────────────┘   └─────────────┘       │
+│                           │                 │               │
+│                           ▼                 ▼               │
+│                    ┌─────────────────────────┐              │
+│                    │    SAFE? Generate       │              │
+│                    └───────────┬─────────────┘              │
+│                                │                            │
+│                                ▼                            │
+│                    ┌─────────────────────────┐              │
+│                    │  Post-Gen GPT-4V Check  │              │
+│                    │  (Toddler/Children only)│              │
+│                    └─────────────────────────┘              │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Pricing
+
+### Subscriptions
+
+| Plan | Price | Blots | Storage |
+|------|-------|-------|---------|
+| **Free** | $0 | 50/mo | 1 GB |
+| **Starter** | $15/mo | 300/mo | 5 GB |
+| **Creator** | $39/mo | 900/mo | 15 GB |
+| **Pro** | $99/mo | 2,800/mo | 50 GB |
+
+### Blot Packs (One-Time)
+
+| Pack | Blots | Price |
+|------|-------|-------|
+| Splash 💧 | 100 | $5 |
+| Bucket 🪣 | 300 | $12 |
+| Barrel 🛢️ | 1,000 | $35 |
 
 ---
 
@@ -123,22 +128,37 @@ myjoe/
 │   ├── app/                    # Next.js App Router
 │   │   ├── (auth)/            # Login, signup
 │   │   ├── (studio)/          # Main app (protected)
-│   │   │   ├── projects/
-│   │   │   ├── library/
-│   │   │   └── settings/
 │   │   └── api/               # API routes
 │   ├── components/            # React components
-│   │   ├── ui/               # Primitives (button, input)
+│   │   ├── ui/               # Primitives
 │   │   └── features/         # Feature components
 │   ├── server/               # Server-only code
-│   │   ├── ai/              # AI pipeline
+│   │   ├── ai/              # AI pipeline + safety
 │   │   ├── db/              # Database queries
 │   │   └── storage/         # R2 operations
 │   ├── lib/                  # Shared utilities
+│   │   └── constants/       # Config + forbidden content
 │   └── types/               # TypeScript types
 ├── supabase/
-│   ├── migrations/          # SQL migrations
-│   └── seed.sql            # Test data
-├── public/                  # Static assets
+│   └── migrations/          # SQL migrations
 └── docs/                   # These docs
+```
+
+---
+
+## Key Commands
+
+```bash
+# Development
+npm run dev
+npx supabase start
+stripe listen --forward-to localhost:3000/api/webhooks/stripe
+
+# Database
+npx supabase db reset
+npx supabase gen types typescript --local > src/types/database.ts
+
+# Deploy
+vercel deploy
+vercel --prod
 ```

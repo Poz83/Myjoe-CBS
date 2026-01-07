@@ -14,6 +14,8 @@ export interface AccordionProps {
 export interface AccordionItemProps {
   value: string;
   children: React.ReactNode;
+  open?: boolean;
+  onToggle?: () => void;
 }
 
 export interface AccordionHeaderProps {

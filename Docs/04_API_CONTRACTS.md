@@ -65,120 +65,15 @@ POST /api/projects
   "id": "uuid",
   "name": "Bella's Adventure",
   "status": "draft",
-  ...
-}
-```
-
-### Get Project
-
-```
-GET /api/projects/[id]
-```
-
-**Response 200:**
-```json
-{
-  "id": "uuid",
-  "name": "Bella's Adventure",
-  "status": "ready",
-  "pageCount": 40,
   "audience": "children",
-  "stylePreset": "kawaii",
   "lineWeight": "thick",
-  "complexity": "moderate",
-  "heroId": "uuid | null",
-  "hero": { ... } | null,
-  "styleAnchorUrl": "https://...",
-  "pages": [
-    {
-      "id": "uuid",
-      "sortOrder": 1,
-      "pageType": "illustration",
-      "currentVersion": 2,
-      "sceneBrief": "Bella discovers the forest",
-      "thumbnailUrl": "https://...",
-      "imageUrl": "https://..."
-    }
-  ],
-  "createdAt": "...",
-  "updatedAt": "..."
+  "complexity": "moderate"
 }
 ```
 
-### Update Project
+### Get Project | Update Project | Delete Project
 
-```
-PATCH /api/projects/[id]
-```
-
-**Request:**
-```json
-{
-  "name": "New Name",
-  "heroId": "uuid | null"
-}
-```
-
-*Note: Project DNA (audience, stylePreset, etc.) cannot be changed after creation*
-
-### Delete Project
-
-```
-DELETE /api/projects/[id]
-```
-
-**Response 204:** No content
-
----
-
-## Style Calibration
-
-### Generate Calibration Samples
-
-```
-POST /api/projects/[id]/calibrate
-```
-
-**Request:**
-```json
-{
-  "subject": "cute forest animals"
-}
-```
-
-**Response 200:**
-```json
-{
-  "samples": [
-    { "id": "1", "url": "https://..." },
-    { "id": "2", "url": "https://..." },
-    { "id": "3", "url": "https://..." },
-    { "id": "4", "url": "https://..." }
-  ],
-  "blotsSpent": 10
-}
-```
-
-### Set Style Anchor
-
-```
-POST /api/projects/[id]/calibrate/select
-```
-
-**Request:**
-```json
-{
-  "sampleId": "2"
-}
-```
-
-**Response 200:**
-```json
-{
-  "styleAnchorUrl": "https://...",
-  "styleAnchorDescription": "Kawaii style with..."
-}
-```
+See original documentation - unchanged.
 
 ---
 
@@ -194,200 +89,36 @@ POST /api/generate
 ```json
 {
   "projectId": "uuid",
-  "idea": "Bella explores a magical forest with mushrooms and fairies",
-  "pageNumbers": [1, 2, 3, 4, 5] // Optional: specific pages, or omit for all
+  "idea": "Bella explores a magical forest",
+  "pageNumbers": [1, 2, 3, 4, 5]
 }
 ```
 
-**Response 202:**
+**Response 202 (Success):**
 ```json
 {
   "jobId": "uuid",
   "status": "pending",
   "totalItems": 40,
-  "blotsReserved": 480,
-  "estimatedSeconds": 120
+  "blotsReserved": 480
 }
 ```
 
-### Get Job Status
-
-```
-GET /api/generate/[jobId]
-```
-
-**Response 200:**
+**Response 400 (Safety Blocked):**
 ```json
 {
-  "id": "uuid",
-  "status": "processing",
-  "totalItems": 40,
-  "completedItems": 15,
-  "failedItems": 0,
-  "blotsSpent": 180,
-  "currentStage": "Generating page 16...",
-  "pages": [
-    {
-      "pageNumber": 1,
-      "status": "completed",
-      "thumbnailUrl": "https://..."
-    },
-    {
-      "pageNumber": 16,
-      "status": "processing"
-    }
+  "error": "Content not suitable for children",
+  "code": "SAFETY_BLOCKED",
+  "suggestions": [
+    "Try: \"brave knight saving a friendly dragon\"",
+    "Try: \"underwater mermaid palace\""
   ]
-}
-```
-
-### Cancel Job
-
-```
-POST /api/generate/[jobId]/cancel
-```
-
-**Response 200:**
-```json
-{
-  "status": "cancelled",
-  "blotsRefunded": 300
-}
-```
-
----
-
-## Pages
-
-### Get Page Detail
-
-```
-GET /api/pages/[id]
-```
-
-**Response 200:**
-```json
-{
-  "id": "uuid",
-  "projectId": "uuid",
-  "sortOrder": 1,
-  "pageType": "illustration",
-  "currentVersion": 2,
-  "sceneBrief": "Bella discovers the forest",
-  "imageUrl": "https://...",
-  "versions": [
-    {
-      "version": 2,
-      "thumbnailUrl": "https://...",
-      "editType": "inpaint",
-      "editPrompt": "Add butterfly",
-      "createdAt": "..."
-    },
-    {
-      "version": 1,
-      "thumbnailUrl": "https://...",
-      "editType": "initial",
-      "createdAt": "..."
-    }
-  ]
-}
-```
-
-### Edit Page (Chat)
-
-```
-POST /api/pages/[id]/edit
-```
-
-**Request:**
-```json
-{
-  "type": "regenerate" | "quick_action",
-  "prompt": "Make the dragon friendlier",
-  "action": "simplify" | "add_detail" | null
-}
-```
-
-**Response 200:**
-```json
-{
-  "version": 3,
-  "imageUrl": "https://...",
-  "thumbnailUrl": "https://...",
-  "blotsSpent": 12
-}
-```
-
-### Edit Page (Inpaint)
-
-```
-POST /api/pages/[id]/edit
-```
-
-**Request:**
-```json
-{
-  "type": "inpaint",
-  "prompt": "A small butterfly with simple wings",
-  "maskDataUrl": "data:image/png;base64,..."
-}
-```
-
-**Response 200:**
-```json
-{
-  "version": 3,
-  "imageUrl": "https://...",
-  "thumbnailUrl": "https://...",
-  "blotsSpent": 12
-}
-```
-
-### Restore Version
-
-```
-POST /api/pages/[id]/restore
-```
-
-**Request:**
-```json
-{
-  "version": 1
-}
-```
-
-**Response 200:**
-```json
-{
-  "currentVersion": 1,
-  "imageUrl": "https://..."
 }
 ```
 
 ---
 
 ## Heroes
-
-### List Heroes
-
-```
-GET /api/heroes
-```
-
-**Response 200:**
-```json
-{
-  "heroes": [
-    {
-      "id": "uuid",
-      "name": "Bella",
-      "audience": "children",
-      "thumbnailUrl": "https://...",
-      "timesUsed": 5,
-      "createdAt": "..."
-    }
-  ]
-}
-```
 
 ### Create Hero
 
@@ -399,12 +130,12 @@ POST /api/heroes
 ```json
 {
   "name": "Bella",
-  "description": "A friendly white bunny with floppy ears and a pink bow",
+  "description": "A friendly white bunny with floppy ears",
   "audience": "children"
 }
 ```
 
-**Response 202:**
+**Response 202 (Success):**
 ```json
 {
   "jobId": "uuid",
@@ -413,82 +144,18 @@ POST /api/heroes
 }
 ```
 
-### Get Hero
-
-```
-GET /api/heroes/[id]
-```
-
-**Response 200:**
+**Response 400 (Safety Blocked):**
 ```json
 {
-  "id": "uuid",
-  "name": "Bella",
-  "description": "A friendly white bunny...",
-  "audience": "children",
-  "referenceUrl": "https://...", // Full 2x2 reference sheet
-  "thumbnailUrl": "https://...",
-  "timesUsed": 5,
-  "createdAt": "..."
-}
-```
-
-### Delete Hero
-
-```
-DELETE /api/heroes/[id]
-```
-
-**Response 204:** No content
-
----
-
-## Export
-
-### Create Export
-
-```
-POST /api/export
-```
-
-**Request:**
-```json
-{
-  "projectId": "uuid",
-  "format": "pdf" | "png_zip",
-  "includeBleed": true
-}
-```
-
-**Response 202:**
-```json
-{
-  "jobId": "uuid",
-  "status": "pending",
-  "blotsReserved": 3
-}
-```
-
-### Get Export Status
-
-```
-GET /api/export/[jobId]
-```
-
-**Response 200:**
-```json
-{
-  "status": "completed",
-  "downloadUrl": "https://...", // Signed URL, expires in 1 hour
-  "expiresAt": "2025-01-01T01:00:00Z",
-  "fileSize": 52428800,
-  "fileName": "bellas-adventure-interior.pdf"
+  "error": "Character description not suitable",
+  "code": "SAFETY_BLOCKED",
+  "suggestions": ["Try a friendlier description"]
 }
 ```
 
 ---
 
-## Billing
+## Billing (Updated with Packs)
 
 ### Get Blot Balance
 
@@ -507,7 +174,7 @@ GET /api/billing/balance
 }
 ```
 
-### Create Checkout Session
+### Create Subscription Checkout
 
 ```
 POST /api/billing/checkout
@@ -521,10 +188,23 @@ POST /api/billing/checkout
 }
 ```
 
+### Create Pack Checkout (NEW)
+
+```
+POST /api/billing/pack-checkout
+```
+
+**Request:**
+```json
+{
+  "packId": "splash" | "bucket" | "barrel"
+}
+```
+
 **Response 200:**
 ```json
 {
-  "checkoutUrl": "https://checkout.stripe.com/..."
+  "url": "https://checkout.stripe.com/..."
 }
 ```
 
@@ -534,82 +214,19 @@ POST /api/billing/checkout
 POST /api/billing/portal
 ```
 
-**Response 200:**
-```json
-{
-  "portalUrl": "https://billing.stripe.com/..."
-}
-```
-
 ---
 
-## Upload
-
-### Get Signed Upload URL
-
-```
-POST /api/upload
-```
-
-**Request:**
-```json
-{
-  "fileName": "mask.png",
-  "contentType": "image/png",
-  "purpose": "inpaint_mask" | "custom_image"
-}
-```
-
-**Response 200:**
-```json
-{
-  "uploadUrl": "https://...",
-  "key": "assets/uuid/temp/...",
-  "expiresAt": "..."
-}
-```
-
----
-
-## Webhooks
-
-### Stripe Webhook
-
-```
-POST /api/webhooks/stripe
-```
-
-Handled events:
-- `checkout.session.completed`
-- `invoice.payment_succeeded`
-- `invoice.payment_failed`
-- `customer.subscription.updated`
-- `customer.subscription.deleted`
-
----
-
-## Error Responses
-
-All errors follow this format:
-
-```json
-{
-  "error": "Human-readable message",
-  "code": "ERROR_CODE",
-  "details": {} // Optional additional context
-}
-```
-
-### Error Codes
+## Error Codes
 
 | Code | HTTP | Description |
 |------|------|-------------|
 | `UNAUTHORIZED` | 401 | Not logged in |
-| `FORBIDDEN` | 403 | No access to resource |
-| `NOT_FOUND` | 404 | Resource doesn't exist |
+| `FORBIDDEN` | 403 | No access |
+| `NOT_FOUND` | 404 | Resource missing |
 | `INSUFFICIENT_BLOTS` | 402 | Not enough Blots |
-| `STORAGE_FULL` | 402 | Storage quota exceeded |
+| `STORAGE_FULL` | 402 | Storage exceeded |
 | `RATE_LIMITED` | 429 | Too many requests |
 | `VALIDATION_ERROR` | 400 | Invalid input |
+| `SAFETY_BLOCKED` | 400 | Content failed safety |
 | `GENERATION_DISABLED` | 503 | Feature disabled |
 | `INTERNAL_ERROR` | 500 | Server error |

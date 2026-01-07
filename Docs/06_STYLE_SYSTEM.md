@@ -1,49 +1,36 @@
 # Style System
 
+## Overview
+
+The style system ensures consistent visual output across all pages in a project by:
+1. Locking "Project DNA" at creation
+2. Generating style calibration samples
+3. Using the selected anchor for all generations
+
+---
+
 ## Project DNA
 
-Everything locks at project creation to prevent AI drift across 40 pages.
+When a project is created, these attributes are **locked** and cannot be changed:
+
+| Attribute | Options | Impact |
+|-----------|---------|--------|
+| Audience | toddler, children, tween, teen, adult | Line weight, complexity, **safety level** |
+| Style Preset | bold-simple, kawaii, whimsical, cartoon, botanical | Visual style |
+| Trim Size | 8.5×11, 8.5×8.5, 6×9 | Aspect ratio |
+| Page Count | 1-45 | Book length |
+
+### Derived Attributes
+
+From `audience`, we automatically derive:
 
 ```typescript
-interface ProjectDNA {
-  // User selections (immutable after creation)
-  name: string;
-  pageCount: number;           // 1-45
-  trimSize: TrimSize;          // '8.5x11' | '8.5x8.5' | '6x9'
-  audience: Audience;          // 'toddler' | 'children' | 'tween' | 'teen' | 'adult'
-  stylePreset: StylePreset;    // 'bold-simple' | 'kawaii' | 'whimsical' | 'cartoon' | 'botanical'
-  
-  // Derived automatically from audience
-  lineWeight: LineWeight;      // 'thick' | 'medium' | 'fine'
-  complexity: Complexity;      // 'minimal' | 'moderate' | 'detailed' | 'intricate'
-  
-  // Set after style calibration
-  styleAnchorKey?: string;
-  styleAnchorDescription?: string;
-  
-  // Optional hero reference
-  heroId?: string;
-}
-```
-
-### Audience → Derivation Rules
-
-| Audience | Ages | Line Weight | Complexity | Detail Density |
-|----------|------|-------------|------------|----------------|
-| Toddler | 2-4 | Thick (8px+) | Minimal | 3-5 elements |
-| Children | 5-8 | Thick (6px) | Moderate | 5-10 elements |
-| Tween | 9-12 | Medium (4px) | Moderate | 10-15 elements |
-| Teen | 13-17 | Medium (3px) | Detailed | 15-20 elements |
-| Adult | 18+ | Fine (2px) | Intricate | 20+ elements |
-
-```typescript
-// src/lib/audience-rules.ts
-export const AUDIENCE_DERIVATIONS: Record<Audience, { lineWeight: LineWeight; complexity: Complexity }> = {
-  toddler: { lineWeight: 'thick', complexity: 'minimal' },
-  children: { lineWeight: 'thick', complexity: 'moderate' },
-  tween: { lineWeight: 'medium', complexity: 'moderate' },
-  teen: { lineWeight: 'medium', complexity: 'detailed' },
-  adult: { lineWeight: 'fine', complexity: 'intricate' },
+const AUDIENCE_DERIVATIONS = {
+  toddler:  { lineWeight: 'thick', complexity: 'minimal', safetyLevel: 'strict', maxElements: 5 },
+  children: { lineWeight: 'thick', complexity: 'moderate', safetyLevel: 'strict', maxElements: 10 },
+  tween:    { lineWeight: 'medium', complexity: 'moderate', safetyLevel: 'moderate', maxElements: 15 },
+  teen:     { lineWeight: 'medium', complexity: 'detailed', safetyLevel: 'moderate', maxElements: 20 },
+  adult:    { lineWeight: 'fine', complexity: 'intricate', safetyLevel: 'standard', maxElements: 30 },
 };
 ```
 
@@ -51,417 +38,183 @@ export const AUDIENCE_DERIVATIONS: Record<Audience, { lineWeight: LineWeight; co
 
 ## Style Presets
 
-### Visual Reference
+### 1. Bold & Simple
+- Thick outlines (8px+)
+- Minimal detail
+- Clean shapes
+- Best for: Toddler, Children
 
-| Preset | Characteristics | Best For |
-|--------|-----------------|----------|
-| **Bold & Simple** | Thick outlines, minimal detail, clean geometric shapes | Toddlers, beginners |
-| **Kawaii Cute** | Rounded shapes, big sparkly eyes, soft curves, cheerful | Children, cute themes |
-| **Whimsical Fantasy** | Flowing organic lines, magical elements, dreamy | Fantasy, magical themes |
-| **Cartoon Classic** | Animation-style lines, expressive, dynamic | Characters, action |
-| **Nature Botanical** | Organic shapes, leaves, flowers, elegant patterns | Adults, nature themes |
+### 2. Kawaii Cute
+- Round shapes
+- Big eyes
+- Soft curves
+- Best for: Children, Tween
 
-### Prompt Fragments
+### 3. Whimsical Fantasy
+- Flowing lines
+- Magical elements
+- Organic curves
+- Best for: Children, Tween, Teen
+
+### 4. Cartoon Classic
+- Traditional animation style
+- Clear expressions
+- Dynamic poses
+- Best for: All ages
+
+### 5. Nature Botanical
+- Organic shapes
+- Plant and flower focus
+- Detailed patterns
+- Best for: Teen, Adult
+
+---
+
+## Style Calibration (Flux-Powered)
+
+### Process
+
+```
+User provides: "cute forest animals"
+     │
+     ▼
+Generate 4 variations with Flux:
+├── Sample 1: balanced interpretation
+├── Sample 2: more detailed
+├── Sample 3: simpler, bolder
+└── Sample 4: more playful
+     │
+     ▼
+User selects preferred sample
+     │
+     ▼
+Selected image becomes "Style Anchor"
+     │
+     ▼
+Anchor description extracted via GPT-4o-mini
+     │
+     ▼
+All future pages reference anchor style
+```
+
+### Flux Configuration for Calibration
 
 ```typescript
-// src/lib/style-presets.ts
-export const STYLE_PROMPT_FRAGMENTS: Record<StylePreset, string> = {
-  'bold-simple': `
-    Bold thick black outlines (6-8px),
-    Minimal detail with clean simple shapes,
-    Geometric forms, chunky proportions,
-    Clear separation between elements,
-    Easy to color large areas
-  `,
-  
-  'kawaii': `
-    Cute rounded shapes with soft curves,
-    Large expressive eyes with sparkles,
-    Chibi-style proportions (big head, small body),
-    Cheerful friendly expressions,
-    Decorative elements like hearts and stars
-  `,
-  
-  'whimsical': `
-    Flowing organic curvy lines,
-    Magical fantasy elements,
-    Dreamy ethereal aesthetic,
-    Swirling decorative patterns,
-    Enchanted storybook feel
-  `,
-  
-  'cartoon': `
-    Classic animation style outlines,
-    Expressive dynamic lines,
-    Clear character silhouettes,
-    Action-ready poses,
-    Bold confident strokes
-  `,
-  
-  'botanical': `
-    Organic natural shapes,
-    Detailed leaves and flowers,
-    Elegant flowing patterns,
-    Nature-inspired compositions,
-    Sophisticated adult aesthetic
-  `,
+// Generate 4 style samples
+const VARIATIONS = [
+  'balanced interpretation',
+  'more detailed with decorative accents',
+  'simpler with bolder shapes',
+  'more playful with curved lines',
+];
+
+// Each sample is 512×512 for quick preview
+const calibrationConfig = {
+  fluxModel: 'flux-lineart',  // Cost effective
+  width: 512,
+  height: 512,
+  numInferenceSteps: 28,
+};
+```
+
+### Cost: 10 Blots (4 samples)
+
+---
+
+## Line Weight Prompts
+
+These are injected into Flux prompts based on audience:
+
+```typescript
+const LINE_WEIGHT_PROMPTS = {
+  thick: 'bold thick black outlines, 6-8 pixel line weight, chunky shapes, prominent lines',
+  medium: 'clean medium black outlines, 3-5 pixel line weight, balanced detail',
+  fine: 'delicate fine black outlines, 1-3 pixel line weight, intricate details',
 };
 ```
 
 ---
 
-## Style Calibration Flow
-
-### Purpose
-
-Users say "cute animals" but have different mental images. Calibration aligns expectations by letting them pick a visual anchor.
-
-### User Flow
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│  Style Calibration                                          │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  What's your book about? (brief description)                │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │ Cute forest animals having adventures              │   │
-│  └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│                          [Generate Samples →]               │
-│                          10 Blots                           │
-└─────────────────────────────────────────────────────────────┘
-
-                              ↓
-
-┌─────────────────────────────────────────────────────────────┐
-│  Pick Your Style                                            │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  Which style matches your vision?                           │
-│                                                             │
-│  ┌───────────┐ ┌───────────┐ ┌───────────┐ ┌───────────┐   │
-│  │           │ │           │ │           │ │           │   │
-│  │  [img 1]  │ │  [img 2]  │ │  [img 3]  │  │  [img 4]  │   │
-│  │           │ │           │ │           │ │           │   │
-│  │     ○     │ │     ●     │ │     ○     │ │     ○     │   │
-│  └───────────┘ └───────────┘ └───────────┘ └───────────┘   │
-│                                                             │
-│  [← Back]                              [Use This Style →]   │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### Implementation
+## Complexity Prompts
 
 ```typescript
-// src/server/ai/style-calibration.ts
-
-interface CalibrationResult {
-  samples: {
-    id: string;
-    imageUrl: string;
-    variation: string;
-  }[];
-  blotsSpent: number;
-}
-
-export async function runCalibration(
-  projectId: string,
-  subject: string,
-  stylePreset: StylePreset,
-  audience: Audience
-): Promise<CalibrationResult> {
-  // Generate 4 variations
-  const variations = [
-    'balanced interpretation',
-    'more detailed with decorative accents',
-    'simpler with bolder shapes',
-    'more playful with curved lines',
-  ];
-  
-  const samples = await Promise.all(
-    variations.map(async (variation, index) => {
-      const prompt = buildCalibrationPrompt(subject, stylePreset, audience, variation);
-      const image = await generateLowQualityImage(prompt);
-      const key = await storeTempImage(image, projectId, index);
-      
-      return {
-        id: String(index),
-        imageUrl: await getSignedUrl(key),
-        variation,
-      };
-    })
-  );
-  
-  return {
-    samples,
-    blotsSpent: 10, // 4 low-quality images
-  };
-}
-
-export async function selectStyleAnchor(
-  projectId: string,
-  sampleId: string
-): Promise<void> {
-  // Copy selected sample to permanent storage
-  const tempKey = getTempKey(projectId, sampleId);
-  const permanentKey = getStyleAnchorKey(projectId);
-  
-  await copyAsset(tempKey, permanentKey);
-  
-  // Generate description for prompt inclusion
-  const description = await describeStyleAnchor(permanentKey);
-  
-  // Update project
-  await updateProject(projectId, {
-    styleAnchorKey: permanentKey,
-    styleAnchorDescription: description,
-  });
-  
-  // Clean up temp samples
-  await deleteTempSamples(projectId);
-}
+const COMPLEXITY_PROMPTS = {
+  minimal: '3-5 main elements only, large simple shapes, maximum white space',
+  moderate: '5-10 elements, some decorative detail, balanced composition',
+  detailed: '10-20 elements, patterns and decorative elements',
+  intricate: '20+ elements, fine patterns, mandala-level detail',
+};
 ```
 
 ---
 
-## Hero System
+## Hero Reference Sheets
 
-### Hero DNA
+Heroes provide character consistency across all pages.
 
-```typescript
-interface HeroDNA {
-  id: string;
-  name: string;
-  description: string;         // User's original input
-  audience: Audience;          // Target age group for rendering
-  compiledPrompt: string;      // AI-enhanced for consistency
-  negativePrompt: string;
-  referenceKey: string;        // R2 key for 2×2 reference sheet
-  thumbnailKey: string;
-  stylePreset?: string;        // Optional: lock to specific style
-  timesUsed: number;
-}
-```
-
-### Reference Sheet Structure
+### Generation Process
 
 ```
-┌─────────────────────────────────────────┐
-│                                         │
-│  ┌───────────────┐ ┌───────────────┐   │
-│  │               │ │               │   │
-│  │    FRONT      │ │     SIDE      │   │
-│  │    VIEW       │ │     VIEW      │   │
-│  │               │ │               │   │
-│  └───────────────┘ └───────────────┘   │
-│                                         │
-│  ┌───────────────┐ ┌───────────────┐   │
-│  │               │ │               │   │
-│  │    BACK       │ │     3/4       │   │
-│  │    VIEW       │ │     VIEW      │   │
-│  │               │ │               │   │
-│  └───────────────┘ └───────────────┘   │
-│                                         │
-└─────────────────────────────────────────┘
+User provides:
+├── Name: "Bella"
+├── Description: "friendly white bunny with floppy ears"
+└── Audience: "children"
+     │
+     ▼
+Safety check on description (for audience)
+     │
+     ▼ (if passed)
+Generate 2×2 reference sheet with Flux Pro:
+├── Front view
+├── Side view
+├── Back view
+└── 3/4 view
+     │
+     ▼
+Store reference (1536×1536)
+Generate thumbnail (256×256)
 ```
 
-### Hero Creation Flow
+### Flux Pro for Heroes
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│  Create Hero                                                │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  Name your hero:                                            │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │ Bella                                               │   │
-│  └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│  Describe your hero in detail:                              │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │ A friendly white bunny with long floppy ears that   │   │
-│  │ hang down past her shoulders. She has big round     │   │
-│  │ eyes with long lashes, a small pink triangle nose,  │   │
-│  │ and wears a pink bow on top of her head between     │   │
-│  │ her ears. She has a fluffy round cotton tail.       │   │
-│  └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│  This hero is for:                                          │
-│  ┌─────┐ ┌─────┐ ┌─────┐ ┌─────┐ ┌─────┐                   │
-│  │ 👶  │ │ 🧒  │ │ 🧑  │ │ 👩  │ │ 🎨  │                   │
-│  │Tiny │ │Kids │ │Teens│ │Adult│ │ Pro │                   │
-│  │ ✓   │ │     │ │     │ │     │ │     │                   │
-│  └─────┘ └─────┘ └─────┘ └─────┘ └─────┘                   │
-│                                                             │
-│                          [Generate Reference Sheet →]       │
-│                          15 Blots                           │
-└─────────────────────────────────────────────────────────────┘
+We use `flux-pro` ($0.04/image) for hero sheets because:
+- Highest quality output
+- Character consistency across views
+- Only generated once per hero
 
-                              ↓
-
-┌─────────────────────────────────────────────────────────────┐
-│  Approve Your Hero                                          │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │                                                     │   │
-│  │  ┌───────────┐ ┌───────────┐                       │   │
-│  │  │   FRONT   │ │   SIDE    │                       │   │
-│  │  └───────────┘ └───────────┘                       │   │
-│  │  ┌───────────┐ ┌───────────┐                       │   │
-│  │  │   BACK    │ │    3/4    │                       │   │
-│  │  └───────────┘ └───────────┘                       │   │
-│  │                                                     │   │
-│  └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│  Does Bella look right from all angles?                     │
-│                                                             │
-│  [🔄 Try Again]                      [✓ Save Hero]          │
-│   15 Blots                                                  │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### Hero Compilation
-
-```typescript
-// src/server/ai/hero-compiler.ts
-
-const HERO_COMPILER_PROMPT = `You are a character designer for children's coloring books.
-
-Create a detailed, consistent character description that can be used to generate the SAME character across multiple images.
-
-INPUT:
-- Character name
-- User's description
-- Target audience age group
-
-OUTPUT:
-A detailed prompt for generating a CHARACTER REFERENCE SHEET with 4 views:
-- FRONT view (facing viewer directly)
-- SIDE view (profile facing right)
-- BACK view (facing away)
-- 3/4 view (turned slightly toward viewer)
-
-REQUIREMENTS:
-1. Expand vague descriptions into specific visual details
-2. Add consistent proportions and measurements where applicable
-3. Include distinctive features that can be recognized in any pose
-4. Specify coloring book style appropriate for the audience
-5. All 4 views must show the SAME character with IDENTICAL features
-6. Pure black outlines on white background
-7. No shading, no gradients
-8. Line weight appropriate for audience age
-
-Output ONLY the prompt text, nothing else.`;
-
-export async function compileHeroPrompt(
-  name: string,
-  description: string,
-  audience: Audience
-): Promise<{ compiledPrompt: string; negativePrompt: string }> {
-  const response = await openai.chat.completions.create({
-    model: 'gpt-4o-mini',
-    messages: [
-      { role: 'system', content: HERO_COMPILER_PROMPT },
-      { 
-        role: 'user', 
-        content: `Name: ${name}\nDescription: ${description}\nAudience: ${audience}` 
-      }
-    ],
-    temperature: 0.5,
-  });
-  
-  return {
-    compiledPrompt: response.choices[0].message.content!,
-    negativePrompt: 'shading, gradient, gray, inconsistent proportions, different characters, realistic, photograph, broken lines, different styles between views',
-  };
-}
-```
+### Cost: 15 Blots
 
 ---
 
-## Asset Library
+## Style Consistency Flow
 
-### Structure
-
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│  My Library                                      Storage: 2.3 / 15 GB   │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│  [All] [Heroes] [Style Anchors]            🔍 [Search...]              │
-│                                                                         │
-│  🎭 Heroes (3)                                             [+ Create]   │
-│  ┌───────────┐ ┌───────────┐ ┌───────────┐                             │
-│  │  [thumb]  │ │  [thumb]  │ │  [thumb]  │                             │
-│  │  Bella    │ │  Mochi    │ │  Drago    │                             │
-│  │  🐰 Kids  │ │  🐱 Kids  │ │  🐉 Teen  │                             │
-│  │  Used 12x │ │  Used 5x  │ │  Used 2x  │                             │
-│  └───────────┘ └───────────┘ └───────────┘                             │
-│                                                                         │
-│  🎨 Style Anchors (2)                                                   │
-│  ┌───────────┐ ┌───────────┐                                           │
-│  │  [thumb]  │ │  [thumb]  │                                           │
-│  │  Kawaii   │ │  Bold     │                                           │
-│  │  Forest   │ │  Animals  │                                           │
-│  │  Used 8x  │ │  Used 3x  │                                           │
-│  └───────────┘ └───────────┘                                           │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart LR
+    A[Project DNA] --> B[Style Anchor]
+    A --> C[Hero Reference]
+    B --> D[Page Prompt]
+    C --> D
+    D --> E[Flux Generator]
+    E --> F[Consistent Page]
 ```
 
-### Hero Usage in Projects
-
-When user selects a hero from the library:
-
-1. Hero reference sheet is fetched from R2
-2. Hero compiled prompt is included in every page generation
-3. Reference sheet is passed to GPT Image 1.5 as reference image
-4. Hero's `times_used` counter is incremented
-
-```typescript
-// src/server/ai/generate-with-hero.ts
-
-export async function generatePageWithHero(
-  compiledPrompt: string,
-  hero: HeroDNA,
-  styleAnchor?: Buffer
-): Promise<Buffer> {
-  // Get hero reference sheet
-  const heroReference = await getHeroReferenceSheet(hero.referenceKey);
-  
-  // Enhance prompt with hero details
-  const enhancedPrompt = `${compiledPrompt}
-
-CHARACTER REFERENCE:
-The main character is ${hero.name}. ${hero.compiledPrompt}
-The character MUST match the reference sheet exactly - same proportions, same features, same style.
-Refer to the attached reference image for the exact character design.`;
-
-  // Generate with reference
-  return generateImage({
-    prompt: enhancedPrompt,
-    negativePrompt: hero.negativePrompt,
-    heroReference,
-    styleAnchor,
-  });
-}
-```
+Every page generation receives:
+1. **Line weight** from audience
+2. **Complexity** from audience
+3. **Style description** from anchor
+4. **Hero description** (if hero selected)
+5. **Safety rules** from audience
 
 ---
 
-## Consistency Enforcement Summary
+## Visual Consistency Checklist
 
-| Layer | What It Does | When |
-|-------|--------------|------|
-| **Project DNA** | Locks style, audience, complexity | At creation |
-| **Style Calibration** | User picks visual anchor | Before first generation |
-| **Hero Reference** | 4-view character sheet | Per hero |
-| **Planner-Compiler** | Enforces rules in every prompt | Every page |
-| **Style Anchor Reference** | Passed to image API | Every generation |
-| **Hero Reference** | Passed to image API | Every generation |
-| **Deterministic Cleanup** | Guarantees pure B&W | Post-generation |
-| **Quality Gate** | Validates output | Post-cleanup |
+Before export, all pages should have:
+
+| Check | Requirement |
+|-------|-------------|
+| Line weight | Consistent across all pages |
+| Complexity | Matches audience setting |
+| Hero appearance | Matches reference sheet |
+| White space | Appropriate for age group |
+| Content safety | Passes audience safety level |

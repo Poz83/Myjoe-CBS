@@ -12,32 +12,90 @@ export async function cleanupImage(
 ): Promise<Buffer> {
   const { targetWidth, targetHeight, threshold = 128 } = options;
   
-  let image = sharp(imageBuffer);
+  // Input validation
+  if (!Buffer.isBuffer(imageBuffer) || imageBuffer.length === 0) {
+    throw new Error('Invalid image buffer: must be a non-empty Buffer');
+  }
   
-  // Step 1: Convert to grayscale
-  image = image.grayscale();
+  if (targetWidth <= 0 || targetHeight <= 0) {
+    throw new Error('Invalid dimensions: targetWidth and targetHeight must be positive numbers');
+  }
   
-  // Step 2: Threshold to pure B&W
-  // Pixels > threshold = white (255), else = black (0)
-  image = image.threshold(threshold);
+  if (threshold < 0 || threshold > 255) {
+    throw new Error('Invalid threshold: must be between 0 and 255');
+  }
   
-  // Step 3: Morphological cleanup (remove specs)
-  // Sharp doesn't have built-in morphology, so we use blur + threshold trick
-  image = image
-    .blur(0.5)      // Slight blur to smooth jaggies
-    .threshold(200); // Re-threshold to clean up
+  try {
+    let image = sharp(imageBuffer);
+    
+    // Step 1: Convert to grayscale
+    image = image.grayscale();
+    
+    // Step 2: Threshold to pure B&W
+    // Pixels > threshold = white (255), else = black (0)
+    image = image.threshold(threshold);
+    
+    // Step 3: Morphological cleanup (remove specs)
+    // Sharp doesn't have built-in morphology, so we use blur + threshold trick
+    image = image
+      .blur(0.5)      // Slight blur to smooth jaggies
+      .threshold(200); // Re-threshold to clean up
+    
+    // Step 4: Resize to target dimensions (300 DPI)
+    image = image.resize(targetWidth, targetHeight, {
+      fit: 'contain',
+      background: { r: 255, g: 255, b: 255 },
+    });
+    
+    // Step 5: Ensure pure white background
+    image = image.flatten({ background: { r: 255, g: 255, b: 255 } });
+    
+    // Output as PNG
+    return await image.png().toBuffer();
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Image cleanup failed: ${error.message}`);
+    }
+    throw new Error('Unknown error during image cleanup');
+  }
+}
+
+/**
+ * Create a JPEG thumbnail from an image buffer
+ * @param imageBuffer - Source image buffer
+ * @param size - Thumbnail size (width and height in pixels, default 300)
+ * @returns JPEG thumbnail buffer
+ */
+export async function createThumbnail(
+  imageBuffer: Buffer,
+  size: number = 300
+): Promise<Buffer> {
+  // Input validation
+  if (!Buffer.isBuffer(imageBuffer) || imageBuffer.length === 0) {
+    throw new Error('Invalid image buffer: must be a non-empty Buffer');
+  }
   
-  // Step 4: Resize to target dimensions (300 DPI)
-  image = image.resize(targetWidth, targetHeight, {
-    fit: 'contain',
-    background: { r: 255, g: 255, b: 255 },
-  });
+  if (size <= 0 || size > 2000) {
+    throw new Error('Invalid thumbnail size: must be between 1 and 2000 pixels');
+  }
   
-  // Step 5: Ensure pure white background
-  image = image.flatten({ background: { r: 255, g: 255, b: 255 } });
-  
-  // Output as PNG
-  return image.png().toBuffer();
+  try {
+    return await sharp(imageBuffer)
+      .resize(size, size, {
+        fit: 'inside', // Maintain aspect ratio, fit within size x size
+        background: { r: 255, g: 255, b: 255 },
+      })
+      .jpeg({
+        quality: 85,
+        progressive: true,
+      })
+      .toBuffer();
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Thumbnail creation failed: ${error.message}`);
+    }
+    throw new Error('Unknown error during thumbnail creation');
+  }
 }
 
 // Trim size to pixel dimensions at 300 DPI

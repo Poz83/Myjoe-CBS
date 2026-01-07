@@ -26,8 +26,9 @@ Database:     Supabase Postgres
 Auth:         Supabase Auth (Google + Magic Link)
 Storage:      Cloudflare R2 (S3-compatible)
 AI Planning:  GPT-4o-mini
-AI Images:    GPT Image 1.5
-Payments:     Stripe (quantity-based subscriptions)
+AI Images:    Flux via Replicate (flux-lineart, flux-pro)
+AI Safety:    OpenAI Moderation API + GPT-4o Vision
+Payments:     Stripe (subscriptions + one-time packs)
 Hosting:      Vercel
 Analytics:    PostHog
 Errors:       Sentry
@@ -42,31 +43,107 @@ Email:        Resend + React Email
 |----------|-------|
 | Name | Blots |
 | Symbol | 🎨 (optional in UI) |
-| Base unit | 1 Blot ≈ $0.026 |
 | Refresh | RESET monthly (no rollover in v1) |
 | Display | Always show balance in header |
 
-### Blot Costs (LOCKED)
+### Blot Costs (REVISED ✅)
 
-| Action | Blots | Your Cost |
-|--------|-------|-----------|
-| Generate 1 page | 12 | $0.186 |
-| Edit 1 page | 12 | $0.186 |
-| Style calibration (4 samples) | 10 | $0.163 |
-| Hero Reference Sheet | 15 | $0.20 |
-| Cover generation | 14 | $0.217 |
-| Export PDF | 3 | $0.05 |
+| Action | Blots | Your Cost (USD) | Your Cost (GBP) |
+|--------|-------|-----------------|-----------------|
+| Generate 1 page | **5** | $0.013 | £0.010 |
+| Edit/Regenerate page | **5** | $0.013 | £0.010 |
+| Style calibration (4 samples) | **4** | $0.052 | £0.042 |
+| Hero Reference Sheet | **8** | $0.040 | £0.032 |
+| Cover generation | **6** | $0.020 | £0.016 |
+| Export PDF | **FREE** | $0.010 | £0.008 |
+
+### Full 40-Page Book Cost
+
+| Component | Blots | Your Cost |
+|-----------|-------|-----------|
+| 40 pages @ 5 Blots | 200 | £0.42 |
+| Calibration | 4 | £0.04 |
+| Hero sheet | 8 | £0.03 |
+| Export | FREE | £0.01 |
+| Planning (GPT-4o) | - | £0.02 |
+| **TOTAL (Adult)** | **212** | **£0.52** |
+| + Safety scans (Children) | - | +£0.32 |
+| **TOTAL (Children)** | **212** | **£0.84** |
 
 ---
 
-## Subscription Tiers (LOCKED)
+## Subscription Tiers (REVISED ✅)
 
-| Plan | Price | Blots | Storage | Commercial |
-|------|-------|-------|---------|------------|
-| Free | $0 | 50/mo | 1 GB | ❌ |
-| Starter | $12/mo | 300/mo | 5 GB | ✅ |
-| Creator | $29/mo | 900/mo | 15 GB | ✅ |
-| Pro | $79/mo | 2,800/mo | 50 GB | ✅ |
+| Plan | Price (USD) | Price (GBP) | Blots | Storage | Books/Mo | Commercial |
+|------|-------------|-------------|-------|---------|----------|------------|
+| Free | $0 | £0 | 50/mo | 1 GB | Trial | ❌ |
+| **Starter** | **$9/mo** | **£7.20** | **250/mo** | 5 GB | ~1 | ✅ |
+| **Creator** | **$24/mo** | **£19.20** | **800/mo** | 15 GB | ~3-4 | ✅ |
+| **Pro** | **$59/mo** | **£47.20** | **2,500/mo** | 50 GB | ~11 | ✅ |
+
+### Per-Book Economics (User Pays)
+
+| Plan | Blots per Book | User Pays | Your Cost | Margin |
+|------|----------------|-----------|-----------|--------|
+| Starter | 212 | £6.10 | £0.52 | **91%** |
+| Creator | 212 | £5.09 | £0.52 | **90%** |
+| Pro | 212 | £4.00 | £0.52 | **87%** |
+
+---
+
+## Blot Packs (One-Time Purchase) ✅ NEW
+
+| Pack | Blots | Price (USD) | Price (GBP) | Per Book |
+|------|-------|-------------|-------------|----------|
+| **Splash** 💧 | 100 | $4 | £3.20 | £6.85 |
+| **Bucket** 🪣 | 350 | $12 | £9.60 | £5.87 |
+| **Barrel** 🛢️ | 1,200 | $35 | £28 | £5.00 |
+
+- Packs **never expire**
+- Stack with subscription Blots
+- Single pool (subscription + pack combined)
+
+---
+
+## Flux Configuration (LOCKED)
+
+| Model | Use Case | Cost | Trigger |
+|-------|----------|------|---------|
+| `flux-lineart` | Production pages | $0.013 | None |
+| `flux-dev-lora` | Custom trained | $0.025 | `c0l0ringb00k` |
+| `flux-pro` | Hero sheets | $0.040 | None |
+
+### Line Weight Prompts
+
+| Weight | Prompt Addition |
+|--------|-----------------|
+| thick | `bold thick black outlines, 6-8 pixel line weight` |
+| medium | `clean medium black outlines, 3-5 pixel line weight` |
+| fine | `delicate fine black outlines, 1-3 pixel line weight` |
+
+---
+
+## Content Safety (LOCKED)
+
+### Safety Levels
+
+| Level | Audiences | Thresholds |
+|-------|-----------|------------|
+| **Strict** | Toddler, Children | Violence: 0.05, Sexual: 0.01 |
+| **Moderate** | Tween, Teen | Violence: 0.20, Sexual: 0.10 |
+| **Standard** | Adult | Violence: 0.50, Sexual: 0.30 |
+
+**ALWAYS:** `sexual/minors` threshold = **0.01** (all audiences)
+
+### Post-Generation Scans
+
+| Audience | GPT-4V Safety Scan |
+|----------|-------------------|
+| Toddler | ✅ Required |
+| Children | ✅ Required |
+| Tween | ❌ Skip |
+| Teen | ❌ Skip |
+| Adult | ❌ Skip |
 
 ---
 
@@ -86,13 +163,13 @@ Email:        Resend + React Email
 
 ## Audience Presets (LOCKED)
 
-| Audience | Age | Line Weight | Complexity | Detail |
-|----------|-----|-------------|------------|--------|
-| Toddler | 2-4 | Thick (8px+) | Minimal | Sparse |
-| Children | 5-8 | Thick (6px) | Moderate | Balanced |
-| Tween | 9-12 | Medium (4px) | Moderate | Balanced |
-| Teen | 13-17 | Medium (3px) | Detailed | Dense |
-| Adult | 18+ | Fine (2px) | Intricate | Dense |
+| Audience | Age | Line Weight | Complexity | Safety Level |
+|----------|-----|-------------|------------|--------------|
+| Toddler | 2-4 | Thick (8px+) | Minimal | Strict |
+| Children | 5-8 | Thick (6px) | Moderate | Strict |
+| Tween | 9-12 | Medium (4px) | Moderate | Moderate |
+| Teen | 13-17 | Medium (3px) | Detailed | Moderate |
+| Adult | 18+ | Fine (2px) | Intricate | Standard |
 
 ---
 
@@ -104,8 +181,6 @@ Email:        Resend + React Email
 4. **Cartoon Classic** — Traditional animation style
 5. **Nature Botanical** — Organic shapes, plants, flowers
 
-*More styles can be added post-launch*
-
 ---
 
 ## Hero Reference Sheet (LOCKED)
@@ -115,9 +190,8 @@ Email:        Resend + React Email
 | Grid layout | 2×2 |
 | Views | Front, Side, Back, 3/4 |
 | Output size | 1536×1536 px |
-| Includes | Audience age group metadata |
+| Model | Flux-Pro ($0.04) |
 | Storage | Single image file |
-| Usage | Passed as reference to all page generations |
 
 ---
 
@@ -142,7 +216,6 @@ Email:        Resend + React Email
 | Color space | RGB (KDP converts) |
 | Margins | 0.25" safe zone |
 | Trim sizes | 8.5×11, 8.5×8.5, 6×9 |
-| Cover | Separate (v1.1) |
 
 ---
 
@@ -175,37 +248,6 @@ Email:        Resend + React Email
 
 ---
 
-## Coding Style (LOCKED)
-
-```typescript
-// File naming: kebab-case
-// src/components/hero-card.tsx
-
-// Component naming: PascalCase
-export function HeroCard() {}
-
-// Function naming: camelCase
-function generatePage() {}
-
-// Types: PascalCase with descriptive names
-type ProjectDNA = { ... }
-
-// Constants: SCREAMING_SNAKE_CASE
-const MAX_PAGES = 45;
-
-// Async functions: always try/catch with logging
-async function createProject() {
-  try {
-    // ...
-  } catch (error) {
-    logger.error('createProject failed', { error, correlationId });
-    throw error;
-  }
-}
-```
-
----
-
 ## Database Naming (LOCKED)
 
 | Convention | Example |
@@ -216,7 +258,6 @@ async function createProject() {
 | Foreign keys | `{table}_id`: `project_id`, `hero_id` |
 | Timestamps | `created_at`, `updated_at` |
 | Soft delete | `deleted_at` (nullable) |
-| Enums | snake_case: `page_type`, `job_status` |
 
 ---
 
@@ -250,10 +291,25 @@ R2_PUBLIC_URL=
 # OpenAI
 OPENAI_API_KEY=
 
-# Stripe
+# Replicate (Flux)
+REPLICATE_API_TOKEN=
+FLUX_MODEL=flux-lineart
+
+# Stripe - Subscriptions
 STRIPE_SECRET_KEY=
 STRIPE_WEBHOOK_SECRET=
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
+STRIPE_PRICE_STARTER_MONTHLY=
+STRIPE_PRICE_STARTER_YEARLY=
+STRIPE_PRICE_CREATOR_MONTHLY=
+STRIPE_PRICE_CREATOR_YEARLY=
+STRIPE_PRICE_PRO_MONTHLY=
+STRIPE_PRICE_PRO_YEARLY=
+
+# Stripe - Blot Packs
+STRIPE_PRICE_SPLASH=
+STRIPE_PRICE_BUCKET=
+STRIPE_PRICE_BARREL=
 
 # App
 NEXT_PUBLIC_APP_URL=
@@ -269,6 +325,22 @@ RESEND_API_KEY=
 
 ---
 
+## Infrastructure Costs (Monthly)
+
+| Service | Plan | Cost (USD) | Cost (GBP) |
+|---------|------|------------|------------|
+| Supabase | Pro | $25 | £20 |
+| Vercel | Pro | $20 | £16 |
+| Cloudflare R2 | Pay-as-go | ~$15 | ~£12 |
+| Sentry | Team | $26 | £21 |
+| PostHog | Free | $0 | £0 |
+| Domain | Annual | ~$1 | ~£1 |
+| **Total Fixed** | | **~$87** | **~£70** |
+
+**Breakeven:** ~8 paying subscribers
+
+---
+
 ## What's NOT in v1
 
 | Feature | Status | Target |
@@ -279,8 +351,6 @@ RESEND_API_KEY=
 | Credit rollover | Deferred | v1.1 |
 | Props library | Deferred | v1.1 |
 | Light theme | Deferred | v1.1 |
-| Keyboard shortcuts | Deferred | v1.1 |
-| Onboarding tour | Deferred | v1.1 |
 
 ---
 
@@ -288,10 +358,11 @@ RESEND_API_KEY=
 
 | Case | Solution |
 |------|----------|
-| Browser closes mid-generation | Job continues server-side, show "In Progress" on return |
-| Payment fails | 3-day grace period, banner, then downgrade to Free |
-| Blots run out mid-generation | Check balance BEFORE starting, reject if insufficient |
-| Two tabs open | TanStack Query handles sync, last write wins |
-| Large export timeout | Background job, poll for completion |
-| Auth expires mid-session | Redirect to login with return URL |
-| Storage full | Block new uploads, show upgrade prompt |
+| Browser closes mid-generation | Job continues, show "In Progress" on return |
+| Payment fails | 3-day grace, banner, then downgrade |
+| Blots run out mid-generation | Check BEFORE starting |
+| Safety blocked | Show suggestions, allow retry |
+| Two tabs open | Last write wins |
+| Large export timeout | Background job, poll completion |
+| Auth expires | Redirect with return URL |
+| Storage full | Block uploads, show upgrade |

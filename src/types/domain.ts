@@ -15,6 +15,10 @@ export type Complexity = 'minimal' | 'moderate' | 'detailed' | 'intricate';
 
 export type TrimSize = '8.5x11' | '8.5x8.5' | '6x9';
 
+export type SafetyLevel = 'strict' | 'moderate' | 'standard';
+
+export type FluxModel = 'flux-lineart' | 'flux-dev-lora' | 'flux-pro';
+
 export interface ProjectDNA {
   pageCount: number;
   trimSize: TrimSize;

@@ -2,6 +2,7 @@ export { planAndCompile } from './planner-compiler';
 export type { CompiledPage, PlannerResult } from './planner-compiler';
 
 export { generateImage } from './image-generator';
+export { generatePage } from './generate-page';
 export { cleanupImage, createThumbnail, TRIM_SIZES } from './cleanup';
 export type { TrimSize } from './cleanup';
 

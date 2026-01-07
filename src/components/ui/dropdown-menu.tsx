@@ -2,7 +2,15 @@
 
 import * as React from 'react';
 
-const DropdownMenu = ({ children }: { children: React.ReactNode }) => {
+const DropdownMenu = ({ 
+  children,
+  open,
+  onOpenChange,
+}: { 
+  children: React.ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}) => {
   return <div className="relative inline-block">{children}</div>;
 };
 
@@ -58,8 +66,8 @@ const DropdownMenuItem = ({
   );
 };
 
-const DropdownMenuSeparator = () => {
-  return <div className="h-px bg-zinc-800 my-1" />;
+const DropdownMenuSeparator = ({ className = '' }: { className?: string }) => {
+  return <div className={`h-px bg-zinc-800 my-1 ${className}`} />;
 };
 
 export {
