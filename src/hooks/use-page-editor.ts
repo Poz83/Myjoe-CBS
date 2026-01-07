@@ -30,7 +30,7 @@ interface EditPageResponse {
   imageUrl: string;
 }
 
-interface EditPageError {
+export interface EditPageError {
   error: string;
   blocked?: string[];
   suggestions?: string[];
@@ -167,8 +167,9 @@ export function useRestoreVersion() {
     },
     onError: (error, variables, context) => {
       // Rollback on error
-      if (context?.previousPage) {
-        queryClient.setQueryData(['page', variables.pageId], context.previousPage);
+      const ctx = context as { previousPage?: PageDetailResponse } | undefined;
+      if (ctx?.previousPage) {
+        queryClient.setQueryData(['page', variables.pageId], ctx.previousPage);
       }
       toast.error(error.message || 'Failed to restore version');
     },
