@@ -23,7 +23,7 @@ import {
 import { planAndCompile, type CompiledPage } from '@/server/ai/planner-compiler';
 import { generatePage } from '@/server/ai/generate-page';
 import { createThumbnail } from '@/server/ai/cleanup';
-import { uploadFile, generateR2Key } from '@/server/storage/r2';
+import { uploadFile, generateR2Key, getSignedDownloadUrl } from '@/server/storage/r2';
 import { BLOT_COSTS } from '@/lib/constants';
 import type { Audience, StylePreset, TrimSize, FluxModel } from '@/lib/constants';
 
@@ -71,6 +71,17 @@ export async function processGenerationJob(jobId: string): Promise<void> {
     const project = await getProject(job.project_id!, userId);
     const hero = project.hero;
 
+    // 3b. If hero exists, get signed URL for reference image (for future ControlNet)
+    let heroReferenceUrl: string | null = null;
+    if (hero?.reference_key) {
+      try {
+        heroReferenceUrl = await getSignedDownloadUrl(hero.reference_key);
+        console.log(`Hero reference URL available for job ${jobId}: ${hero.name}`);
+      } catch (error) {
+        console.warn(`Failed to get hero reference URL for job ${jobId}:`, error);
+      }
+    }
+
     // 4. Get pending job items
     let pendingItems = await getPendingJobItems(jobId);
 
@@ -90,6 +101,7 @@ export async function processGenerationJob(jobId: string): Promise<void> {
       lineWeight: project.line_weight,
       complexity: project.complexity,
       heroDescription: hero?.compiled_prompt,
+      heroReferenceUrl, // For future ControlNet/image-guided generation
       fluxModel: 'flux-lineart' as FluxModel,
     });
 

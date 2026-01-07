@@ -57,6 +57,7 @@ interface PlannerInput {
   lineWeight: string;
   complexity: string;
   heroDescription?: string;
+  heroReferenceUrl?: string | null; // For future ControlNet/image-guided generation
   fluxModel?: FluxModel;
 }
 
