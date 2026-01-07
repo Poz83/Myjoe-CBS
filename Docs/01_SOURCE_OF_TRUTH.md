@@ -28,7 +28,7 @@ Storage:      Cloudflare R2 (S3-compatible)
 AI Planning:  GPT-4o-mini
 AI Images:    Flux via Replicate (flux-lineart, flux-pro)
 AI Safety:    OpenAI Moderation API + GPT-4o Vision
-Payments:     Stripe (subscriptions + one-time packs)
+Payments:     Stripe (unit-based subscriptions + one-time packs)
 Hosting:      Vercel
 Analytics:    PostHog
 Errors:       Sentry
@@ -43,65 +43,161 @@ Email:        Resend + React Email
 |----------|-------|
 | Name | Blots |
 | Symbol | 🎨 (optional in UI) |
-| Refresh | RESET monthly (no rollover in v1) |
+| Unit Size | 100 Blots (for Stripe pricing) |
+| Refresh | Subscription Blots RESET monthly (no rollover) |
+| Pack Blots | Never expire, consumed after subscription Blots |
 | Display | Always show balance in header |
 
-### Blot Costs (REVISED ✅)
+---
 
-| Action | Blots | Your Cost (USD) | Your Cost (GBP) |
-|--------|-------|-----------------|-----------------|
-| Generate 1 page | **5** | $0.013 | £0.010 |
-| Edit/Regenerate page | **5** | $0.013 | £0.010 |
-| Style calibration (4 samples) | **4** | $0.052 | £0.042 |
-| Hero Reference Sheet | **8** | $0.040 | £0.032 |
-| Cover generation | **6** | $0.020 | £0.016 |
-| Export PDF | **FREE** | $0.010 | £0.008 |
+## Blot Costs
+
+| Action | Blots | Your Cost (USD) |
+|--------|-------|-----------------|
+| Generate 1 page | **5** | ~$0.013 |
+| Edit/Regenerate page | **5** | ~$0.013 |
+| Style calibration (4 samples) | **4** | ~$0.052 |
+| Hero Reference Sheet | **8** | ~$0.040 |
+| Cover generation | **6** | ~$0.020 |
+| Export PDF + SVG | **FREE** | ~$0.010 |
 
 ### Full 40-Page Book Cost
 
-| Component | Blots | Your Cost |
-|-----------|-------|-----------|
-| 40 pages @ 5 Blots | 200 | £0.42 |
-| Calibration | 4 | £0.04 |
-| Hero sheet | 8 | £0.03 |
-| Export | FREE | £0.01 |
-| Planning (GPT-4o) | - | £0.02 |
-| **TOTAL (Adult)** | **212** | **£0.52** |
-| + Safety scans (Children) | - | +£0.32 |
-| **TOTAL (Children)** | **212** | **£0.84** |
+| Component | Blots |
+|-----------|-------|
+| 40 pages @ 5 Blots | 200 |
+| Calibration | 4 |
+| Hero sheet | 8 |
+| Export | FREE |
+| **TOTAL** | **212 Blots** |
 
 ---
 
-## Subscription Tiers (REVISED ✅)
+## Subscription Tiers (2-TIER UNIT MODEL)
 
-| Plan | Price (USD) | Price (GBP) | Blots | Storage | Books/Mo | Commercial |
-|------|-------------|-------------|-------|---------|----------|------------|
-| Free | $0 | £0 | 50/mo | 1 GB | Trial | ❌ |
-| **Starter** | **$9/mo** | **£7.20** | **250/mo** | 5 GB | ~1 | ✅ |
-| **Creator** | **$24/mo** | **£19.20** | **800/mo** | 15 GB | ~3-4 | ✅ |
-| **Pro** | **$59/mo** | **£47.20** | **2,500/mo** | 50 GB | ~11 | ✅ |
+### Pricing Model
 
-### Per-Book Economics (User Pays)
+**1 Unit = 100 Blots**
 
-| Plan | Blots per Book | User Pays | Your Cost | Margin |
-|------|----------------|-----------|-----------|--------|
-| Starter | 212 | £6.10 | £0.52 | **91%** |
-| Creator | 212 | £5.09 | £0.52 | **90%** |
-| Pro | 212 | £4.00 | £0.52 | **87%** |
+| Tier | Rate/Unit (Monthly) | Rate/Unit (Annual) |
+|------|---------------------|-------------------|
+| Creator | $3.00 | $2.50 |
+| Studio | $2.00 | $1.75 |
+
+### Free Tier
+
+| Attribute | Value |
+|-----------|-------|
+| Price | $0 |
+| Blots | 50/month |
+| Storage | 25 GB |
+| Projects | 3 max |
+| Commercial License | ❌ |
+
+### Creator Tier (Individuals)
+
+| Blots | Units | Monthly | Annual | Books/Mo |
+|-------|-------|---------|--------|----------|
+| **300** | 3 | **$9** | $90 | ~1 |
+| **500** | 5 | **$15** | $150 | ~2 |
+| **800** | 8 | **$24** | $240 | ~3-4 |
+
+- Storage: **25 GB**
+- Projects: **Unlimited**
+- Commercial License: **✅**
+
+### Studio Tier (Power Users & Agencies)
+
+| Blots | Units | Monthly | Annual | Books/Mo |
+|-------|-------|---------|--------|----------|
+| **2,500** | 25 | **$50** | $525 | ~11 |
+| **4,000** | 40 | **$80** | $840 | ~18 |
+| **5,000** | 50 | **$100** | $1,050 | ~23 |
+
+- Storage: **50 GB**
+- Projects: **Unlimited**
+- Commercial License: **✅**
+- Priority Support: **✅**
+
+### Annual Pricing = 2 Months Free Equivalent
+
+| Tier | Monthly Rate | Annual Rate | Savings |
+|------|--------------|-------------|---------|
+| Creator | $3.00/unit | $2.50/unit | 17% |
+| Studio | $2.00/unit | $1.75/unit | 12.5% |
 
 ---
 
-## Blot Packs (One-Time Purchase) ✅ NEW
+## Blot Packs (One-Time Purchase)
 
-| Pack | Blots | Price (USD) | Price (GBP) | Per Book |
-|------|-------|-------------|-------------|----------|
-| **Splash** 💧 | 100 | $4 | £3.20 | £6.85 |
-| **Bucket** 🪣 | 350 | $12 | £9.60 | £5.87 |
-| **Barrel** 🛢️ | 1,200 | $35 | £28 | £5.00 |
+| Pack | Blots | Price | Per Blot |
+|------|-------|-------|----------|
+| **Top-Up** 🎨 | 100 | $5 | $0.050 |
+| **Boost** 🚀 | 500 | $20 | $0.040 |
 
-- Packs **never expire**
-- Stack with subscription Blots
-- Single pool (subscription + pack combined)
+### Pack Rules
+
+- **Never expire**
+- **Consumed AFTER subscription Blots** (subscription depletes first)
+- **Stack with any tier** (including Free)
+- **No refunds**
+
+---
+
+## Blot Depletion Order
+
+```
+1. Subscription Blots (reset monthly)
+2. Pack Blots (never expire)
+```
+
+**Example:**
+- User has 100 subscription Blots + 50 pack Blots = 150 total
+- Uses 120 Blots → 0 subscription + 30 pack remaining
+- Month resets → 300 subscription + 30 pack = 330 total
+
+---
+
+## Subscription Rules
+
+| Action | Behavior |
+|--------|----------|
+| **Upgrade (same tier)** | Immediate, prorated charge, Blots difference added |
+| **Upgrade (tier jump)** | Immediate, prorated, storage increased, Blots difference added |
+| **Downgrade** | Takes effect next billing cycle |
+| **Cancel** | Access continues until period ends, then reverts to Free |
+| **Payment fails** | 3-day grace period with banner, then downgrade to Free |
+
+---
+
+## Stripe Configuration (LOCKED)
+
+### Product Structure
+
+**One Product:** `Myjoe Blots (100-pack)`
+
+**6 Price IDs:**
+
+| Lookup Key | Type | Amount |
+|------------|------|--------|
+| `creator_monthly` | Per unit, Recurring Monthly | $3.00/unit |
+| `creator_annual` | Per unit, Recurring Yearly | $2.50/unit |
+| `studio_monthly` | Per unit, Recurring Monthly | $2.00/unit |
+| `studio_annual` | Per unit, Recurring Yearly | $1.75/unit |
+| `pack_topup` | One-time | $5.00 |
+| `pack_boost` | One-time | $20.00 |
+
+### Checkout Logic
+
+```typescript
+// Creator 500/mo = 5 units × $3.00 = $15/mo
+stripe.checkout.sessions.create({
+  line_items: [{
+    price: STRIPE_PRICE_CREATOR_MONTHLY,
+    quantity: 5,
+  }],
+});
+```
 
 ---
 
@@ -127,11 +223,11 @@ Email:        Resend + React Email
 
 ### Safety Levels
 
-| Level | Audiences | Thresholds |
-|-------|-----------|------------|
-| **Strict** | Toddler, Children | Violence: 0.05, Sexual: 0.01 |
-| **Moderate** | Tween, Teen | Violence: 0.20, Sexual: 0.10 |
-| **Standard** | Adult | Violence: 0.50, Sexual: 0.30 |
+| Level | Audiences | Violence Threshold | Sexual Threshold |
+|-------|-----------|-------------------|------------------|
+| **Strict** | Toddler, Children | 0.05 | 0.01 |
+| **Moderate** | Tween, Teen | 0.20 | 0.10 |
+| **Standard** | Adult | 0.50 | 0.30 |
 
 **ALWAYS:** `sexual/minors` threshold = **0.01** (all audiences)
 
@@ -157,7 +253,7 @@ Email:        Resend + React Email
 | Max heroes | 20 | Storage management |
 | Max page versions | 10 | Prevent Blot drain |
 | Output resolution | 300 DPI | KDP requirement |
-| Output format | PNG + PDF | KDP standard |
+| Output format | PNG + PDF + SVG | KDP + Cricut |
 
 ---
 
@@ -192,6 +288,7 @@ Email:        Resend + React Email
 | Output size | 1536×1536 px |
 | Model | Flux-Pro ($0.04) |
 | Storage | Single image file |
+| Cost | 8 Blots |
 
 ---
 
@@ -212,10 +309,12 @@ Email:        Resend + React Email
 | Attribute | Value |
 |-----------|-------|
 | Interior DPI | 300 |
-| Interior format | PNG (individual) + PDF (combined) |
+| Formats | PNG + PDF + SVG (vectorized via Potrace) |
 | Color space | RGB (KDP converts) |
 | Margins | 0.25" safe zone |
 | Trim sizes | 8.5×11, 8.5×8.5, 6×9 |
+| File naming | `{project-slug}-page-{num}.{ext}` |
+| Cost | FREE (no Blots) |
 
 ---
 
@@ -227,7 +326,7 @@ Email:        Resend + React Email
 | Max content width | 1280px |
 | Font | Inter |
 | Border radius | 6px inputs, 8px buttons, 12px cards |
-| Primary color | TBD during build |
+| Primary color | Blue (#3B82F6) |
 | Empty states | Always show CTA |
 | Loading | Skeleton UI, not spinners |
 | Icons | Lucide React |
@@ -269,6 +368,7 @@ assets/{user_id}/projects/{project_id}/thumbs/{page_id}/v{version}.jpg
 assets/{user_id}/heroes/{hero_id}/reference.png
 assets/{user_id}/heroes/{hero_id}/thumb.jpg
 assets/{user_id}/exports/{project_id}/{timestamp}/interior.pdf
+assets/{user_id}/exports/{project_id}/{timestamp}/svg/{project-slug}-page-{num}.svg
 ```
 
 ---
@@ -295,21 +395,18 @@ OPENAI_API_KEY=
 REPLICATE_API_TOKEN=
 FLUX_MODEL=flux-lineart
 
-# Stripe - Subscriptions
+# Stripe
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
 STRIPE_SECRET_KEY=
 STRIPE_WEBHOOK_SECRET=
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
-STRIPE_PRICE_STARTER_MONTHLY=
-STRIPE_PRICE_STARTER_YEARLY=
-STRIPE_PRICE_CREATOR_MONTHLY=
-STRIPE_PRICE_CREATOR_YEARLY=
-STRIPE_PRICE_PRO_MONTHLY=
-STRIPE_PRICE_PRO_YEARLY=
 
-# Stripe - Blot Packs
-STRIPE_PRICE_SPLASH=
-STRIPE_PRICE_BUCKET=
-STRIPE_PRICE_BARREL=
+# Stripe Prices (Unit-Based)
+STRIPE_PRICE_CREATOR_MONTHLY=
+STRIPE_PRICE_CREATOR_ANNUAL=
+STRIPE_PRICE_STUDIO_MONTHLY=
+STRIPE_PRICE_STUDIO_ANNUAL=
+STRIPE_PRICE_PACK_TOPUP=
+STRIPE_PRICE_PACK_BOOST=
 
 # App
 NEXT_PUBLIC_APP_URL=
@@ -341,6 +438,32 @@ RESEND_API_KEY=
 
 ---
 
+## Profit Margins
+
+### Your Cost Per Blot
+
+```
+1 page generation = $0.013 ÷ 5 Blots = $0.0026 per Blot
+```
+
+### Consumer Pays vs Your Cost
+
+| Tier | Consumer Pays | Your Cost | Margin |
+|------|---------------|-----------|--------|
+| Creator Monthly | $0.030/Blot | $0.0026/Blot | **91%** |
+| Creator Annual | $0.025/Blot | $0.0026/Blot | **90%** |
+| Studio Monthly | $0.020/Blot | $0.0026/Blot | **87%** |
+| Studio Annual | $0.0175/Blot | $0.0026/Blot | **85%** |
+
+### Per Book Profitability (212 Blots)
+
+| Tier | User Pays | Your Cost | Profit |
+|------|-----------|-----------|--------|
+| Creator 500 ($15/mo, ~2 books) | $6.36/book | $0.55/book | $5.81 |
+| Studio 2500 ($50/mo, ~11 books) | $4.24/book | $0.55/book | $3.69 |
+
+---
+
 ## What's NOT in v1
 
 | Feature | Status | Target |
@@ -351,6 +474,7 @@ RESEND_API_KEY=
 | Credit rollover | Deferred | v1.1 |
 | Props library | Deferred | v1.1 |
 | Light theme | Deferred | v1.1 |
+| Slider pricing | Deferred | v1.1 |
 
 ---
 
@@ -359,10 +483,12 @@ RESEND_API_KEY=
 | Case | Solution |
 |------|----------|
 | Browser closes mid-generation | Job continues, show "In Progress" on return |
-| Payment fails | 3-day grace, banner, then downgrade |
-| Blots run out mid-generation | Check BEFORE starting |
+| Payment fails | 3-day grace with banner, then downgrade to Free |
+| Blots run out mid-generation | Check FULL job cost BEFORE starting |
 | Safety blocked | Show suggestions, allow retry |
 | Two tabs open | Last write wins |
 | Large export timeout | Background job, poll completion |
 | Auth expires | Redirect with return URL |
 | Storage full | Block uploads, show upgrade |
+| User at tier ceiling needs more | Offer packs or tier upgrade |
+| User at absolute ceiling (Studio 5000) | Offer packs or "Contact for Enterprise" |

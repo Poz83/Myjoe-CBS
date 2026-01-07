@@ -15,6 +15,10 @@ body {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   background-color: var(--bg-base);
   color: white;
+}
+
+/* Studio pages require minimum width */
+.studio-layout {
   min-width: 1024px;
 }
 

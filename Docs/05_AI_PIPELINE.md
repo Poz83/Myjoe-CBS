@@ -16,37 +16,89 @@
 └──────┬──────┘          └──────┬──────┘          └──────┬──────┘
        │                        │                        │
        ▼                        ▼                        ▼
-  4 samples               Reference sheet           40 pages
-  User picks              2×2 grid                 Flux + LoRA
-  Style anchor            Flux Pro                 Safety checked
+  4 samples               Reference sheet           40+ pages
+  User picks              2×2 grid                 Flux + Safety
+  Style anchor            Flux Pro                 Quality checked
 ```
 
 ---
 
 ## Safety-First Architecture
 
-```mermaid
-flowchart TD
-    A[User Input] --> B[Sanitize]
-    B --> C{Keyword Check}
-    C -->|Blocked| D[Return Error + Suggestions]
-    C -->|Pass| E[OpenAI Moderation API]
-    E -->|Flagged| D
-    E -->|Pass| F[Compile Prompts]
-    F --> G[Generate with Flux]
-    G --> H{Audience?}
-    H -->|Toddler/Children| I[GPT-4V Safety Scan]
-    H -->|Other| J[Quality Gate]
-    I -->|Fail| K[Auto-Retry or Flag]
-    I -->|Pass| J
-    J --> L[Store & Return]
+```
+User Input
+    │
+    ▼
+┌─────────────┐
+│  Sanitize   │──→ Remove injection attempts
+└──────┬──────┘
+       │
+       ▼
+┌─────────────┐
+│  Keyword    │──→ Audience-specific blocklist
+│  Blocklist  │
+└──────┬──────┘
+       │ FAIL → Return suggestions
+       ▼ PASS
+┌─────────────┐
+│  OpenAI     │──→ Moderation API with thresholds
+│  Moderation │
+└──────┬──────┘
+       │ FAIL → Return suggestions
+       ▼ PASS
+┌─────────────┐
+│  Compile    │──→ GPT-4o-mini generates prompts
+│  Prompts    │
+└──────┬──────┘
+       │
+       ▼
+┌─────────────┐
+│  Generate   │──→ Flux via Replicate
+│  with Flux  │
+└──────┬──────┘
+       │
+       ▼
+┌─────────────┐
+│  Cleanup    │──→ Sharp: B&W, threshold, resize
+│  Image      │
+└──────┬──────┘
+       │
+       ▼
+┌─────────────┐
+│  Quality    │──→ Check margins, density, contrast
+│  Gate       │
+└──────┬──────┘
+       │
+       ▼
+┌─────────────┐    Only for Toddler/Children
+│  GPT-4V     │──→ Visual safety verification
+│  Safety     │
+└──────┬──────┘
+       │
+       ▼
+┌─────────────┐
+│  Store &    │──→ R2 storage + DB update
+│  Return     │
+└─────────────┘
 ```
 
 ---
 
 ## 1. Content Safety System
 
-### 1.1 Forbidden Content by Audience
+### 1.1 Safety Levels by Audience
+
+| Audience | Age Range | Safety Level | Violence | Sexual | Post-Gen Scan |
+|----------|-----------|--------------|----------|--------|---------------|
+| **Toddler** | 2-4 | Strict | 0.05 | 0.01 | ✅ Required |
+| **Children** | 5-8 | Strict | 0.10 | 0.05 | ✅ Required |
+| **Tween** | 9-12 | Moderate | 0.20 | 0.10 | ❌ Skip |
+| **Teen** | 13-17 | Moderate | 0.30 | 0.15 | ❌ Skip |
+| **Adult** | 18+ | Standard | 0.50 | 0.30 | ❌ Skip |
+
+**ALWAYS:** `sexual/minors` threshold = **0.01** for ALL audiences
+
+### 1.2 Forbidden Content by Audience
 
 ```typescript
 // src/lib/constants/forbidden-content.ts
@@ -102,7 +154,7 @@ export const FORBIDDEN_BY_AUDIENCE = {
 } as const;
 ```
 
-### 1.2 Safety Check Implementation
+### 1.3 Safety Check Implementation
 
 ```typescript
 // src/server/ai/content-safety.ts
@@ -145,7 +197,7 @@ export async function checkContentSafety(
   const rules = AUDIENCE_DERIVATIONS[audience];
   const forbidden = FORBIDDEN_BY_AUDIENCE[audience];
   
-  // Layer 1: Keyword blocklist (instant)
+  // Layer 1: Keyword blocklist (instant, free)
   const lowerInput = input.toLowerCase();
   const blocked = forbidden.filter(word => 
     lowerInput.includes(word.toLowerCase())
@@ -159,7 +211,7 @@ export async function checkContentSafety(
     };
   }
   
-  // Layer 2: OpenAI Moderation API
+  // Layer 2: OpenAI Moderation API (free)
   const moderation = await openai.moderations.create({ input });
   const result = moderation.results[0];
   const thresholds = THRESHOLDS[rules.safetyLevel];
@@ -204,7 +256,7 @@ function getSuggestions(audience: Audience): string[] {
       'Try: "friendly dinosaur with flowers"'
     ],
     children: [
-      'Try: "brave knight saving a friendly dragon"',
+      'Try: "brave knight befriending a dragon"',
       'Try: "underwater mermaid palace"',
       'Try: "space adventure with rockets"'
     ],
@@ -228,7 +280,7 @@ function getSuggestions(audience: Audience): string[] {
 }
 ```
 
-### 1.3 Input Sanitization
+### 1.4 Input Sanitization
 
 ```typescript
 // src/server/ai/sanitize.ts
@@ -272,12 +324,6 @@ export function validateIdea(idea: string): { valid: boolean; reason?: string } 
     return { valid: false, reason: 'Please shorten your idea (max 500 characters)' };
   }
   
-  // Check for visual concept
-  const hasVisual = /\b(animal|character|scene|place|object|person|creature|plant|flower|vehicle|building)\b/i.test(idea);
-  if (!hasVisual) {
-    return { valid: false, reason: 'Please describe something visual' };
-  }
-  
   return { valid: true };
 }
 ```
@@ -293,7 +339,7 @@ export function validateIdea(idea: string): { valid: boolean; reason?: string } 
 
 export const FLUX_MODELS = {
   'flux-lineart': 'cuuupid/flux-lineart',
-  'flux-dev-lora': process.env.FLUX_CUSTOM_MODEL || 'your-username/myjoe-coloring-flux',
+  'flux-dev': 'black-forest-labs/flux-dev',
   'flux-pro': 'black-forest-labs/flux-1.1-pro',
 } as const;
 
@@ -304,14 +350,20 @@ export const FLUX_TRIGGERS: Record<FluxModel, { trigger: string; template: strin
     trigger: '',
     template: 'line art, black and white, coloring book page'
   },
-  'flux-dev-lora': {
-    trigger: 'c0l0ringb00k',
+  'flux-dev': {
+    trigger: 'c0l0ringb00k',  // If using coloring book LoRA
     template: 'c0l0ringb00k, coloring book page, black and white line art'
   },
   'flux-pro': {
     trigger: '',
     template: 'coloring book illustration, clean black outlines on white background'
   }
+};
+
+export const FLUX_COSTS: Record<FluxModel, number> = {
+  'flux-lineart': 0.013,
+  'flux-dev': 0.025,
+  'flux-pro': 0.040,
 };
 
 export const LINE_WEIGHT_PROMPTS = {
@@ -369,7 +421,8 @@ export async function generateWithFlux(options: GenerateOptions): Promise<Genera
     output_format: 'png',
     output_quality: 95,
     seed: seed ?? Math.floor(Math.random() * 2147483647),
-    aspect_ratio: dimensions.aspectRatio,
+    width: dimensions.width,
+    height: dimensions.height,
   };
   
   try {
@@ -399,7 +452,7 @@ export async function downloadImage(url: string): Promise<Buffer> {
 
 ---
 
-## 3. Planner-Compiler (Updated)
+## 3. Planner-Compiler
 
 ### 3.1 System Prompt
 
@@ -408,8 +461,8 @@ export async function downloadImage(url: string): Promise<Buffer> {
 
 const SYSTEM_PROMPT = `You are a professional coloring book page planner for KDP publishers.
 
-CRITICAL: You are generating prompts for Flux AI with a Coloring Book LoRA.
-Every prompt MUST start with the trigger: {fluxTrigger}
+CRITICAL: You are generating prompts for Flux AI image generation.
+Every prompt MUST include the style cue: {fluxTemplate}
 
 ## YOUR TASK
 Transform the user's idea into {pageCount} distinct, age-appropriate coloring book pages.
@@ -417,7 +470,7 @@ Transform the user's idea into {pageCount} distinct, age-appropriate coloring bo
 ## ABSOLUTE RULES FOR EVERY PROMPT
 
 ### Technical Requirements (NON-NEGOTIABLE)
-- Start every prompt with: {fluxTrigger}
+- Include style cue: {fluxTemplate}
 - Pure black outlines on pure white background
 - {lineWeight} line weight: {lineWeightDescription}
 - {complexity} complexity: {complexityDescription}
@@ -439,7 +492,7 @@ Transform the user's idea into {pageCount} distinct, age-appropriate coloring bo
 - Hero should be 20-40% of frame
 
 ### Composition Variety
-Distribute compositions:
+Distribute compositions across pages:
 - close-up (15%): Face or upper body
 - full-body (30%): Complete figure
 - action (25%): Character doing activity
@@ -453,7 +506,7 @@ Distribute compositions:
       "pageNumber": 1,
       "sceneBrief": "Short 5-10 word description",
       "compositionType": "full-body",
-      "compiledPrompt": "{fluxTrigger}, [detailed prompt]...",
+      "compiledPrompt": "{fluxTemplate}, [detailed prompt]...",
       "negativePrompt": "{negativePrompt}"
     }
   ]
@@ -483,9 +536,17 @@ interface PlannerInput {
   projectDNA: ProjectDNA;
 }
 
+interface CompiledPage {
+  pageNumber: number;
+  sceneBrief: string;
+  compositionType: string;
+  compiledPrompt: string;
+  negativePrompt: string;
+}
+
 interface PlannerResult {
   success: boolean;
-  pages?: CompiledPrompt[];
+  pages?: CompiledPage[];
   error?: string;
   safetyIssue?: boolean;
   suggestions?: string[];
@@ -516,13 +577,13 @@ export async function planAndCompile(input: PlannerInput): Promise<PlannerResult
   
   // Step 4: Build context
   const audienceRules = AUDIENCE_DERIVATIONS[projectDNA.audience];
-  const fluxConfig = FLUX_TRIGGERS[projectDNA.fluxConfig?.model || 'flux-lineart'];
+  const fluxConfig = FLUX_TRIGGERS['flux-lineart'];
   const forbidden = FORBIDDEN_BY_AUDIENCE[projectDNA.audience];
   
   const negativePrompt = buildNegativePrompt(projectDNA.audience, projectDNA.stylePreset);
   
   const systemPrompt = SYSTEM_PROMPT
-    .replace(/{fluxTrigger}/g, fluxConfig.trigger || fluxConfig.template)
+    .replace(/{fluxTemplate}/g, fluxConfig.template)
     .replace('{pageCount}', String(projectDNA.pageCount))
     .replace('{lineWeight}', projectDNA.lineWeight)
     .replace('{lineWeightDescription}', LINE_WEIGHT_PROMPTS[projectDNA.lineWeight])
@@ -556,25 +617,12 @@ export async function planAndCompile(input: PlannerInput): Promise<PlannerResult
     
     const parsed = JSON.parse(content);
     
-    // Step 6: Validate each page has trigger
-    const pages = parsed.pages.map((page: any) => ({
-      ...page,
-      compiledPrompt: ensureFluxTrigger(page.compiledPrompt, fluxConfig.trigger),
-      safetyPassed: true
-    }));
-    
-    return { success: true, pages };
+    return { success: true, pages: parsed.pages };
     
   } catch (error) {
     console.error('Planner error:', error);
     return { success: false, error: 'Failed to generate pages' };
   }
-}
-
-function ensureFluxTrigger(prompt: string, trigger: string): string {
-  if (!trigger) return prompt;
-  if (prompt.toLowerCase().startsWith(trigger.toLowerCase())) return prompt;
-  return `${trigger}, ${prompt}`;
 }
 
 function buildNegativePrompt(audience: Audience, stylePreset: StylePreset): string {
@@ -615,7 +663,7 @@ export async function checkGeneratedImageSafety(
   imageUrl: string,
   audience: Audience
 ): Promise<ImageSafetyResult> {
-  // Only run for strict audiences
+  // Only run for strict audiences (cost: ~$0.01 per check)
   if (!['toddler', 'children'].includes(audience)) {
     return { safe: true, issues: [], recommendation: 'approve' };
   }
@@ -691,9 +739,13 @@ export async function qualityCheck(imageBuffer: Buffer): Promise<QualityReport> 
   const { data, info } = await image.raw().toBuffer({ resolveWithObject: true });
   
   const checks = {
+    // Check for pure B&W (min ~0, max ~255)
     pureBlackWhite: stats.channels[0].min <= 5 && stats.channels[0].max >= 250,
+    // Check image has content (not all white)
     hasContent: stats.channels[0].mean < 250,
+    // Check not too dense (enough white space)
     notTooDense: stats.channels[0].mean > 180,
+    // Check margins are clear
     marginSafe: checkMargins(data, info.width, info.height, 75),
   };
   
@@ -718,7 +770,7 @@ function checkMargins(data: Buffer, width: number, height: number, margin: numbe
       if (data[y * width + x] < 128) return false;
     }
   }
-  // Check bottom, left, right similarly...
+  // Similar checks for bottom, left, right margins...
   return true;
 }
 ```
@@ -753,7 +805,7 @@ export async function cleanupImage(
     // Slight blur + re-threshold (despeckle)
     .blur(0.5)
     .threshold(threshold)
-    // Resize to target dimensions
+    // Resize to target dimensions (300 DPI)
     .resize(targetWidth, targetHeight, {
       fit: 'contain',
       background: { r: 255, g: 255, b: 255 }
@@ -777,6 +829,7 @@ import { generateWithFlux, downloadImage } from './flux-generator';
 import { cleanupImage } from './cleanup';
 import { qualityCheck } from './quality-gate';
 import { checkGeneratedImageSafety } from './image-safety-check';
+import { TRIM_SIZES } from '@/lib/constants';
 
 interface GeneratePageOptions {
   compiledPrompt: string;
@@ -802,7 +855,7 @@ export async function generatePage(options: GeneratePageOptions): Promise<PageRe
     const genResult = await generateWithFlux({
       compiledPrompt,
       negativePrompt,
-      fluxModel: projectDNA.fluxConfig?.model || 'flux-lineart',
+      fluxModel: 'flux-lineart',
       trimSize: projectDNA.trimSize,
     });
     
@@ -826,7 +879,7 @@ export async function generatePage(options: GeneratePageOptions): Promise<PageRe
     // 4. Quality gate
     const quality = await qualityCheck(cleanedBuffer);
     
-    // 5. Safety check (for children)
+    // 5. Safety check (for children only - adds ~$0.01)
     let safetyPassed = true;
     if (['toddler', 'children'].includes(projectDNA.audience)) {
       const safetyResult = await checkGeneratedImageSafety(
@@ -854,7 +907,7 @@ export async function generatePage(options: GeneratePageOptions): Promise<PageRe
     // Quality or safety failed on last attempt
     if (attempt === maxRetries) {
       return {
-        success: true, // Still return, but flagged
+        success: true, // Still return, but flagged for review
         imageBuffer: cleanedBuffer,
         seed: genResult.seed,
         qualityScore: quality.score,
@@ -870,27 +923,129 @@ export async function generatePage(options: GeneratePageOptions): Promise<PageRe
 
 ---
 
+## 8. Hero Reference Sheet
+
+```typescript
+// src/server/ai/hero-generator.ts
+
+import { generateWithFlux, downloadImage } from './flux-generator';
+import { checkContentSafety } from './content-safety';
+import { sanitizePrompt } from './sanitize';
+
+interface HeroInput {
+  name: string;
+  description: string;
+  audience: Audience;
+}
+
+interface HeroResult {
+  success: boolean;
+  referenceBuffer?: Buffer;
+  compiledPrompt?: string;
+  error?: string;
+  safetyIssue?: boolean;
+  suggestions?: string[];
+}
+
+export async function generateHeroReference(input: HeroInput): Promise<HeroResult> {
+  const { name, description, audience } = input;
+  
+  // Safety check
+  const sanitized = sanitizePrompt(description);
+  const safety = await checkContentSafety(sanitized, audience);
+  
+  if (!safety.safe) {
+    return {
+      success: false,
+      error: 'Character description not suitable',
+      safetyIssue: true,
+      suggestions: safety.suggestions
+    };
+  }
+  
+  // Build character sheet prompt
+  const compiledPrompt = buildCharacterSheetPrompt(name, sanitized, audience);
+  
+  // Generate with Flux Pro (best quality for reference)
+  const result = await generateWithFlux({
+    compiledPrompt,
+    negativePrompt: 'realistic, photograph, 3D, shading, gradient',
+    fluxModel: 'flux-pro',
+    trimSize: '8.5x8.5', // Square for reference sheet
+  });
+  
+  if (!result.success) {
+    return { success: false, error: result.error };
+  }
+  
+  const buffer = await downloadImage(result.imageUrl!);
+  
+  return {
+    success: true,
+    referenceBuffer: buffer,
+    compiledPrompt
+  };
+}
+
+function buildCharacterSheetPrompt(
+  name: string, 
+  description: string, 
+  audience: Audience
+): string {
+  const ageStyle = {
+    toddler: 'simple cartoon style, very round shapes, minimal detail',
+    children: 'friendly cartoon style, soft shapes',
+    tween: 'animated style, balanced detail',
+    teen: 'anime-influenced style',
+    adult: 'clean illustration style'
+  }[audience];
+  
+  return `character reference sheet, 2x2 grid layout, ${ageStyle}, 
+${description}, 
+four views: front view, side profile, back view, three-quarter view,
+pure black outlines on white background, coloring book style,
+consistent character design across all views,
+labeled character name: ${name}`;
+}
+```
+
+---
+
 ## Cost Analysis
 
 ### Per-Image Costs
 
 | Model | Cost | Best For |
 |-------|------|----------|
-| flux-lineart | $0.013 | Production, MVP |
-| flux-dev-lora | $0.025 | Custom style |
-| flux-pro | $0.040 | Hero sheets |
+| **flux-lineart** | $0.013 | Production pages (default) |
+| **flux-dev** | $0.025 | Custom LoRA styles |
+| **flux-pro** | $0.040 | Hero reference sheets |
 
 ### Per-Book Costs (40 pages)
 
-| Approach | Generation | Safety | Total |
+| Scenario | Generation | Safety | Total |
 |----------|------------|--------|-------|
-| Flux-LineArt (adult) | $0.52 | $0 | ~$0.60 |
-| Flux-LineArt (children) | $0.52 | $0.40 | ~$1.00 |
-| Flux-Dev-LoRA | $1.00 | $0-0.40 | ~$1.20 |
+| Adult book (no safety scan) | $0.52 | $0 | ~$0.55 |
+| Children's book (with safety scan) | $0.52 | $0.40 | ~$1.00 |
 
-### Blot Margins
+### Blot Economics
 
-| User Type | Pays (per Blot) | Your Cost | Margin |
-|-----------|-----------------|-----------|--------|
-| Subscriber | $0.043 | $0.013-0.025 | 40-70% |
-| Pack Buyer | $0.035-0.050 | $0.013-0.025 | 50-75% |
+| Action | Blots | Your Cost | Consumer Pays* |
+|--------|-------|-----------|----------------|
+| Generate 1 page | 5 | $0.013 | $0.15 (Creator) |
+| Hero sheet | 8 | $0.040 | $0.24 (Creator) |
+| Calibration (4 samples) | 4 | $0.052 | $0.12 (Creator) |
+| Full 40-page book | 212 | ~$0.55 | $6.36 (Creator) |
+
+*Based on Creator tier ($3/100 Blots = $0.03/Blot)
+
+### Your Margins
+
+| Tier | Consumer Pays/Blot | Your Cost/Blot | Margin |
+|------|-------------------|----------------|--------|
+| Creator Monthly | $0.030 | $0.0026 | **91%** |
+| Creator Annual | $0.025 | $0.0026 | **90%** |
+| Studio Monthly | $0.020 | $0.0026 | **87%** |
+| Studio Annual | $0.0175 | $0.0026 | **85%** |
+| Pack (Top-Up) | $0.050 | $0.0026 | **95%** |
+| Pack (Boost) | $0.040 | $0.0026 | **94%** |

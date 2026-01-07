@@ -1,7 +1,26 @@
 {
   "permissions": {
     "allow": [
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(find:*)",
+      "Bash(npx tsc:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nfeat\\(6.4-6.5\\): generation API and job processor with safety\n\n6.4 - Generation API:\n- POST /api/generate - Start generation job with safety checks\n- GET /api/generate/[jobId] - Job status with thumbnails\n- POST /api/generate/[jobId]/cancel - Cancel and refund blots\n\n6.5 - Job Processor:\n- processGenerationJob with batch processing \\(3 concurrent\\)\n- planAndCompile integration with safety blocking\n- Retry support \\(max 2\\) for failed pages\n- R2 upload and page version creation\n\nAlso adds metadata JSONB column to jobs table for storing idea.\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git commit:*)",
+      "Bash(git tag:*)",
+      "Bash(git push)",
+      "Bash(dir \"C:\\\\Myjoe CBS\\\\src\\\\lib\\\\constants\")",
+      "Bash(git push:*)",
+      "Bash(npm install:*)",
+      "Bash(npx next lint --quiet)",
+      "WebFetch(domain:www.coloringbook.ai)",
+      "WebFetch(domain:www.automateed.com)",
+      "Bash(dir:*)",
+      "Bash(findstr:*)",
+      "Bash(cd:*)",
+      "Bash(git checkout:*)",
+      "WebSearch",
+      "Bash(npx next build)"
     ]
   }
 }

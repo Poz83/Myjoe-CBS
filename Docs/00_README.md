@@ -1,22 +1,23 @@
 # Myjoe - AI Coloring Book Studio
 
 > Production-ready KDP coloring book generator with hero character consistency
+> 
+> **Last Updated:** January 7, 2026 | **Version:** 2.0 (2-Tier Unit-Based Billing)
 
 ## Quick Links
 
 | Doc | Purpose |
 |-----|---------|
 | [01_SOURCE_OF_TRUTH](./01_SOURCE_OF_TRUTH.md) | Locked decisions - read first |
-| [02_ARCHITECTURE](./02_ARCHITECTURE.md) | System design |
-| [03_DATA_MODEL](./03_DATA_MODEL.md) | Database schema |
-| [04_API_CONTRACTS](./04_API_CONTRACTS.md) | Endpoints |
-| [05_AI_PIPELINE](./05_AI_PIPELINE.md) | Generation system (Flux + Safety) |
-| [06_STYLE_SYSTEM](./06_STYLE_SYSTEM.md) | Styles, heroes, calibration |
-| [07_BILLING](./07_BILLING.md) | Blots + Blot Packs + Stripe |
-| [08_UI_UX](./08_UI_UX.md) | Design system |
-| [09_SECURITY](./09_SECURITY.md) | Auth, RLS, Content Safety |
-| [10_EXECUTION_PLAN](./10_EXECUTION_PLAN.md) | Build phases with git checkpoints |
-| [CURSOR_PROMPTS](./CURSOR_PROMPTS.md) | Copy-paste prompts for Cursor |
+| [02_ARCHITECTURE](./02_ARCHITECTURE.md) | System design & directory structure |
+| [03_DATA_MODEL](./03_DATA_MODEL.md) | Database schema & RLS |
+| [04_API_CONTRACTS](./04_API_CONTRACTS.md) | API endpoints & types |
+| [05_AI_PIPELINE](./05_AI_PIPELINE.md) | Flux generation system |
+| [06_CONTENT_SAFETY](./06_CONTENT_SAFETY.md) | Multi-layer safety pipeline |
+| [07_BILLING](./07_BILLING.md) | Blots + Stripe (unit-based) |
+| [STRIPE_SETUP_GUIDE_FINAL](./STRIPE_SETUP_GUIDE_FINAL.md) | Step-by-step Stripe setup |
+| [BLOT_CALCULATOR](./BLOT_CALCULATOR.md) | Calculator component for billing |
+| [PROMPTS_PHASE_10](./PROMPTS_PHASE_10.md) | Billing implementation prompts |
 
 ---
 
@@ -30,12 +31,12 @@ AI-powered coloring book studio for Amazon KDP publishers. Users create professi
 
 ## Key Differentiators
 
-1. **Hero Reference Sheets** — Character stays consistent across 40 pages
+1. **Hero Reference Sheets** — Character stays consistent across 40+ pages
 2. **Style Calibration** — User picks visual anchor, all pages match
 3. **Child-Safe Generation** — Multi-layer content moderation for kids' books
 4. **Flux-Powered** — 67% cheaper than competitors, better line art quality
 5. **Audience Presets** — Automatic line weight/complexity for age groups
-6. **KDP-Ready Export** — 300 DPI PDF with correct margins
+6. **KDP-Ready Export** — 300 DPI PDF + SVG with correct margins
 
 ---
 
@@ -48,9 +49,9 @@ AI-powered coloring book studio for Amazon KDP publishers. Users create professi
 | Database | Supabase (Postgres + Auth + RLS) |
 | Storage | Cloudflare R2 |
 | AI Planning | GPT-4o-mini |
-| AI Images | **Flux via Replicate** (with LoRA support) |
+| AI Images | **Flux via Replicate** (lineart, dev, pro) |
 | AI Safety | OpenAI Moderation API + GPT-4V |
-| Payments | Stripe (subscriptions + one-time packs) |
+| Payments | Stripe (unit-based subscriptions + packs) |
 | Hosting | Vercel |
 | Analytics | PostHog |
 | Errors | Sentry |
@@ -61,7 +62,7 @@ AI-powered coloring book studio for Amazon KDP publishers. Users create professi
 
 | Provider | Cost | Notes |
 |----------|------|-------|
-| **Myjoe (Flux-LineArt)** | ~$0.65 | Best value |
+| **Myjoe (Flux-LineArt)** | ~$0.55 | Best value |
 | **Myjoe (Flux Dev+LoRA)** | ~$1.00 | Best quality |
 | GPT Image 1.5 | ~$2.00 | Previous approach |
 | DALL-E 3 | ~$1.60 | No consistency |
@@ -99,24 +100,65 @@ AI-powered coloring book studio for Amazon KDP publishers. Users create professi
 
 ---
 
-## Pricing
+## Pricing (2-Tier Unit Model)
 
-### Subscriptions
+### How It Works
 
-| Plan | Price | Blots | Storage |
-|------|-------|-------|---------|
-| **Free** | $0 | 50/mo | 1 GB |
-| **Starter** | $15/mo | 300/mo | 5 GB |
-| **Creator** | $39/mo | 900/mo | 15 GB |
-| **Pro** | $99/mo | 2,800/mo | 50 GB |
+**1 Unit = 100 Blots** — Stripe charges per unit, you select quantity.
 
-### Blot Packs (One-Time)
+### Free Tier
+
+| Attribute | Value |
+|-----------|-------|
+| Price | $0 |
+| Blots | 50/month |
+| Storage | 25 GB |
+| Projects | 3 max |
+| Commercial | ❌ |
+
+### Creator Tier (Individuals)
+
+| Blots | Units | Monthly | Annual |
+|-------|-------|---------|--------|
+| **300** | 3 | **$9** | $90 |
+| **500** | 5 | **$15** | $150 |
+| **800** | 8 | **$24** | $240 |
+
+- Storage: 25 GB
+- Projects: Unlimited
+- Commercial: ✅
+
+### Studio Tier (Power Users)
+
+| Blots | Units | Monthly | Annual |
+|-------|-------|---------|--------|
+| **2,500** | 25 | **$50** | $525 |
+| **4,000** | 40 | **$80** | $840 |
+| **5,000** | 50 | **$100** | $1,050 |
+
+- Storage: 50 GB
+- Projects: Unlimited
+- Commercial: ✅
+- Priority Support: ✅
+
+### Blot Packs (One-Time, Never Expire)
 
 | Pack | Blots | Price |
 |------|-------|-------|
-| Splash 💧 | 100 | $5 |
-| Bucket 🪣 | 300 | $12 |
-| Barrel 🛢️ | 1,000 | $35 |
+| **Top-Up** 🎨 | 100 | $5 |
+| **Boost** 🚀 | 500 | $20 |
+
+### Blot Costs
+
+| Action | Blots |
+|--------|-------|
+| Generate page | 5 |
+| Edit page | 5 |
+| Style calibration | 4 |
+| Hero sheet | 8 |
+| Export PDF/SVG | FREE |
+
+**Full 40-page book = ~212 Blots**
 
 ---
 
@@ -129,15 +171,18 @@ myjoe/
 │   │   ├── (auth)/            # Login, signup
 │   │   ├── (studio)/          # Main app (protected)
 │   │   └── api/               # API routes
+│   │       └── billing/       # Checkout, portal, balance
 │   ├── components/            # React components
 │   │   ├── ui/               # Primitives
 │   │   └── features/         # Feature components
+│   │       └── billing/      # Calculator, tier cards
 │   ├── server/               # Server-only code
 │   │   ├── ai/              # AI pipeline + safety
 │   │   ├── db/              # Database queries
+│   │   ├── billing/         # Stripe, Blots
 │   │   └── storage/         # R2 operations
 │   ├── lib/                  # Shared utilities
-│   │   └── constants/       # Config + forbidden content
+│   │   └── constants/       # Billing, safety, styles
 │   └── types/               # TypeScript types
 ├── supabase/
 │   └── migrations/          # SQL migrations
@@ -158,7 +203,33 @@ stripe listen --forward-to localhost:3000/api/webhooks/stripe
 npx supabase db reset
 npx supabase gen types typescript --local > src/types/database.ts
 
+# Stripe CLI
+stripe login
+stripe trigger checkout.session.completed
+stripe trigger invoice.payment_succeeded
+
 # Deploy
 vercel deploy
 vercel --prod
 ```
+
+---
+
+## Revenue Model
+
+### Per-Book Economics
+
+| Tier | User Pays | Your Cost | Margin |
+|------|-----------|-----------|--------|
+| Creator 500 | $6.36/book | $0.55/book | **91%** |
+| Studio 2500 | $4.24/book | $0.55/book | **87%** |
+
+### Monthly Projections
+
+| Paying Users | Est. MRR | Fixed Costs | Net |
+|--------------|----------|-------------|-----|
+| 10 | ~$220 | ~$87 | ~$133 |
+| 50 | ~$1,100 | ~$87 | ~$1,013 |
+| 100 | ~$2,200 | ~$87 | ~$2,113 |
+
+**Breakeven:** ~8 paying subscribers
