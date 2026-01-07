@@ -1,71 +1,71 @@
-import { openai } from './openai-client';
-import type { ProjectDNA, HeroDNA } from '@/types/domain';
+import OpenAI from 'openai';
+import { checkContentSafety } from './content-safety';
+import { sanitizePrompt, validateIdea } from './sanitize';
+import { 
+  AUDIENCE_DERIVATIONS, 
+  FLUX_TRIGGERS, 
+  LINE_WEIGHT_PROMPTS, 
+  COMPLEXITY_PROMPTS,
+} from '@/lib/constants';
+import { FORBIDDEN_BY_AUDIENCE } from '@/lib/constants/forbidden-content';
+import type { Audience, StylePreset, FluxModel } from '@/lib/constants';
 
-const SYSTEM_PROMPT = `You are a coloring book page planner for professional KDP publishers.
+const openai = new OpenAI();
 
-Given a user's idea, create {pageCount} distinct scene briefs and compiled prompts.
+// Full system prompt - see 05_AI_PIPELINE.md for complete version
+const SYSTEM_PROMPT = `You are a professional coloring book page planner for KDP publishers.
 
-RULES YOU MUST ENFORCE IN EVERY PROMPT:
-- Coloring book page style
+CRITICAL: Every prompt MUST start with the trigger: {fluxTrigger}
+
+Create {pageCount} distinct, age-appropriate coloring book pages.
+
+RULES:
+- Start every prompt with: {fluxTrigger}
 - Pure black outlines on pure white background
-- No shading, no gradients, no gray tones, no textures, no fills
-- No crosshatching or stippling
-- {lineWeight} line weight (consistent across all pages)
-- {complexity} level of detail
-- Closed shapes suitable for coloring (no broken or open lines)
-- No tiny intricate clusters that can't be colored
-- No text, watermarks, or signatures
-- Margin-safe composition (subject not touching edges, 10% padding)
-- Single scene per page (no split panels)
+- {lineWeight} line weight: {lineWeightDescription}
+- {complexity} complexity: {complexityDescription}
+- No shading, gradients, gray tones, or fills
+- All shapes must be CLOSED (suitable for coloring)
+- Margin-safe composition (10% padding)
+- No text, watermarks, signatures
 
-LINE WEIGHT SPECIFICATIONS:
-- thick: Bold 6-8px lines, chunky shapes, minimal detail
-- medium: Clean 3-5px lines, balanced detail
-- fine: Delicate 1-3px lines, intricate detail allowed
+AUDIENCE: {audience} (ages {ageRange})
+SAFETY: {safetyLevel}
+FORBIDDEN: {forbiddenContent}
+MAX ELEMENTS: {maxElements}
 
-COMPLEXITY SPECIFICATIONS:
-- minimal: 3-5 main elements, large simple shapes
-- moderate: 5-10 elements, some decorative detail
-- detailed: 10-20 elements, patterns and textures allowed
-- intricate: 20+ elements, fine patterns, mandala-level detail
+HERO (if provided): {heroDescription}
 
-FOR HERO CHARACTER (if provided):
-- Include this exact description in every scene where hero appears: {heroDescription}
-- Hero must appear in at least 80% of pages
-- Maintain consistent proportions and features
-- Hero should be prominent in composition (20-40% of frame)
-
-FOR STYLE CONSISTENCY:
-- Match this style description: {styleAnchorDescription}
-- Maintain consistent aesthetic across all pages
-
-COMPOSITION VARIETY:
-- Vary compositions across pages using these types:
-  - close-up: Face or upper body focus (15% of pages)
-  - full-body: Complete figure, centered (30% of pages)
-  - action: Character doing something (25% of pages)
-  - environment: Character small in larger scene (15% of pages)
-  - pattern: Decorative/mandala style (15% of pages)
-- No more than 2 consecutive pages with same composition type
-- First page should be iconic/cover-worthy
-
-OUTPUT FORMAT (JSON only, no explanation):
+OUTPUT JSON ONLY:
 {
   "pages": [
     {
       "pageNumber": 1,
-      "sceneBrief": "Short 5-10 word description for user display",
+      "sceneBrief": "Short description",
       "compositionType": "full-body",
-      "compiledPrompt": "Full detailed prompt with all rules enforced...",
-      "negativePrompt": "shading, gradient, gray, realistic, photograph, watermark, signature, text, broken lines, open shapes, crosshatching, texture, fill, 3D, shadow, color"
+      "compiledPrompt": "{fluxTrigger}, [detailed prompt]...",
+      "negativePrompt": "{negativePrompt}"
     }
   ]
 }`;
 
 interface PlannerInput {
   userIdea: string;
-  projectDNA: ProjectDNA;
-  hero?: HeroDNA;
+  pageCount: number;
+  audience: Audience;
+  stylePreset: StylePreset;
+  lineWeight: string;
+  complexity: string;
+  heroDescription?: string;
+  fluxModel?: FluxModel;
+}
+
+export interface PlannerResult {
+  success: boolean;
+  pages?: CompiledPage[];
+  error?: string;
+  safetyIssue?: boolean;
+  suggestions?: string[];
 }
 
 export interface CompiledPage {
@@ -76,26 +76,74 @@ export interface CompiledPage {
   negativePrompt: string;
 }
 
-export async function planAndCompile(input: PlannerInput): Promise<CompiledPage[]> {
-  const { userIdea, projectDNA, hero } = input;
+export async function planAndCompile(input: PlannerInput): Promise<PlannerResult> {
+  // 1. Validate
+  const validation = validateIdea(input.userIdea);
+  if (!validation.valid) return { success: false, error: validation.reason };
   
-  const systemPrompt = SYSTEM_PROMPT
-    .replace('{pageCount}', String(projectDNA.pageCount))
-    .replace('{lineWeight}', projectDNA.lineWeight)
-    .replace('{complexity}', projectDNA.complexity)
-    .replace('{heroDescription}', hero?.compiledPrompt ?? 'No hero character')
-    .replace('{styleAnchorDescription}', projectDNA.styleAnchorDescription ?? projectDNA.stylePreset);
+  // 2. Sanitize
+  const sanitizedIdea = sanitizePrompt(input.userIdea);
+  
+  // 3. Safety check
+  const safetyResult = await checkContentSafety(sanitizedIdea, input.audience);
+  if (!safetyResult.safe) {
+    return {
+      success: false,
+      error: `Content not suitable for ${input.audience}`,
+      safetyIssue: true,
+      suggestions: safetyResult.suggestions,
+    };
+  }
+  
+  // 4. Build context
+  const rules = AUDIENCE_DERIVATIONS[input.audience];
+  const fluxConfig = FLUX_TRIGGERS[input.fluxModel || 'flux-lineart'];
+  const negativePrompt = buildNegativePrompt(input.audience);
+  
+  const prompt = SYSTEM_PROMPT
+    .replace(/{fluxTrigger}/g, fluxConfig.trigger || fluxConfig.template)
+    .replace('{pageCount}', String(input.pageCount))
+    .replace('{lineWeight}', input.lineWeight)
+    .replace('{lineWeightDescription}', LINE_WEIGHT_PROMPTS[input.lineWeight as keyof typeof LINE_WEIGHT_PROMPTS])
+    .replace('{complexity}', input.complexity)
+    .replace('{complexityDescription}', COMPLEXITY_PROMPTS[input.complexity as keyof typeof COMPLEXITY_PROMPTS])
+    .replace('{audience}', input.audience)
+    .replace('{ageRange}', rules.ageRange)
+    .replace('{safetyLevel}', rules.safetyLevel.toUpperCase())
+    .replace('{forbiddenContent}', FORBIDDEN_BY_AUDIENCE[input.audience].slice(0, 15).join(', '))
+    .replace('{maxElements}', String(rules.maxElements))
+    .replace('{heroDescription}', input.heroDescription || 'No hero character')
+    .replace('{negativePrompt}', negativePrompt);
+  
+  // 5. Call GPT-4o-mini
+  try {
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: prompt },
+        { role: 'user', content: `Create ${input.pageCount} coloring pages for: "${sanitizedIdea}"` }
+      ],
+      response_format: { type: 'json_object' },
+      temperature: 0.7,
+    });
+    
+    const content = response.choices[0].message.content;
+    if (!content) return { success: false, error: 'No response' };
+    
+    const parsed = JSON.parse(content);
+    return { success: true, pages: parsed.pages };
+    
+  } catch (error) {
+    console.error('Planner error:', error);
+    return { success: false, error: 'Failed to generate pages' };
+  }
+}
 
-  const response = await openai.chat.completions.create({
-    model: 'gpt-4o-mini',
-    messages: [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: userIdea }
-    ],
-    response_format: { type: 'json_object' },
-    temperature: 0.7,
-  });
-
-  const result = JSON.parse(response.choices[0].message.content!);
-  return result.pages;
+function buildNegativePrompt(audience: Audience): string {
+  const base = [
+    'shading', 'gradient', 'gray', 'color', 'photorealistic', '3D', 'shadow',
+    'watermark', 'signature', 'text', 'broken lines', 'crosshatching', 'blurry'
+  ];
+  const audienceNegatives = FORBIDDEN_BY_AUDIENCE[audience].slice(0, 10);
+  return [...new Set([...base, ...audienceNegatives])].join(', ');
 }

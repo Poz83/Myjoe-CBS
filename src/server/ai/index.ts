@@ -1,8 +1,8 @@
 export { planAndCompile } from './planner-compiler';
-export type { CompiledPage } from './planner-compiler';
+export type { CompiledPage, PlannerResult } from './planner-compiler';
 
 export { generateImage } from './image-generator';
-export { cleanupImage, TRIM_SIZES } from './cleanup';
+export { cleanupImage, createThumbnail, TRIM_SIZES } from './cleanup';
 export type { TrimSize } from './cleanup';
 
 export { qualityCheck } from './quality-gate';
