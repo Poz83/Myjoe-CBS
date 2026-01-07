@@ -87,6 +87,48 @@ export async function createPortalSession(customerId: string): Promise<string> {
     customer: customerId,
     return_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/billing`,
   });
-  
+
   return session.url;
+}
+
+// Pack price IDs from environment
+const PACK_PRICES: Record<string, string> = {
+  splash: process.env.STRIPE_PRICE_SPLASH || '',
+  bucket: process.env.STRIPE_PRICE_BUCKET || '',
+  barrel: process.env.STRIPE_PRICE_BARREL || '',
+};
+
+export type PackId = 'splash' | 'bucket' | 'barrel';
+
+export async function createPackCheckout(
+  userId: string,
+  email: string,
+  packId: PackId
+): Promise<string> {
+  const { BLOT_PACKS } = await import('@/lib/constants');
+  const pack = BLOT_PACKS[packId];
+  const priceId = PACK_PRICES[packId];
+
+  if (!priceId) {
+    throw new Error(`Pack price ID not found for ${packId}. Set STRIPE_PRICE_${packId.toUpperCase()} in .env.local`);
+  }
+
+  const session = await stripe.checkout.sessions.create({
+    mode: 'payment',
+    customer_email: email,
+    line_items: [{
+      price: priceId,
+      quantity: 1,
+    }],
+    metadata: {
+      userId,
+      packId,
+      blots: String(pack.blots),
+      type: 'blot_pack',
+    },
+    success_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/billing?success=pack&blots=${pack.blots}`,
+    cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/billing?canceled=true`,
+  });
+
+  return session.url!;
 }

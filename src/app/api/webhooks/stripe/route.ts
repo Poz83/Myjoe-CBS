@@ -8,6 +8,7 @@ import {
   sendPaymentFailedEmail,
   sendSubscriptionCancelledEmail,
 } from '@/server/email';
+import { addBlots } from '@/server/billing/blots';
 import Stripe from 'stripe';
 
 function getNextResetDate(): string {
@@ -58,11 +59,34 @@ export async function POST(request: NextRequest) {
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
-        const userId = session.metadata?.userId;
-        const plan = session.metadata?.plan as string;
+        const metadata = session.metadata || {};
+        const userId = metadata.userId;
 
-        if (!userId || !plan) {
-          console.error('Missing userId or plan in checkout session', { userId, plan });
+        if (!userId) {
+          console.error('Missing userId in checkout session metadata');
+          break;
+        }
+
+        // Handle blot pack purchase (one-time payment)
+        if (metadata.type === 'blot_pack') {
+          const blots = parseInt(metadata.blots, 10);
+          const packId = metadata.packId;
+
+          if (isNaN(blots) || blots <= 0) {
+            console.error('Invalid blots amount in pack purchase', { blots: metadata.blots });
+            break;
+          }
+
+          await addBlots(userId, blots, `Pack purchase: ${packId}`);
+          console.log(`Added ${blots} blots to user ${userId} from pack purchase ${packId}`);
+          break;
+        }
+
+        // Handle subscription purchase
+        const plan = metadata.plan as string;
+
+        if (!plan) {
+          console.error('Missing plan in checkout session', { userId });
           break;
         }
 
