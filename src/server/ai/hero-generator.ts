@@ -1,11 +1,9 @@
-import OpenAI from 'openai';
+import { getOpenAIClient } from './openai-client';
 import { generateWithFlux, downloadImage } from './flux-generator';
 import { cleanupImage } from './cleanup';
 import { checkContentSafety } from './content-safety';
 import { FLUX_TRIGGERS, LINE_WEIGHT_PROMPTS, AUDIENCE_DERIVATIONS } from '@/lib/constants';
 import type { Audience } from '@/lib/constants';
-
-const openai = new OpenAI();
 
 interface HeroInput {
   name: string;
@@ -32,7 +30,7 @@ export async function compileHeroPrompt(input: HeroInput): Promise<{
   const linePrompt = LINE_WEIGHT_PROMPTS[rules.lineWeight];
 
   // Use GPT-4o-mini to expand description
-  const response = await openai.chat.completions.create({
+  const response = await getOpenAIClient().chat.completions.create({
     model: 'gpt-4o-mini',
     messages: [
       {

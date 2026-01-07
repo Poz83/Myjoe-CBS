@@ -1,4 +1,4 @@
-import { openai } from './openai-client';
+import { getOpenAIClient } from './openai-client';
 
 interface GenerateOptions {
   prompt: string;
@@ -94,7 +94,7 @@ AVOID: ${negativePrompt}`;
           throw new Error('Invalid reference image buffer');
         }
         
-        const response = await openai.images.edit({
+        const response = await getOpenAIClient().images.edit({
           model: 'dall-e-2', // Note: dall-e-2 is used for edit capability (dall-e-3 doesn't support edits)
           image: referenceImage as any, // Convert Buffer to File-like object
           prompt: `Create a new coloring book page in the exact same style as this reference. ${fullPrompt}`,
@@ -120,7 +120,7 @@ AVOID: ${negativePrompt}`;
         dalle3Size = '1024x1024';
       }
       
-      const response = await openai.images.generate({
+      const response = await getOpenAIClient().images.generate({
         model: 'dall-e-3',
         prompt: fullPrompt,
         n: 1,

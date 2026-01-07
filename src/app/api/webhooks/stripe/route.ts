@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { headers } from 'next/headers';
-import { stripe, PLAN_BLOTS, PLAN_STORAGE } from '@/server/billing/stripe';
+import { stripe } from '@/server/billing/stripe';
 import { createClient } from '@/lib/supabase/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
+import { TIERS, BLOT_PACKS } from '@/lib/constants';
 import {
   sendSubscriptionWelcomeEmail,
   sendPaymentFailedEmail,
   sendSubscriptionCancelledEmail,
 } from '@/server/email';
-import { addBlots } from '@/server/billing/blots';
 import Stripe from 'stripe';
 
 function getNextResetDate(): string {
@@ -17,40 +17,33 @@ function getNextResetDate(): string {
   return next.toISOString();
 }
 
+function getStorageForTier(tier: string): number {
+  if (tier === 'studio') return TIERS.studio.storageGb * 1024 * 1024 * 1024;
+  if (tier === 'creator') return TIERS.creator.storageGb * 1024 * 1024 * 1024;
+  return TIERS.free.storageGb * 1024 * 1024 * 1024;
+}
+
 export async function POST(request: NextRequest) {
   const body = await request.text();
   const headersList = await headers();
   const signature = headersList.get('stripe-signature');
 
   if (!signature) {
-    return NextResponse.json(
-      { error: 'No signature' },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: 'No signature' }, { status: 400 });
   }
 
   if (!process.env.STRIPE_WEBHOOK_SECRET) {
     console.error('STRIPE_WEBHOOK_SECRET is not set');
-    return NextResponse.json(
-      { error: 'Webhook secret not configured' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Webhook secret not configured' }, { status: 500 });
   }
 
   let event: Stripe.Event;
 
   try {
-    event = stripe.webhooks.constructEvent(
-      body,
-      signature,
-      process.env.STRIPE_WEBHOOK_SECRET
-    );
+    event = stripe.webhooks.constructEvent(body, signature, process.env.STRIPE_WEBHOOK_SECRET);
   } catch (err) {
     console.error('Webhook signature verification failed:', err);
-    return NextResponse.json(
-      { error: 'Invalid signature' },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
   }
 
   const supabase = await createClient();
@@ -70,79 +63,81 @@ export async function POST(request: NextRequest) {
         // Handle blot pack purchase (one-time payment)
         if (metadata.type === 'blot_pack') {
           const blots = parseInt(metadata.blots, 10);
-          const packId = metadata.packId;
+          const packId = metadata.packId as keyof typeof BLOT_PACKS;
 
           if (isNaN(blots) || blots <= 0) {
             console.error('Invalid blots amount in pack purchase', { blots: metadata.blots });
             break;
           }
 
-          await addBlots(userId, blots, `Pack purchase: ${packId}`);
-          console.log(`Added ${blots} blots to user ${userId} from pack purchase ${packId}`);
+          // Add blots to pack_blots pool and record transaction
+          await supabaseAdmin.rpc('add_pack_blots', {
+            user_id: userId,
+            amount: blots,
+            p_pack_id: packId,
+            session_id: session.id,
+          });
+
+          console.log(`Added ${blots} pack blots to user ${userId} from ${packId}`);
           break;
         }
 
         // Handle subscription purchase
-        const plan = metadata.plan as string;
+        const tier = metadata.tier as string;
+        const blots = parseInt(metadata.blots, 10);
 
-        if (!plan) {
-          console.error('Missing plan in checkout session', { userId });
+        if (!tier || !['creator', 'studio'].includes(tier)) {
+          console.error('Invalid tier in checkout session', { tier });
           break;
         }
 
-        if (!PLAN_BLOTS[plan] || !PLAN_STORAGE[plan]) {
-          console.error('Invalid plan in checkout session', { plan });
-          break;
-        }
+        const storageBytes = getStorageForTier(tier);
 
         const { error } = await supabase
           .from('profiles')
           .update({
-            plan,
-            blots: PLAN_BLOTS[plan],
-            storage_limit_bytes: PLAN_STORAGE[plan],
+            plan: tier,
+            plan_blots: blots,
+            subscription_blots: blots,
+            storage_limit_bytes: storageBytes,
             stripe_subscription_id: session.subscription as string,
             blots_reset_at: getNextResetDate(),
+            payment_failed_at: null,
           })
           .eq('owner_id', userId);
 
         if (error) {
           console.error('Error updating profile after checkout:', error);
         } else {
-          // Send welcome email
           const email = session.customer_email;
-          if (email && ['starter', 'creator', 'pro'].includes(plan)) {
+          if (email) {
             try {
-              await sendSubscriptionWelcomeEmail(email, plan as 'starter' | 'creator' | 'pro');
+              await sendSubscriptionWelcomeEmail(email, tier as 'creator' | 'studio');
             } catch (emailError) {
               console.error('Error sending welcome email:', emailError);
-              // Don't fail the webhook if email fails
             }
           }
         }
-
         break;
       }
 
       case 'invoice.payment_succeeded': {
         const invoice = event.data.object as Stripe.Invoice;
-        // Invoice.subscription can be a string ID or expanded Subscription object
-        const subscriptionId = typeof (invoice as any).subscription === 'string' 
-          ? (invoice as any).subscription 
+        const subscriptionId = typeof (invoice as any).subscription === 'string'
+          ? (invoice as any).subscription
           : (invoice as any).subscription?.id || null;
 
-        if (!subscriptionId) {
-          console.log('No subscription ID in invoice');
-          break;
-        }
+        if (!subscriptionId) break;
+
+        // Skip first invoice (handled by checkout.session.completed)
+        if (invoice.billing_reason === 'subscription_create') break;
 
         const subscription = await stripe.subscriptions.retrieve(subscriptionId);
         const customerId = subscription.customer as string;
 
-        // Get user by customer ID
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
-          .select('owner_id, plan')
+          .select('owner_id, plan, plan_blots')
           .eq('stripe_customer_id', customerId)
           .single();
 
@@ -151,24 +146,14 @@ export async function POST(request: NextRequest) {
           break;
         }
 
-        const plan = profile.plan || 'free';
-        if (plan === 'free' || !PLAN_BLOTS[plan]) {
-          console.log('Profile is free tier or invalid plan, skipping reset');
-          break;
-        }
+        if (profile.plan === 'free' || !profile.plan_blots) break;
 
-        // RESET blots to plan amount (not add)
-        const { error: updateError } = await supabase
-          .from('profiles')
-          .update({
-            blots: PLAN_BLOTS[plan],
-            blots_reset_at: getNextResetDate(),
-          })
-          .eq('owner_id', profile.owner_id);
-
-        if (updateError) {
-          console.error('Error resetting blots:', updateError);
-        }
+        // Reset subscription blots to plan amount
+        await supabaseAdmin.rpc('reset_subscription_blots', {
+          user_id: profile.owner_id,
+          new_amount: profile.plan_blots,
+          invoice_id: invoice.id,
+        });
 
         break;
       }
@@ -177,18 +162,20 @@ export async function POST(request: NextRequest) {
         const invoice = event.data.object as Stripe.Invoice;
         const customerId = invoice.customer as string;
 
-        const { data: profile, error: profileError } = await supabase
+        const { data: profile } = await supabase
           .from('profiles')
           .select('owner_id')
           .eq('stripe_customer_id', customerId)
           .single();
 
-        if (profileError || !profile) {
-          console.error('Error finding profile for failed payment:', profileError);
-          break;
-        }
+        if (!profile) break;
 
-        // Get user email
+        // Mark payment failed
+        await supabase
+          .from('profiles')
+          .update({ payment_failed_at: new Date().toISOString() })
+          .eq('owner_id', profile.owner_id);
+
         const { data: { user } } = await supabaseAdmin.auth.admin.getUserById(profile.owner_id);
         const email = user?.email || invoice.customer_email;
 
@@ -199,7 +186,6 @@ export async function POST(request: NextRequest) {
             console.error('Error sending payment failed email:', emailError);
           }
         }
-
         break;
       }
 
@@ -207,43 +193,36 @@ export async function POST(request: NextRequest) {
         const subscription = event.data.object as Stripe.Subscription;
         const customerId = subscription.customer as string;
 
-        const { data: profile, error: profileError } = await supabase
+        const { data: profile } = await supabase
           .from('profiles')
           .select('owner_id')
           .eq('stripe_customer_id', customerId)
           .single();
 
-        if (profileError || !profile) {
-          console.error('Error finding profile for deleted subscription:', profileError);
-          break;
-        }
+        if (!profile) break;
 
-        // Downgrade to free
+        // Downgrade to free (preserve pack_blots)
         const { error: updateError } = await supabase
           .from('profiles')
           .update({
             plan: 'free',
-            blots: 50,
-            storage_limit_bytes: 1 * 1024 * 1024 * 1024, // 1 GB
+            plan_blots: TIERS.free.blots,
+            subscription_blots: TIERS.free.blots,
+            storage_limit_bytes: getStorageForTier('free'),
             stripe_subscription_id: null,
           })
           .eq('owner_id', profile.owner_id);
 
-        if (updateError) {
-          console.error('Error downgrading profile:', updateError);
-        } else {
-          // Send cancellation email
+        if (!updateError) {
           const { data: { user } } = await supabaseAdmin.auth.admin.getUserById(profile.owner_id);
-          const email = user?.email;
-          if (email) {
+          if (user?.email) {
             try {
-              await sendSubscriptionCancelledEmail(email);
+              await sendSubscriptionCancelledEmail(user.email);
             } catch (emailError) {
               console.error('Error sending cancellation email:', emailError);
             }
           }
         }
-
         break;
       }
 
@@ -252,10 +231,7 @@ export async function POST(request: NextRequest) {
     }
   } catch (error) {
     console.error('Error processing webhook:', error);
-    return NextResponse.json(
-      { error: 'Webhook processing failed' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Webhook processing failed' }, { status: 500 });
   }
 
   return NextResponse.json({ received: true });

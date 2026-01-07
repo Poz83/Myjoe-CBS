@@ -1,9 +1,7 @@
-import OpenAI from 'openai';
+import { getOpenAIClient } from './openai-client';
 import { AUDIENCE_DERIVATIONS } from '@/lib/constants';
 import type { Audience, SafetyLevel } from '@/types/domain';
 import { FORBIDDEN_BY_AUDIENCE, SAFE_SUGGESTIONS } from '@/lib/constants/forbidden-content';
-
-const openai = new OpenAI();
 
 export interface SafetyResult {
   safe: boolean;
@@ -65,7 +63,7 @@ export async function checkContentSafety(
   
   // Layer 2: OpenAI Moderation API (free)
   try {
-    const moderation = await openai.moderations.create({ input });
+    const moderation = await getOpenAIClient().moderations.create({ input });
     const result = moderation.results[0];
     const thresholds = THRESHOLDS[rules.safetyLevel];
     

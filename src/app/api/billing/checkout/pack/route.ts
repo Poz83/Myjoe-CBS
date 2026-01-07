@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createPackCheckout, type PackId } from '@/server/billing/stripe';
+import { createPackCheckout } from '@/server/billing/stripe';
 import { createClient } from '@/lib/supabase/server';
+import { BLOT_PACKS, type PackId } from '@/lib/constants';
 
-const VALID_PACKS: PackId[] = ['splash', 'bucket', 'barrel'];
+const VALID_PACKS = Object.keys(BLOT_PACKS) as PackId[];
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,24 +18,14 @@ export async function POST(request: NextRequest) {
     const { packId } = body;
 
     if (!packId) {
-      return NextResponse.json(
-        { error: 'Pack ID is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Pack ID is required' }, { status: 400 });
     }
 
     if (!VALID_PACKS.includes(packId)) {
-      return NextResponse.json(
-        { error: 'Invalid pack ID. Must be splash, bucket, or barrel.' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: `Invalid pack ID. Must be one of: ${VALID_PACKS.join(', ')}` }, { status: 400 });
     }
 
-    const checkoutUrl = await createPackCheckout(
-      user.id,
-      user.email!,
-      packId as PackId
-    );
+    const checkoutUrl = await createPackCheckout(user.id, user.email!, packId);
 
     return NextResponse.json({ url: checkoutUrl });
   } catch (error) {

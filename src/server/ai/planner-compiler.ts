@@ -1,16 +1,14 @@
-import OpenAI from 'openai';
+import { getOpenAIClient } from './openai-client';
 import { checkContentSafety } from './content-safety';
 import { sanitizePrompt, validateIdea } from './sanitize';
-import { 
-  AUDIENCE_DERIVATIONS, 
-  FLUX_TRIGGERS, 
-  LINE_WEIGHT_PROMPTS, 
+import {
+  AUDIENCE_DERIVATIONS,
+  FLUX_TRIGGERS,
+  LINE_WEIGHT_PROMPTS,
   COMPLEXITY_PROMPTS,
 } from '@/lib/constants';
 import { FORBIDDEN_BY_AUDIENCE } from '@/lib/constants/forbidden-content';
 import type { Audience, StylePreset, FluxModel } from '@/lib/constants';
-
-const openai = new OpenAI();
 
 // Full system prompt - see 05_AI_PIPELINE.md for complete version
 const SYSTEM_PROMPT = `You are a professional coloring book page planner for KDP publishers.
@@ -118,7 +116,7 @@ export async function planAndCompile(input: PlannerInput): Promise<PlannerResult
   
   // 5. Call GPT-4o-mini
   try {
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAIClient().chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
         { role: 'system', content: prompt },

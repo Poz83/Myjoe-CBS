@@ -1,13 +1,19 @@
+import * as Sentry from '@sentry/nextjs';
 import type { Metadata } from "next";
 import "./globals.css";
 import { PostHogProvider } from "../components/PostHogProvider";
 import { QueryProvider } from "../providers/query-provider";
 import { Toaster } from "../components/ui/toast";
 
-export const metadata: Metadata = {
-  title: "Myjoe - AI Coloring Book Studio",
-  description: "AI coloring book studio for KDP publishers",
-};
+export function generateMetadata(): Metadata {
+  return {
+    title: "Myjoe - AI Coloring Book Studio",
+    description: "AI coloring book studio for KDP publishers",
+    other: {
+      ...Sentry.getTraceData()
+    }
+  };
+}
 
 export default function RootLayout({
   children,

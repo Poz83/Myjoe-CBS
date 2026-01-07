@@ -7,7 +7,7 @@ import { GetObjectCommand } from '@aws-sdk/client-s3';
 import { r2Client, R2_BUCKET_NAME } from '@/lib/r2';
 import { getProject, updateProject } from '@/server/db/projects';
 import { uploadFile, deleteFiles, generateR2Key, getSignedDownloadUrl } from '@/server/storage/r2';
-import { openai } from '@/server/ai/openai-client';
+import { getOpenAIClient } from '@/server/ai/openai-client';
 
 const selectSchema = z.object({
   selectedId: z.string().min(1).max(10),
@@ -157,7 +157,7 @@ async function streamToBuffer(stream: any): Promise<Buffer> {
  */
 async function generateStyleDescription(imageUrl: string): Promise<string> {
   try {
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAIClient().chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
         {

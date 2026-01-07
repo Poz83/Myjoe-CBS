@@ -12,19 +12,25 @@ export async function GET(request: NextRequest) {
     
     const { data: profile, error } = await supabase
       .from('profiles')
-      .select('blots, plan, blots_reset_at, storage_used_bytes, storage_limit_bytes')
+      .select('subscription_blots, pack_blots, plan_blots, plan, blots_reset_at, storage_used_bytes, storage_limit_bytes')
       .eq('owner_id', user.id)
       .single();
-    
+
     if (error || !profile) {
       return NextResponse.json(
         { error: 'Profile not found' },
         { status: 404 }
       );
     }
-    
+
+    const subscription = profile.subscription_blots ?? 0;
+    const pack = profile.pack_blots ?? 0;
+
     return NextResponse.json({
-      blots: profile.blots,
+      subscription,
+      pack,
+      total: subscription + pack,
+      planBlots: profile.plan_blots,
       plan: profile.plan,
       resetsAt: profile.blots_reset_at,
       storageUsed: profile.storage_used_bytes,

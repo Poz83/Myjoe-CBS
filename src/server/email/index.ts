@@ -6,7 +6,7 @@ import { SubscriptionCancelledEmail } from './templates/subscription-cancelled';
 import { BlotsLowEmail } from './templates/blots-low';
 import { BlotsDepletedEmail } from './templates/blots-depleted';
 
-export async function sendSubscriptionWelcomeEmail(email: string, plan: 'starter' | 'creator' | 'pro') {
+export async function sendSubscriptionWelcomeEmail(email: string, plan: 'creator' | 'studio') {
   return sendEmail({
     to: email,
     subject: `Welcome to Myjoe ${plan.charAt(0).toUpperCase() + plan.slice(1)} Plan! 🎨`,

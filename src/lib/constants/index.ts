@@ -20,20 +20,97 @@ export const BLOT_COSTS = {
   export: 0,                // Alias for exportPDF
 } as const;
 
-// === PLAN LIMITS (REVISED) ===
-export const PLAN_LIMITS = {
-  free: { blots: 50, storageBytes: 1073741824, priceCents: 0 },
-  starter: { blots: 250, storageBytes: 5368709120, priceCents: 900 },
-  creator: { blots: 800, storageBytes: 16106127360, priceCents: 2400 },
-  pro: { blots: 2500, storageBytes: 53687091200, priceCents: 5900 },
+// === BLOTS PER UNIT (for Stripe unit-based pricing) ===
+export const BLOTS_PER_UNIT = 100;
+
+// === TIER CONFIGURATION ===
+export const TIERS = {
+  free: {
+    name: 'Free',
+    blots: 50,
+    storageGb: 25,
+    maxProjects: 3,
+    commercial: false,
+    prioritySupport: false,
+  },
+  creator: {
+    name: 'Creator',
+    storageGb: 25,
+    maxProjects: null,
+    commercial: true,
+    prioritySupport: false,
+    unitRate: { monthly: 3.00, yearly: 2.50 },
+    blotOptions: [300, 500, 800] as const,
+  },
+  studio: {
+    name: 'Studio',
+    storageGb: 50,
+    maxProjects: null,
+    commercial: true,
+    prioritySupport: true,
+    unitRate: { monthly: 2.00, yearly: 1.75 },
+    blotOptions: [2500, 4000, 5000] as const,
+  },
 } as const;
 
-// === BLOT PACKS (REVISED) ===
-export const BLOT_PACKS = {
-  splash: { blots: 100, priceCents: 400 },   // $4
-  bucket: { blots: 350, priceCents: 1200 },  // $12
-  barrel: { blots: 1200, priceCents: 3500 }, // $35
+// === PLAN TIERS (for UI selectors) ===
+export const PLAN_TIERS = {
+  creator: [
+    { blots: 300, monthly: 9, yearly: 90, popular: false },
+    { blots: 500, monthly: 15, yearly: 150, popular: true },
+    { blots: 800, monthly: 24, yearly: 240, popular: false },
+  ],
+  studio: [
+    { blots: 2500, monthly: 50, yearly: 525, popular: false },
+    { blots: 4000, monthly: 80, yearly: 840, popular: true },
+    { blots: 5000, monthly: 100, yearly: 1050, popular: false },
+  ],
 } as const;
+
+// === PLAN LIMITS (for storage enforcement) ===
+export const PLAN_LIMITS = {
+  free: { blots: 50, storageBytes: 26843545600, priceCents: 0 },       // 25 GB
+  creator: { blots: 800, storageBytes: 26843545600, priceCents: 2400 }, // 25 GB
+  studio: { blots: 5000, storageBytes: 53687091200, priceCents: 10000 }, // 50 GB
+} as const;
+
+// === BLOT PACKS (from docs: only 2 packs) ===
+export const BLOT_PACKS = {
+  topup: { name: 'Top-Up', blots: 100, priceCents: 500, emoji: '🎨' },
+  boost: { name: 'Boost', blots: 500, priceCents: 2000, emoji: '🚀', popular: true },
+} as const;
+
+export type PackId = keyof typeof BLOT_PACKS;
+export type TierName = keyof typeof PLAN_TIERS;
+export type Tier = keyof typeof TIERS;
+export type Interval = 'monthly' | 'yearly';
+
+// === STRIPE PRICE IDS (from env) ===
+export const STRIPE_PRICES = {
+  creator: {
+    monthly: process.env.STRIPE_PRICE_CREATOR_MONTHLY || '',
+    yearly: process.env.STRIPE_PRICE_CREATOR_ANNUAL || '',
+  },
+  studio: {
+    monthly: process.env.STRIPE_PRICE_STUDIO_MONTHLY || '',
+    yearly: process.env.STRIPE_PRICE_STUDIO_ANNUAL || '',
+  },
+  packs: {
+    topup: process.env.STRIPE_PRICE_TOPUP || '',
+    boost: process.env.STRIPE_PRICE_BOOST || '',
+  },
+} as const;
+
+// === HELPER FUNCTIONS ===
+export function calculatePrice(tier: 'creator' | 'studio', blots: number, interval: Interval): number {
+  const units = blots / BLOTS_PER_UNIT;
+  const rate = TIERS[tier].unitRate[interval];
+  return units * rate;
+}
+
+export function blotsToUnits(blots: number): number {
+  return blots / BLOTS_PER_UNIT;
+}
 
 // === TRIM SIZES (300 DPI) ===
 export const TRIM_SIZES: Record<TrimSize, { width: number; height: number; aspectRatio: string }> = {

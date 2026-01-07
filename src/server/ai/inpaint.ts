@@ -1,4 +1,4 @@
-import { openai } from './openai-client';
+import { getOpenAIClient } from './openai-client';
 
 interface InpaintOptions {
   originalImage: Buffer;
@@ -15,7 +15,7 @@ Coloring book style, black outlines on white, match the existing line weight and
 Style context: ${styleContext}
 AVOID: shading, gradient, gray, different style, broken lines`;
 
-  const response = await openai.images.edit({
+  const response = await getOpenAIClient().images.edit({
     model: 'dall-e-2', // DALL-E 2 supports edit with mask
     image: originalImage as any, // Convert Buffer to File-like object
     mask: maskImage as any,

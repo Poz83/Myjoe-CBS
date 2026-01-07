@@ -1,47 +1,46 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createCheckoutSession } from '@/server/billing/stripe';
+import { createSubscriptionCheckout } from '@/server/billing/stripe';
 import { createClient } from '@/lib/supabase/server';
+import { TIERS } from '@/lib/constants';
 
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
-    
+
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    
+
     const body = await request.json();
-    const { plan, interval } = body;
-    
-    if (!plan || !interval) {
-      return NextResponse.json(
-        { error: 'Plan and interval are required' },
-        { status: 400 }
-      );
+    const { tier, blots, interval } = body;
+
+    if (!tier || !blots || !interval) {
+      return NextResponse.json({ error: 'tier, blots, and interval are required' }, { status: 400 });
     }
-    
-    if (!['starter', 'creator', 'pro'].includes(plan)) {
-      return NextResponse.json(
-        { error: 'Invalid plan' },
-        { status: 400 }
-      );
+
+    if (!['creator', 'studio'].includes(tier)) {
+      return NextResponse.json({ error: 'Invalid tier. Must be creator or studio.' }, { status: 400 });
     }
-    
+
     if (!['monthly', 'yearly'].includes(interval)) {
-      return NextResponse.json(
-        { error: 'Invalid interval' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Invalid interval. Must be monthly or yearly.' }, { status: 400 });
     }
-    
-    const checkoutUrl = await createCheckoutSession({
-      userId: user.id,
-      email: user.email!,
-      plan: plan as 'starter' | 'creator' | 'pro',
-      interval: interval as 'monthly' | 'yearly',
-    });
-    
+
+    const tierConfig = TIERS[tier as 'creator' | 'studio'];
+    const validBlots = tierConfig.blotOptions as readonly number[];
+    if (!validBlots.includes(blots)) {
+      return NextResponse.json({ error: `Invalid blots for ${tier}. Must be one of: ${tierConfig.blotOptions.join(', ')}` }, { status: 400 });
+    }
+
+    const checkoutUrl = await createSubscriptionCheckout(
+      user.id,
+      user.email!,
+      tier as 'creator' | 'studio',
+      blots,
+      interval as 'monthly' | 'yearly'
+    );
+
     return NextResponse.json({ url: checkoutUrl });
   } catch (error) {
     console.error('Checkout error:', error);

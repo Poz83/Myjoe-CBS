@@ -6,129 +6,120 @@ if (!process.env.STRIPE_SECRET_KEY) {
 }
 
 export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2024-12-18.acacia' as any, // Using 'as any' to allow this version until SDK is updated
+  apiVersion: '2024-12-18.acacia' as any,
   typescript: true,
 });
 
-// Plan to Blots mapping
-export const PLAN_BLOTS: Record<string, number> = {
-  starter: 300,
-  creator: 900,
-  pro: 2800,
-};
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
-// Plan to Storage mapping (in bytes)
-export const PLAN_STORAGE: Record<string, number> = {
-  starter: 5 * 1024 * 1024 * 1024,    // 5 GB
-  creator: 15 * 1024 * 1024 * 1024,   // 15 GB
-  pro: 50 * 1024 * 1024 * 1024,       // 50 GB
-};
-
-export interface CheckoutParams {
-  userId: string;
-  email: string;
-  plan: 'starter' | 'creator' | 'pro';
-  interval: 'monthly' | 'yearly';
+// Import constants dynamically to avoid build-time env var access
+async function getStripeConfig() {
+  const { STRIPE_PRICES, BLOT_PACKS, BLOTS_PER_UNIT } = await import('@/lib/constants');
+  return { STRIPE_PRICES, BLOT_PACKS, BLOTS_PER_UNIT };
 }
 
-export function getPriceId(plan: string, interval: string): string {
-  const key = `STRIPE_PRICE_${plan.toUpperCase()}_${interval.toUpperCase()}`;
-  const priceId = process.env[key];
+export async function createSubscriptionCheckout(
+  userId: string,
+  email: string,
+  tier: 'creator' | 'studio',
+  blots: number,
+  interval: 'monthly' | 'yearly'
+): Promise<string> {
+  const { STRIPE_PRICES, BLOTS_PER_UNIT } = await getStripeConfig();
+  const customerId = await getOrCreateCustomer(userId, email);
+  const priceId = STRIPE_PRICES[tier][interval];
+  const quantity = blots / BLOTS_PER_UNIT;
+
   if (!priceId) {
-    throw new Error(`Price ID not found for ${plan} ${interval}. Set ${key} in .env.local`);
+    throw new Error(`Price ID not found for ${tier} ${interval}. Check env vars.`);
   }
-  return priceId;
+
+  const session = await stripe.checkout.sessions.create({
+    mode: 'subscription',
+    customer: customerId,
+    line_items: [{ price: priceId, quantity }],
+    metadata: { userId, tier, blots: blots.toString(), type: 'subscription' },
+    subscription_data: { metadata: { userId, tier, blots: blots.toString() } },
+    success_url: `${APP_URL}/studio/settings?tab=billing&success=subscription`,
+    cancel_url: `${APP_URL}/studio/settings?tab=billing&canceled=true`,
+    allow_promotion_codes: true,
+  });
+
+  return session.url!;
 }
 
-export async function createCheckoutSession(params: CheckoutParams): Promise<string> {
-  const { userId, email, plan, interval } = params;
-  
-  const priceId = getPriceId(plan, interval);
-  
-  // Get or create Stripe customer
-  const supabase = await createClient();
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('stripe_customer_id')
-    .eq('owner_id', userId)
-    .single();
-  
-  let customerId = profile?.stripe_customer_id;
-  
-  if (!customerId) {
-    const customer = await stripe.customers.create({
-      email,
-      metadata: { userId },
-    });
-    customerId = customer.id;
-    
-    // Save customer ID to profile
-    await supabase
-      .from('profiles')
-      .update({ stripe_customer_id: customerId })
-      .eq('owner_id', userId);
+export async function createPackCheckout(
+  userId: string,
+  email: string,
+  packId: string
+): Promise<string> {
+  const { STRIPE_PRICES, BLOT_PACKS } = await getStripeConfig();
+  const pack = BLOT_PACKS[packId as keyof typeof BLOT_PACKS];
+  const priceId = STRIPE_PRICES.packs[packId as keyof typeof STRIPE_PRICES.packs];
+
+  if (!pack || !priceId) {
+    throw new Error(`Pack not found: ${packId}. Valid packs: topup, boost`);
   }
-  
+
   const session = await stripe.checkout.sessions.create({
-    customer: customerId,
-    mode: 'subscription',
-    payment_method_types: ['card'],
+    mode: 'payment',
+    customer_email: email,
     line_items: [{ price: priceId, quantity: 1 }],
-    success_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/billing?success=true`,
-    cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/billing?canceled=true`,
-    metadata: { userId, plan },
+    metadata: {
+      userId,
+      packId,
+      blots: pack.blots.toString(),
+      type: 'blot_pack',
+    },
+    success_url: `${APP_URL}/studio/settings?tab=billing&success=pack&blots=${pack.blots}`,
+    cancel_url: `${APP_URL}/studio/settings?tab=billing&canceled=true`,
   });
-  
+
   return session.url!;
 }
 
 export async function createPortalSession(customerId: string): Promise<string> {
   const session = await stripe.billingPortal.sessions.create({
     customer: customerId,
-    return_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/billing`,
+    return_url: `${APP_URL}/studio/settings?tab=billing`,
   });
-
   return session.url;
 }
 
-// Pack price IDs from environment
-const PACK_PRICES: Record<string, string> = {
-  splash: process.env.STRIPE_PRICE_SPLASH || '',
-  bucket: process.env.STRIPE_PRICE_BUCKET || '',
-  barrel: process.env.STRIPE_PRICE_BARREL || '',
-};
+async function getOrCreateCustomer(userId: string, email: string): Promise<string> {
+  const supabase = await createClient();
 
-export type PackId = 'splash' | 'bucket' | 'barrel';
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('stripe_customer_id')
+    .eq('owner_id', userId)
+    .single();
 
-export async function createPackCheckout(
-  userId: string,
-  email: string,
-  packId: PackId
-): Promise<string> {
-  const { BLOT_PACKS } = await import('@/lib/constants');
-  const pack = BLOT_PACKS[packId];
-  const priceId = PACK_PRICES[packId];
-
-  if (!priceId) {
-    throw new Error(`Pack price ID not found for ${packId}. Set STRIPE_PRICE_${packId.toUpperCase()} in .env.local`);
+  if (profile?.stripe_customer_id) {
+    return profile.stripe_customer_id;
   }
 
-  const session = await stripe.checkout.sessions.create({
-    mode: 'payment',
-    customer_email: email,
-    line_items: [{
-      price: priceId,
-      quantity: 1,
-    }],
-    metadata: {
-      userId,
-      packId,
-      blots: String(pack.blots),
-      type: 'blot_pack',
-    },
-    success_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/billing?success=pack&blots=${pack.blots}`,
-    cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/billing?canceled=true`,
+  // Check if customer exists by email
+  const existing = await stripe.customers.list({ email, limit: 1 });
+  if (existing.data.length > 0) {
+    const customerId = existing.data[0].id;
+    await supabase
+      .from('profiles')
+      .update({ stripe_customer_id: customerId })
+      .eq('owner_id', userId);
+    return customerId;
+  }
+
+  // Create new customer
+  const customer = await stripe.customers.create({
+    email,
+    metadata: { userId },
   });
 
-  return session.url!;
+  await supabase
+    .from('profiles')
+    .update({ stripe_customer_id: customer.id })
+    .eq('owner_id', userId);
+
+  return customer.id;
 }

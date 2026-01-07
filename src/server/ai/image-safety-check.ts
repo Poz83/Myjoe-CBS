@@ -1,8 +1,6 @@
-import OpenAI from 'openai';
+import { getOpenAIClient } from './openai-client';
 import { AUDIENCE_DERIVATIONS } from '@/lib/constants';
 import type { Audience } from '@/types/domain';
-
-const openai = new OpenAI();
 
 interface ImageSafetyResult {
   safe: boolean;
@@ -26,7 +24,7 @@ export async function checkGeneratedImageSafety(
   const rules = AUDIENCE_DERIVATIONS[audience];
   
   try {
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAIClient().chat.completions.create({
       model: 'gpt-4o',
       messages: [
         {

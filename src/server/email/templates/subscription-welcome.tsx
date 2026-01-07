@@ -10,13 +10,12 @@ import {
 } from '@react-email/components';
 
 interface SubscriptionWelcomeEmailProps {
-  plan: 'starter' | 'creator' | 'pro';
+  plan: 'creator' | 'studio';
 }
 
 const PLAN_DETAILS = {
-  starter: { blots: 300, storage: '5 GB', price: '$12/month' },
-  creator: { blots: 900, storage: '15 GB', price: '$29/month' },
-  pro: { blots: 2800, storage: '50 GB', price: '$79/month' },
+  creator: { blots: '300-800', storage: '25 GB', price: 'from $9/month' },
+  studio: { blots: '2,500-5,000', storage: '50 GB', price: 'from $50/month' },
 };
 
 export function SubscriptionWelcomeEmail({ plan }: SubscriptionWelcomeEmailProps) {
@@ -35,7 +34,7 @@ export function SubscriptionWelcomeEmail({ plan }: SubscriptionWelcomeEmailProps
 
           <Section style={box}>
             <Text style={heading}>Your Plan Includes:</Text>
-            <Text style={detail}>🎨 <strong>{details.blots.toLocaleString()} Blots</strong> per month</Text>
+            <Text style={detail}>🎨 <strong>{details.blots} Blots</strong> per month</Text>
             <Text style={detail}>💾 <strong>{details.storage}</strong> storage</Text>
             <Text style={detail}>✅ <strong>Commercial license</strong> for KDP</Text>
           </Section>
