@@ -10,11 +10,13 @@ import { ProjectHeader } from '@/components/features/project/project-header';
 import { PageThumbnails } from '@/components/features/project/page-thumbnails';
 import { PagePreview } from '@/components/features/project/page-preview';
 import { PageInspector } from '@/components/features/project/page-inspector';
-import { 
-  StyleCalibrationModal, 
+import {
+  StyleCalibrationModal,
   CalibrationBanner,
-  StyleReadyBadge 
+  StyleReadyBadge
 } from '@/components/features/project/style-calibration';
+import { GenerationStart } from '@/components/features/project/generation-start';
+import { GenerationProgress } from '@/components/features/project/generation-progress';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -31,9 +33,18 @@ export default function ProjectEditorPage() {
   const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(false);
   const [rightPanelCollapsed, setRightPanelCollapsed] = useState(false);
   const [calibrationModalOpen, setCalibrationModalOpen] = useState(false);
+  const [activeJobId, setActiveJobId] = useState<string | null>(null);
 
   // Check if project needs calibration
   const needsCalibration = project && !project.style_anchor_key;
+
+  // Check if project needs generation (calibrated but no pages generated yet)
+  const needsGeneration = project &&
+    project.style_anchor_key &&
+    project.status === 'draft';
+
+  // Check if generation is in progress
+  const isGenerating = project?.status === 'generating' || !!activeJobId;
 
   // Auto-select first page when project loads
   useEffect(() => {
@@ -79,6 +90,25 @@ export default function ProjectEditorPage() {
   const handleCalibrationComplete = () => {
     setCalibrationModalOpen(false);
     // Refresh project data to get updated style_anchor_key
+    queryClient.invalidateQueries({ queryKey: ['projects', projectId] });
+  };
+
+  // Handle generation started
+  const handleGenerationStarted = (jobId: string) => {
+    setActiveJobId(jobId);
+  };
+
+  // Handle generation complete
+  const handleGenerationComplete = () => {
+    setActiveJobId(null);
+    // Refresh project data to get new pages
+    queryClient.invalidateQueries({ queryKey: ['projects', projectId] });
+  };
+
+  // Handle generation cancelled
+  const handleGenerationCancel = () => {
+    setActiveJobId(null);
+    // Refresh project data
     queryClient.invalidateQueries({ queryKey: ['projects', projectId] });
   };
 
@@ -157,23 +187,30 @@ export default function ProjectEditorPage() {
           />
         </div>
 
-        {/* Right Panel - Inspector */}
+        {/* Right Panel - Inspector or Generation Start */}
         <div className={cn('relative overflow-hidden', rightPanelCollapsed && 'w-0')}>
-          <PageInspector
-            page={selectedPage}
-            onRegenerate={() => {
-              // TODO: Implement regenerate
-              console.log('Regenerate page');
-            }}
-            onEdit={() => {
-              // TODO: Implement edit
-              console.log('Edit page');
-            }}
-            onSimplify={() => {
-              // TODO: Implement simplify
-              console.log('Simplify page');
-            }}
-          />
+          {needsGeneration ? (
+            <GenerationStart
+              project={project}
+              onStarted={handleGenerationStarted}
+            />
+          ) : (
+            <PageInspector
+              page={selectedPage}
+              onRegenerate={() => {
+                // TODO: Implement regenerate
+                console.log('Regenerate page');
+              }}
+              onEdit={() => {
+                // TODO: Implement edit
+                console.log('Edit page');
+              }}
+              onSimplify={() => {
+                // TODO: Implement simplify
+                console.log('Simplify page');
+              }}
+            />
+          )}
 
           {/* Collapse Toggle */}
           <button
@@ -197,6 +234,15 @@ export default function ProjectEditorPage() {
         blotBalance={profile?.blots || 0}
         onComplete={handleCalibrationComplete}
       />
+
+      {/* Generation Progress Overlay */}
+      {activeJobId && (
+        <GenerationProgress
+          jobId={activeJobId}
+          onComplete={handleGenerationComplete}
+          onCancel={handleGenerationCancel}
+        />
+      )}
     </div>
   );
 }
