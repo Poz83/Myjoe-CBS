@@ -1,15 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { signInWithGoogle, signInWithMagicLink } from '@/lib/supabase/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
-export default function LoginPage() {
+function LoginForm() {
   const searchParams = useSearchParams();
   const error = searchParams.get('error');
-  
+
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [magicLinkSent, setMagicLinkSent] = useState(false);
@@ -33,7 +33,7 @@ export default function LoginPage() {
 
   const handleMagicLinkSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!email) {
       setMagicLinkError('Please enter your email');
       return;
@@ -153,7 +153,7 @@ export default function LoginPage() {
               className="w-full"
             />
           </div>
-          
+
           {magicLinkError && (
             <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-md">
               <p className="text-red-400 text-sm">{magicLinkError}</p>
@@ -172,5 +172,29 @@ export default function LoginPage() {
         </form>
       )}
     </div>
+  );
+}
+
+function LoginFormSkeleton() {
+  return (
+    <div className="w-full max-w-md p-8 bg-zinc-900 rounded-lg border border-zinc-800">
+      <div className="text-center mb-8">
+        <h1 className="text-3xl font-bold text-white mb-2">Myjoe</h1>
+        <h2 className="text-2xl font-semibold text-white mb-2">Welcome to Myjoe</h2>
+        <p className="text-zinc-400">Create beautiful coloring books with AI</p>
+      </div>
+      <div className="animate-pulse space-y-4">
+        <div className="h-10 bg-zinc-800 rounded"></div>
+        <div className="h-10 bg-zinc-800 rounded"></div>
+      </div>
+    </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<LoginFormSkeleton />}>
+      <LoginForm />
+    </Suspense>
   );
 }
