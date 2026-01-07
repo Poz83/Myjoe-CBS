@@ -1,3 +1,4 @@
 export { processGenerationJob } from './process-generation';
 export { processHeroJob } from './process-hero';
-export { triggerGenerationJob, triggerHeroJob } from './trigger';
+export { processExportJob } from './process-export';
+export { triggerGenerationJob, triggerHeroJob, triggerExportJob } from './trigger';

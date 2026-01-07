@@ -11,13 +11,13 @@ export const BLOT_COSTS = {
   regeneratePage: 5,
   editPage: 5,
   coverGeneration: 6,
-  exportPDF: 2,
+  exportPDF: 0,             // Free export
   // Legacy aliases for backward compatibility
   generate: 5,              // Alias for generatePage
   edit: 5,                  // Alias for editPage
   calibration: 4,           // Alias for styleCalibration
   hero: 8,                  // Alias for heroReferenceSheet
-  export: 2,                // Alias for exportPDF
+  export: 0,                // Alias for exportPDF
 } as const;
 
 // === PLAN LIMITS (REVISED) ===

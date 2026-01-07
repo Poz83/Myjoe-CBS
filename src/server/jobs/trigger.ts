@@ -1,5 +1,6 @@
 import { processGenerationJob } from './process-generation';
 import { processHeroJob } from './process-hero';
+import { processExportJob } from './process-export';
 
 /**
  * Trigger a generation job for async processing
@@ -24,6 +25,19 @@ export async function triggerHeroJob(jobId: string): Promise<void> {
   // Fire and forget - don't await
   processHeroJob(jobId).catch((error) => {
     console.error(`Hero job ${jobId} failed:`, error);
+    // In production, capture to Sentry or similar
+    // Sentry.captureException(error, { tags: { jobId } });
+  });
+}
+
+/**
+ * Trigger an export job for async processing
+ * Uses fire-and-forget pattern for MVP
+ */
+export async function triggerExportJob(jobId: string): Promise<void> {
+  // Fire and forget - don't await
+  processExportJob(jobId).catch((error) => {
+    console.error(`Export job ${jobId} failed:`, error);
     // In production, capture to Sentry or similar
     // Sentry.captureException(error, { tags: { jobId } });
   });
