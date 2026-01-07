@@ -1,6 +1,8 @@
 import PDFDocument from 'pdfkit';
-import archiver from 'archiver';
+import JSZip from 'jszip';
 import { TRIM_SIZES } from '@/lib/constants';
+import { vectorizeBatch } from './vectorize';
+import { slugify } from '@/lib/utils/slugify';
 
 interface ExportInput {
   projectId: string;
@@ -53,30 +55,67 @@ export async function generateInteriorPDF(input: ExportInput): Promise<Buffer> {
 }
 
 /**
- * Generate a ZIP archive containing all page images as PNGs
+ * Generate a comprehensive ZIP archive containing:
+ * - PDF interior document
+ * - PNG folder with all page images
+ * - SVG folder with vectorized versions
+ *
+ * Structure:
+ *   my-book-name.zip
+ *   ├── my-book-name-interior.pdf
+ *   ├── png/
+ *   │   └── my-book-name-page-01.png
+ *   └── svg/
+ *       └── my-book-name-page-01.svg
  */
 export async function generateExportZip(input: ExportInput): Promise<Buffer> {
   const { pages, projectName } = input;
 
-  return new Promise((resolve, reject) => {
-    const chunks: Buffer[] = [];
-    const archive = archiver('zip', { zlib: { level: 9 } });
+  const zip = new JSZip();
+  const slug = slugify(projectName);
 
-    archive.on('data', (chunk) => chunks.push(chunk));
-    archive.on('end', () => resolve(Buffer.concat(chunks)));
-    archive.on('error', reject);
+  // Sort pages by sort order
+  const sortedPages = [...pages].sort((a, b) => a.sortOrder - b.sortOrder);
 
-    // Sort pages by sort order
-    const sortedPages = [...pages].sort((a, b) => a.sortOrder - b.sortOrder);
+  // 1. Generate interior PDF and add to ZIP
+  const pdfBuffer = await generateInteriorPDF(input);
+  zip.file(`${slug}-interior.pdf`, pdfBuffer);
 
-    // Add each page as PNG
+  // 2. Create PNG folder and add all images
+  const pngFolder = zip.folder('png');
+  if (pngFolder) {
     sortedPages.forEach((page) => {
-      // Sanitize project name for file system
-      const safeName = projectName.replace(/[^a-zA-Z0-9-_]/g, '_');
-      const fileName = `${safeName}_page_${String(page.sortOrder + 1).padStart(2, '0')}.png`;
-      archive.append(page.imageBuffer, { name: fileName });
+      const pageNum = String(page.sortOrder + 1).padStart(2, '0');
+      const fileName = `${slug}-page-${pageNum}.png`;
+      pngFolder.file(fileName, page.imageBuffer);
     });
+  }
 
-    archive.finalize();
+  // 3. Vectorize all PNGs and add to SVG folder
+  console.log(`Vectorizing ${sortedPages.length} pages...`);
+  const pngBuffers = sortedPages.map((p) => p.imageBuffer);
+  const svgResults = await vectorizeBatch(pngBuffers, {
+    threshold: 140,
+    turdSize: 2,
+    optTolerance: 0.2,
+  }, 5);
+
+  const svgFolder = zip.folder('svg');
+  if (svgFolder) {
+    svgResults.forEach((result, index) => {
+      const pageNum = String(sortedPages[index].sortOrder + 1).padStart(2, '0');
+      const fileName = `${slug}-page-${pageNum}.svg`;
+      svgFolder.file(fileName, result.svg);
+    });
+  }
+
+  // Generate final ZIP buffer
+  console.log(`Generating ZIP archive...`);
+  const zipBuffer = await zip.generateAsync({
+    type: 'nodebuffer',
+    compression: 'DEFLATE',
+    compressionOptions: { level: 9 },
   });
+
+  return zipBuffer;
 }
