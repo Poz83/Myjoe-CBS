@@ -1,5 +1,11 @@
-import { openai } from './openai-client';
-import type { Audience } from '@/types/domain';
+import OpenAI from 'openai';
+import { generateWithFlux, downloadImage } from './flux-generator';
+import { cleanupImage } from './cleanup';
+import { checkContentSafety } from './content-safety';
+import { FLUX_TRIGGERS, LINE_WEIGHT_PROMPTS, AUDIENCE_DERIVATIONS } from '@/lib/constants';
+import type { Audience } from '@/lib/constants';
+
+const openai = new OpenAI();
 
 interface HeroInput {
   name: string;
@@ -7,57 +13,117 @@ interface HeroInput {
   audience: Audience;
 }
 
-export async function compileHeroPrompt(input: HeroInput): Promise<string> {
+interface HeroResult {
+  success: boolean;
+  compiledPrompt?: string;
+  negativePrompt?: string;
+  imageBuffer?: Buffer;
+  error?: string;
+  safetyIssue?: boolean;
+  suggestions?: string[];
+}
+
+export async function compileHeroPrompt(input: HeroInput): Promise<{
+  compiledPrompt: string;
+  negativePrompt: string;
+}> {
   const { name, description, audience } = input;
-  
+  const rules = AUDIENCE_DERIVATIONS[audience];
+  const linePrompt = LINE_WEIGHT_PROMPTS[rules.lineWeight];
+
+  // Use GPT-4o-mini to expand description
   const response = await openai.chat.completions.create({
     model: 'gpt-4o-mini',
     messages: [
       {
         role: 'system',
-        content: `You are a character designer for coloring books.
-        
-Create a detailed prompt for a CHARACTER REFERENCE SHEET containing:
-- Front view (facing viewer directly)
-- Side view (profile, facing right)  
-- Back view (facing away)
-- 3/4 view (slightly turned)
+        content: `You create character reference sheet prompts for coloring books.
 
-All 4 views must be:
-- Same character with IDENTICAL proportions
-- Arranged in a 2x2 grid on white background
-- Coloring book style: pure black outlines on white
-- Line weight appropriate for ${audience} audience
-- No shading, no gradients, no gray
-- Simple, clear, consistent
-- Labeled: "FRONT" "SIDE" "BACK" "3/4"
+Given a character description, create a detailed prompt for a 2×2 grid showing:
+- Top left: Front view
+- Top right: Side view
+- Bottom left: Back view
+- Bottom right: 3/4 view
 
-Output ONLY the prompt text, no explanation.`
+The character must be:
+- Coloring book style with ${rules.lineWeight} black outlines
+- Age-appropriate for ${audience} (${rules.ageRange})
+- Consistent across all 4 views
+- Pure black lines on white background
+- No shading, no gradients
+
+Output ONLY the prompt text, nothing else.`
       },
       {
         role: 'user',
-        content: `Character name: ${name}\nDescription: ${description}\nAudience: ${audience}`
+        content: `Character: ${name}\nDescription: ${description}`
       }
     ],
-    temperature: 0.5,
+    temperature: 0.7,
   });
-  
-  return response.choices[0].message.content!;
+
+  const expandedDescription = response.choices[0].message.content || description;
+
+  const compiledPrompt = [
+    'character reference sheet',
+    '2x2 grid showing front view, side view, back view, and 3/4 view',
+    expandedDescription,
+    'coloring book style',
+    linePrompt,
+    'consistent character across all views',
+    'pure black outlines on white background',
+    'no shading, no gradients, no gray',
+  ].join(', ');
+
+  const negativePrompt = [
+    'shading', 'gradient', 'gray', 'color', 'photorealistic',
+    '3D', 'inconsistent', 'different characters', 'blurry',
+  ].join(', ');
+
+  return { compiledPrompt, negativePrompt };
 }
 
-export async function generateHeroSheet(compiledPrompt: string): Promise<Buffer> {
-  const response = await openai.images.generate({
-    model: 'dall-e-3',
-    prompt: compiledPrompt,
-    n: 1,
-    size: '1024x1024', // Square for 2×2 grid
-    quality: 'hd',
-    response_format: 'b64_json',
-  });
-  
-  if (!response.data?.[0]?.b64_json) {
-    throw new Error('OpenAI returned empty or invalid response');
+export async function generateHeroSheet(input: HeroInput): Promise<HeroResult> {
+  // 1. Safety check
+  const safetyResult = await checkContentSafety(input.description, input.audience);
+  if (!safetyResult.safe) {
+    return {
+      success: false,
+      error: 'Character description not suitable',
+      safetyIssue: true,
+      suggestions: safetyResult.suggestions,
+    };
   }
-  
-  return Buffer.from(response.data[0].b64_json, 'base64');
+
+  // 2. Compile prompt
+  const { compiledPrompt, negativePrompt } = await compileHeroPrompt(input);
+
+  // 3. Generate with Flux Pro (highest quality for heroes)
+  const fluxTrigger = FLUX_TRIGGERS['flux-pro'].template;
+  const fullPrompt = `${fluxTrigger}, ${compiledPrompt}`;
+
+  const genResult = await generateWithFlux({
+    compiledPrompt: fullPrompt,
+    negativePrompt,
+    fluxModel: 'flux-pro',
+    trimSize: '8.5x8.5', // Square for reference sheet
+  });
+
+  if (!genResult.success) {
+    return { success: false, error: genResult.error };
+  }
+
+  // 4. Download and cleanup
+  const rawBuffer = await downloadImage(genResult.imageUrl!);
+  const cleanedBuffer = await cleanupImage(rawBuffer, {
+    targetWidth: 1536,
+    targetHeight: 1536,
+  });
+
+  return {
+    success: true,
+    compiledPrompt,
+    negativePrompt,
+    imageBuffer: cleanedBuffer,
+  };
 }
