@@ -73,7 +73,7 @@ function BillingContent() {
         <div className="grid grid-cols-2 gap-4">
           <div className="p-4 bg-zinc-800/50 rounded-lg">
             <div className="flex items-center gap-2 text-zinc-400 text-sm mb-1"><Palette className="w-4 h-4" /> Blots</div>
-            <p className="text-2xl font-bold text-blue-400">{balance.total.toLocaleString()}</p>
+            <p className="text-2xl font-bold text-blue-400">{balance.blots.toLocaleString()}</p>
           </div>
           <div className="p-4 bg-zinc-800/50 rounded-lg">
             <div className="flex items-center gap-2 text-zinc-400 text-sm mb-1"><HardDrive className="w-4 h-4" /> Storage</div>

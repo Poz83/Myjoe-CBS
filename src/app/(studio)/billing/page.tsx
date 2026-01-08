@@ -124,7 +124,7 @@ function BillingContent() {
   );
   const blotPercentage =
     balance.planBlots > 0
-      ? Math.min(100, (balance.subscription / balance.planBlots) * 100)
+      ? Math.min(100, (balance.blots / balance.planBlots) * 100)
       : 0;
 
   const isFreePlan = balance.plan === 'free';
@@ -149,7 +149,7 @@ function BillingContent() {
         <div className="space-y-8">
           {/* Low Blots Banner */}
           <LowBlotsBanner
-            balance={balance.total}
+            balance={balance.blots}
             onUpgrade={() =>
               document
                 .getElementById('plans')
@@ -245,11 +245,11 @@ function BillingContent() {
                   Blots Available
                 </div>
                 <span className="text-2xl font-bold text-blue-400">
-                  {balance.total.toLocaleString()}
+                  {balance.blots.toLocaleString()}
                 </span>
               </div>
               <p className="text-sm text-zinc-500 mb-3">
-                {balance.subscription.toLocaleString()} Blots remaining this period
+                {balance.blots.toLocaleString()} Blots remaining this period
               </p>
               <div className="w-full h-2 bg-zinc-700 rounded-full overflow-hidden">
                 <div
