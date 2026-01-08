@@ -1,6 +1,10 @@
+'use client';
+
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import NextImage from 'next/image';
+import { useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { AuthHandler } from '@/components/auth-handler';
 import { PricingSection } from '@/components/pricing-section';
 import {
@@ -22,27 +26,114 @@ import {
   BadgeCheck,
   Target,
   Layers,
-  Image
+  Image,
+  Pencil
 } from 'lucide-react';
 
-interface LandingPageProps {
-  searchParams: { code?: string | string[]; [key: string]: string | string[] | undefined };
+function ColoringPencil({ color, tipColor = '#2a2a2a' }: { color: string; tipColor?: string }) {
+  return (
+    <svg viewBox="0 0 120 24" className="w-full h-full">
+      {/* Pencil body */}
+      <rect x="20" y="4" width="95" height="16" rx="2" fill={color} />
+      {/* Stripe detail */}
+      <rect x="20" y="4" width="95" height="4" rx="1" fill="rgba(255,255,255,0.2)" />
+      {/* Pencil tip wood */}
+      <polygon points="20,4 20,20 5,12" fill="#d4a574" />
+      {/* Pencil tip graphite */}
+      <polygon points="5,12 0,12 5,10 5,14" fill={tipColor} />
+      {/* End cap */}
+      <rect x="115" y="4" width="5" height="16" rx="1" fill="rgba(0,0,0,0.3)" />
+    </svg>
+  );
 }
 
-export default function LandingPage({ searchParams }: LandingPageProps) {
-  // If OAuth code is present, redirect to auth callback handler
-  const code = searchParams.code;
-  if (code) {
-    const codeValue = Array.isArray(code) ? code[0] : code;
-    redirect(`/auth/callback?code=${codeValue}`);
-  }
+function FloatingPencils() {
+  return (
+    <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+      <div className="absolute top-[15%] w-24 h-6 animate-drift-right" style={{ opacity: 0.2 }}>
+        <ColoringPencil color="#3de8ff" />
+      </div>
+      <div className="absolute top-[35%] w-20 h-5 animate-drift-left" style={{ opacity: 0.15 }}>
+        <ColoringPencil color="#7c4dff" />
+      </div>
+      <div className="absolute top-[55%] w-28 h-7 animate-drift-right-slow" style={{ opacity: 0.12 }}>
+        <ColoringPencil color="#ec4899" />
+      </div>
+      <div className="absolute top-[75%] w-16 h-4 animate-drift-left-slow" style={{ opacity: 0.18 }}>
+        <ColoringPencil color="#4ade80" />
+      </div>
+      <div className="absolute top-[25%] w-20 h-5 animate-drift-right" style={{ opacity: 0.15, animationDelay: '5s' }}>
+        <ColoringPencil color="#facc15" />
+      </div>
+      <div className="absolute top-[85%] w-24 h-6 animate-drift-left" style={{ opacity: 0.12, animationDelay: '3s' }}>
+        <ColoringPencil color="#f97316" />
+      </div>
+    </div>
+  );
+}
+
+const tilesData = [
+  { id: 1, left: '0%', top: '15%', rotation: -12, label: "Dragon sketch", img: "https://placehold.co/160x180/1a1a2e/3de8ff?text=Dragon" },
+  { id: 2, left: '22%', top: '0%', rotation: -5, label: "Page layout", img: "https://placehold.co/160x180/1a1a2e/7c4dff?text=Layout" },
+  { id: 3, left: '44%', top: '20%', rotation: 3, label: "Preview", img: "https://placehold.co/180x220/1a1a2e/3de8ff?text=Preview", main: true },
+  { id: 4, left: '68%', top: '5%', rotation: 8, label: "Styles", img: "https://placehold.co/160x180/1a1a2e/7c4dff?text=Styles" },
+  { id: 5, left: '55%', top: '55%', rotation: -3, label: "Export", img: "https://placehold.co/160x180/1a1a2e/3de8ff?text=Export" },
+];
+
+function FloatingCards() {
+  return (
+    <div className="relative w-full h-[500px]">
+      {tilesData.map((tile) => (
+        <motion.div
+          key={tile.id}
+          className={`absolute ${tile.main ? 'w-[180px] h-[220px]' : 'w-[160px] h-[200px]'} rounded-2xl overflow-hidden cursor-pointer`}
+          style={{
+            left: tile.left,
+            top: tile.top,
+          }}
+          initial={{ rotate: tile.rotation }}
+          whileHover={{
+            scale: 2.8,
+            rotate: 0,
+            y: -20,
+            zIndex: 100,
+          }}
+          transition={{ type: "spring", stiffness: 300, damping: 20 }}
+        >
+          <div className="w-full h-full bg-bg-surface border border-zinc-700/50 rounded-2xl overflow-hidden shadow-2xl">
+            <img
+              src={tile.img}
+              alt={tile.label}
+              className="w-full h-3/4 object-cover"
+            />
+            <div className="p-3 bg-gradient-to-t from-zinc-900 to-zinc-800">
+              <p className="text-xs text-zinc-300 text-center font-medium">{tile.label}</p>
+            </div>
+          </div>
+        </motion.div>
+      ))}
+    </div>
+  );
+}
+
+export default function LandingPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const code = searchParams.get('code');
+    if (code) {
+      router.replace(`/auth/callback?code=${code}`);
+    }
+  }, [searchParams, router]);
 
   return (
-    <main className="min-h-screen bg-[#0D0D0D] text-white overflow-x-hidden">
+    <main className="min-h-screen text-[#EAF4F8] overflow-x-hidden relative">
+      <FloatingPencils />
       <AuthHandler />
       {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-[#0D0D0D]/80 backdrop-blur-lg border-b border-zinc-800/50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-bg-base/80 backdrop-blur-lg border-b border-zinc-800/50">
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <Link href="/" className="flex items-center hover:opacity-80 transition-opacity">
               <NextImage
@@ -66,7 +157,7 @@ export default function LandingPage({ searchParams }: LandingPageProps) {
               </Link>
               <Link
                 href="/login"
-                className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                className="bg-accent-cyan hover:bg-accent-cyan/80 text-bg-base px-4 py-2 rounded-lg font-medium transition-colors"
               >
                 Create Free Book
               </Link>
@@ -76,106 +167,88 @@ export default function LandingPage({ searchParams }: LandingPageProps) {
       </nav>
 
       {/* Hero Section */}
-      <section className="pt-32 pb-20 px-4 sm:px-6 lg:px-8 relative">
-        <div className="absolute inset-0 bg-gradient-to-b from-blue-600/10 via-transparent to-transparent pointer-events-none" />
-        <div className="max-w-5xl mx-auto text-center relative">
-          {/* Market Opportunity Badge */}
-          <div className="inline-flex items-center gap-3 bg-gradient-to-r from-green-900/30 to-emerald-900/30 border border-green-500/30 rounded-full px-5 py-2.5 mb-8">
-            <TrendingUp className="w-4 h-4 text-green-400" />
-            <span className="text-green-400 text-sm font-medium">$3.2 Billion Industry Growing 65% Year-Over-Year</span>
-          </div>
+      <section className="pt-28 pb-20 px-4 sm:px-6 lg:px-8 relative min-h-[90vh]">
+        <div className="max-w-[1200px] mx-auto relative">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            {/* Left side - Text content */}
+            <div className="relative z-10">
+              <div className="flex items-center gap-2 mb-6">
+                <NextImage src="/myjoe-logo.png" alt="Myjoe" width={32} height={32} className="w-8 h-8" />
+                <span className="text-zinc-400 font-medium">Myjoe</span>
+              </div>
 
-          {/* Main Headline */}
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight mb-6">
-            Turn Simple Ideas Into
-            <span className="block mt-2 bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-              Profitable Coloring Books
-            </span>
-          </h1>
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-[1.1] mb-6">
+                Turn simple ideas into
+                <span className="block mt-2">
+                  <span className="relative inline-block">
+                    profitable
+                    <svg className="absolute -bottom-1 left-0 w-full h-2" viewBox="0 0 100 8" fill="none" preserveAspectRatio="none">
+                      <path d="M0 6C20 2 80 2 100 6" stroke="#3de8ff" strokeWidth="3" strokeLinecap="round"/>
+                    </svg>
+                  </span>
+                  {' '}coloring books
+                </span>
+              </h1>
 
-          {/* Subheadline */}
-          <p className="text-xl text-zinc-400 max-w-2xl mx-auto mb-4 leading-relaxed">
-            The only AI coloring book generator built specifically for Amazon KDP and Etsy sellers.
-            Create a complete 40-page book in one afternoon — with consistent characters,
-            clean line art, and print-ready exports.
-          </p>
+              <p className="text-lg text-zinc-400 mb-8 leading-relaxed max-w-lg">
+                AI-powered coloring book studio that helps you create professional,
+                print-ready books in minutes.
+              </p>
 
-          {/* Quick Value Statement */}
-          <p className="text-lg text-zinc-500 mb-8">
-            No design skills. No expensive software. No KDP rejections.
-          </p>
+              {/* CTA Buttons - thumio style */}
+              <div className="flex flex-wrap items-center gap-4 mb-8">
+                <Link
+                  href="/login"
+                  className="bg-white hover:bg-zinc-100 text-black px-6 py-3 rounded-full font-medium transition-all hover:scale-105 flex items-center gap-2 group"
+                >
+                  Create your first book
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </Link>
+                <Link
+                  href="/login"
+                  className="bg-zinc-800 hover:bg-zinc-700 text-white px-6 py-3 rounded-full font-medium transition-colors"
+                >
+                  Sign in
+                </Link>
+              </div>
 
-          {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
-            <Link
-              href="/login"
-              className="w-full sm:w-auto bg-blue-600 hover:bg-blue-500 text-white px-8 py-4 rounded-xl font-semibold text-lg transition-all hover:scale-105 flex items-center justify-center gap-2 group shadow-lg shadow-blue-600/25"
-            >
-              Create Your First Book Free
-              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-            </Link>
-            <a
-              href="#how-it-works"
-              className="w-full sm:w-auto border border-zinc-700 hover:border-zinc-600 text-white px-8 py-4 rounded-xl font-semibold text-lg transition-colors flex items-center justify-center gap-2"
-            >
-              Watch It Work
-            </a>
-          </div>
-
-          {/* Trust Indicators */}
-          <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-zinc-500 mb-4">
-            <div className="flex items-center gap-2">
-              <Check className="w-4 h-4 text-green-500" />
-              <span>No credit card required</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Check className="w-4 h-4 text-green-500" />
-              <span>Commercial license included</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Check className="w-4 h-4 text-green-500" />
-              <span>300 DPI print quality</span>
-            </div>
-          </div>
-
-          {/* Social Proof */}
-          <div className="flex items-center justify-center gap-3">
-            <div className="flex -space-x-2">
-              {[1, 2, 3, 4, 5].map((i) => (
-                <div key={i} className="w-8 h-8 rounded-full bg-gradient-to-br from-zinc-600 to-zinc-700 border-2 border-[#0D0D0D] flex items-center justify-center text-xs font-medium">
-                  {['S', 'M', 'E', 'J', 'A'][i-1]}
+              {/* Trust indicators */}
+              <div className="space-y-2 text-sm text-zinc-500">
+                <div className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-accent-cyan" />
+                  <span>No credit card required</span>
                 </div>
-              ))}
-            </div>
-            <div className="flex items-center gap-1">
-              {[...Array(5)].map((_, i) => (
-                <Star key={i} className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-              ))}
-            </div>
-            <span className="text-zinc-400 text-sm">Trusted by 2,500+ KDP publishers</span>
-          </div>
-        </div>
+                <div className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-accent-cyan" />
+                  <span>Free CTR Report</span>
+                </div>
+              </div>
 
-        {/* Hero Image Placeholder */}
-        <div className="max-w-5xl mx-auto mt-16 relative">
-          <div className="bg-gradient-to-br from-zinc-800 to-zinc-900 rounded-2xl border border-zinc-700/50 aspect-video flex items-center justify-center overflow-hidden shadow-2xl shadow-blue-500/10">
-            <div className="grid grid-cols-4 gap-4 p-8 w-full h-full">
-              {[...Array(8)].map((_, i) => (
-                <div key={i} className="bg-zinc-700/30 rounded-lg animate-pulse" />
-              ))}
+              <a href="#how-it-works" className="inline-block mt-6 text-zinc-500 hover:text-white text-sm underline underline-offset-4 transition-colors">
+                See how it works
+              </a>
             </div>
-            <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-              <span className="text-zinc-400 text-lg">Product Preview</span>
+
+            {/* Right side - Floating cards */}
+            <div className="hidden lg:block">
+              <FloatingCards />
             </div>
           </div>
-          {/* Glow effect */}
-          <div className="absolute -inset-4 bg-gradient-to-r from-blue-600/20 via-purple-600/20 to-pink-600/20 rounded-3xl blur-3xl -z-10" />
+
+          {/* Bottom badge */}
+          <div className="absolute bottom-0 right-8 hidden lg:flex items-center gap-3 bg-zinc-800/80 backdrop-blur rounded-full px-4 py-2">
+            <span className="w-2 h-2 bg-accent-cyan rounded-full animate-pulse" />
+            <span className="text-zinc-400 text-sm">AI Coloring Book Studio</span>
+            <span className="text-zinc-600">|</span>
+            <span className="text-zinc-500 text-sm">Free To Use</span>
+          </div>
         </div>
       </section>
 
+
       {/* Pain Points Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-zinc-900/50">
-        <div className="max-w-5xl mx-auto">
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-bg-surface/50">
+        <div className="max-w-[1200px] mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl sm:text-4xl font-bold mb-4">
               Sound Familiar?
@@ -188,8 +261,8 @@ export default function LandingPage({ searchParams }: LandingPageProps) {
           <div className="grid md:grid-cols-3 gap-6">
             {[
               {
-                problem: "Your Dragon Looks Different on Every Page",
-                description: "Midjourney gives you a new character every time. Kids notice. Parents leave 1-star reviews. Your book sales tank.",
+                problem: "Your Characters Look Different on Every Page",
+                description: "Most AI tools generate a new character every time. Readers notice inconsistency. Your book feels unprofessional.",
                 solution: "Hero Reference Sheets lock in your character's exact look across every page"
               },
               {
@@ -203,7 +276,7 @@ export default function LandingPage({ searchParams }: LandingPageProps) {
                 solution: "Age-specific presets from Toddler to Adult automatically adjust line weight and detail"
               }
             ].map((item, i) => (
-              <div key={i} className="bg-zinc-800/50 border border-zinc-700/50 rounded-xl p-6 hover:border-blue-500/50 transition-colors group">
+              <div key={i} className="bg-zinc-800/50 border border-zinc-700/50 rounded-xl p-6 hover:border-accent-cyan/20 transition-colors group">
                 <div className="text-red-400 font-semibold mb-3 text-lg">{item.problem}</div>
                 <p className="text-zinc-400 text-sm mb-4 leading-relaxed">{item.description}</p>
                 <div className="flex items-start gap-2 text-green-400 text-sm bg-green-500/10 rounded-lg p-3 border border-green-500/20">
@@ -218,7 +291,7 @@ export default function LandingPage({ searchParams }: LandingPageProps) {
           <div className="text-center mt-12">
             <Link
               href="/login"
-              className="inline-flex items-center gap-2 text-blue-400 hover:text-blue-300 font-medium transition-colors group"
+              className="inline-flex items-center gap-2 text-accent-cyan hover:text-accent-cyan/80 font-medium transition-colors group"
             >
               Stop wasting time on tools that weren't built for this
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
@@ -229,11 +302,11 @@ export default function LandingPage({ searchParams }: LandingPageProps) {
 
       {/* Features Section */}
       <section id="features" className="py-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-6xl mx-auto">
+        <div className="max-w-[1200px] mx-auto">
           <div className="text-center mb-16">
-            <span className="inline-block text-blue-400 font-medium mb-4">PURPOSE-BUILT FOR COLORING BOOKS</span>
+            <span className="inline-block text-accent-cyan font-medium mb-4">PURPOSE-BUILT FOR COLORING BOOKS</span>
             <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-              Not Another Generic AI Image Tool
+              Designed for Coloring Books
             </h2>
             <p className="text-zinc-400 text-lg max-w-2xl mx-auto">
               Every feature designed specifically for KDP and Etsy coloring book publishers.
@@ -252,14 +325,14 @@ export default function LandingPage({ searchParams }: LandingPageProps) {
               {
                 icon: Users,
                 title: "Hero Reference Sheets",
-                description: "Create consistent characters that kids actually recognize. Front, side, back, and 3/4 views locked in forever.",
-                highlight: "Used by series creators"
+                description: "Create consistent characters across your entire book. Front, side, back, and 3/4 views locked in for every page.",
+                highlight: "Character consistency"
               },
               {
                 icon: Shield,
-                title: "KDP-Safe Content Filter",
-                description: "Every image scanned for inappropriate content before you download. Strict mode for children's books means zero nasty surprises.",
-                highlight: "Zero KDP content rejections"
+                title: "Content Moderation",
+                description: "Every image scanned for inappropriate content before you download. Strict mode for children's books helps ensure age-appropriate results.",
+                highlight: "Built-in safety filters"
               },
               {
                 icon: Palette,
@@ -280,9 +353,9 @@ export default function LandingPage({ searchParams }: LandingPageProps) {
                 highlight: "5 age presets built-in"
               }
             ].map((feature, i) => (
-              <div key={i} className="group bg-zinc-900/50 border border-zinc-800 rounded-xl p-6 hover:border-blue-500/50 transition-all hover:bg-zinc-900">
-                <div className="w-12 h-12 bg-blue-600/10 border border-blue-500/20 rounded-xl flex items-center justify-center mb-4 group-hover:bg-blue-600/20 transition-colors">
-                  <feature.icon className="w-6 h-6 text-blue-400" />
+              <div key={i} className="group bg-bg-surface/50 border border-zinc-800 rounded-xl p-6 hover:border-accent-cyan/20 transition-all hover:bg-zinc-900">
+                <div className="w-12 h-12 bg-accent-cyan/10 border border-accent-cyan/20 rounded-xl flex items-center justify-center mb-4 group-hover:bg-accent-cyan/20 transition-colors">
+                  <feature.icon className="w-6 h-6 text-accent-cyan" />
                 </div>
                 <h3 className="text-lg font-semibold mb-2">{feature.title}</h3>
                 <p className="text-zinc-400 text-sm mb-3">{feature.description}</p>
@@ -295,7 +368,7 @@ export default function LandingPage({ searchParams }: LandingPageProps) {
           <div className="text-center mt-12">
             <Link
               href="/login"
-              className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-xl font-semibold transition-all hover:scale-105"
+              className="inline-flex items-center gap-2 bg-accent-cyan hover:bg-accent-cyan/80 text-bg-base px-6 py-3 rounded-xl font-semibold transition-all hover:scale-105"
             >
               See These Features in Action
               <ArrowRight className="w-4 h-4" />
@@ -305,10 +378,10 @@ export default function LandingPage({ searchParams }: LandingPageProps) {
       </section>
 
       {/* How It Works Section */}
-      <section id="how-it-works" className="py-20 px-4 sm:px-6 lg:px-8 bg-zinc-900/50">
-        <div className="max-w-5xl mx-auto">
+      <section id="how-it-works" className="py-20 px-4 sm:px-6 lg:px-8 bg-bg-surface/50">
+        <div className="max-w-[1200px] mx-auto">
           <div className="text-center mb-16">
-            <span className="inline-block text-blue-400 font-medium mb-4">STUPIDLY SIMPLE</span>
+            <span className="inline-block text-accent-cyan font-medium mb-4">STUPIDLY SIMPLE</span>
             <h2 className="text-3xl sm:text-4xl font-bold mb-4">
               Idea → Published Book → Royalties
             </h2>
@@ -339,8 +412,8 @@ export default function LandingPage({ searchParams }: LandingPageProps) {
               }
             ].map((step, i) => (
               <div key={i} className="relative">
-                <div className="bg-zinc-800/50 border border-zinc-700/50 rounded-2xl p-8 h-full hover:border-blue-500/30 transition-colors">
-                  <div className="text-6xl font-bold text-blue-600/30 mb-4">{step.step}</div>
+                <div className="bg-zinc-800/50 border border-zinc-700/50 rounded-2xl p-8 h-full hover:border-accent-cyan/20 transition-colors">
+                  <div className="text-6xl font-bold text-accent-cyan/30 mb-4">{step.step}</div>
                   <h3 className="text-xl font-semibold mb-3">{step.title}</h3>
                   <p className="text-zinc-400 mb-4">{step.description}</p>
                   <span className="text-sm text-green-400 font-medium">{step.detail}</span>
@@ -355,7 +428,7 @@ export default function LandingPage({ searchParams }: LandingPageProps) {
           </div>
 
           {/* Time Comparison */}
-          <div className="mt-16 bg-gradient-to-r from-blue-600/10 to-purple-600/10 border border-blue-500/20 rounded-2xl p-8">
+          <div className="mt-16 bg-gradient-to-r from-accent-cyan/10 to-purple-600/10 border border-accent-cyan/20 rounded-2xl p-8">
             <div className="grid md:grid-cols-2 gap-8 items-center">
               <div>
                 <h3 className="text-2xl font-bold mb-4">The Old Way vs. The Myjoe Way</h3>
@@ -366,15 +439,15 @@ export default function LandingPage({ searchParams }: LandingPageProps) {
                 <ul className="space-y-2 text-sm">
                   <li className="flex items-center gap-2 text-zinc-400">
                     <Check className="w-4 h-4 text-green-500" />
-                    No Photoshop or Illustrator needed
+                    No design software needed
                   </li>
                   <li className="flex items-center gap-2 text-zinc-400">
                     <Check className="w-4 h-4 text-green-500" />
-                    No hiring freelancers on Fiverr
+                    No hiring freelance artists
                   </li>
                   <li className="flex items-center gap-2 text-zinc-400">
                     <Check className="w-4 h-4 text-green-500" />
-                    No learning complex prompting
+                    No complex prompting to learn
                   </li>
                 </ul>
               </div>
@@ -397,7 +470,7 @@ export default function LandingPage({ searchParams }: LandingPageProps) {
           <div className="text-center mt-12">
             <Link
               href="/login"
-              className="inline-flex items-center gap-2 text-blue-400 hover:text-blue-300 font-medium transition-colors group"
+              className="inline-flex items-center gap-2 text-accent-cyan hover:text-accent-cyan/80 font-medium transition-colors group"
             >
               Try it yourself — your first book is free
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
@@ -406,162 +479,45 @@ export default function LandingPage({ searchParams }: LandingPageProps) {
         </div>
       </section>
 
-      {/* Social Proof / Stats Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-12">
-            <span className="inline-block text-blue-400 font-medium mb-4">BY THE NUMBERS</span>
-            <h2 className="text-3xl sm:text-4xl font-bold">
-              Join Thousands of Successful KDP Publishers
-            </h2>
-          </div>
-          <div className="grid md:grid-cols-4 gap-8 text-center">
-            {[
-              { stat: "2,500+", label: "Active Publishers", subtext: "growing daily" },
-              { stat: "150K+", label: "Pages Generated", subtext: "this month alone" },
-              { stat: "0%", label: "KDP Rejection Rate", subtext: "when using our exports" },
-              { stat: "100%", label: "Commercial Rights", subtext: "you own everything" }
-            ].map((item, i) => (
-              <div key={i} className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6">
-                <div className="text-4xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent mb-2">
-                  {item.stat}
-                </div>
-                <div className="text-white font-medium">{item.label}</div>
-                <div className="text-zinc-500 text-sm">{item.subtext}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Testimonials */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-zinc-900/50">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-12">
-            <span className="inline-block text-blue-400 font-medium mb-4">SUCCESS STORIES</span>
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-              From Side Hustle to Real Income
-            </h2>
-            <p className="text-zinc-400 text-lg">
-              See how publishers are building profitable coloring book businesses
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-6">
-            {[
-              {
-                quote: "What started as a hobby became a surprising source of income. I published my first 5 books in one month and they're now generating $800/month in passive royalties.",
-                name: "Sarah M.",
-                role: "Former Teacher, Now Full-time Publisher",
-                result: "$800+/month passive income",
-                books: "47 books published"
-              },
-              {
-                quote: "The Hero Reference Sheet feature is a game-changer. My 'Adventures with Luna' series has consistent characters across 12 books. Kids recognize her instantly.",
-                name: "Marcus T.",
-                role: "Children's Book Series Creator",
-                result: "12-book series with loyal readers",
-                books: "23 books published"
-              },
-              {
-                quote: "I used to spend $50-100 per book on Fiverr artists. Now I create better quality books myself for pennies. My profit margins went from 30% to 85%.",
-                name: "Emily R.",
-                role: "Etsy & KDP Entrepreneur",
-                result: "85% profit margins",
-                books: "89 books published"
-              }
-            ].map((testimonial, i) => (
-              <div key={i} className="bg-zinc-800/30 border border-zinc-700/50 rounded-xl p-6 flex flex-col">
-                <div className="flex gap-1 mb-4">
-                  {[...Array(5)].map((_, j) => (
-                    <Star key={j} className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                  ))}
-                </div>
-                <p className="text-zinc-300 mb-6 flex-grow">&quot;{testimonial.quote}&quot;</p>
-                <div className="bg-green-500/10 border border-green-500/20 rounded-lg px-3 py-2 mb-4">
-                  <span className="text-green-400 font-semibold text-sm">{testimonial.result}</span>
-                </div>
-                <div className="border-t border-zinc-700/50 pt-4">
-                  <div className="font-medium">{testimonial.name}</div>
-                  <div className="text-sm text-zinc-500">{testimonial.role}</div>
-                  <div className="text-xs text-blue-400 mt-1">{testimonial.books}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* CTA after testimonials */}
-          <div className="text-center mt-12">
-            <Link
-              href="/login"
-              className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-xl font-semibold transition-all hover:scale-105"
-            >
-              Start Your Publishing Journey
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
-        </div>
-      </section>
 
       {/* Pricing Section */}
       <PricingSection />
 
-      {/* Comparison Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-zinc-900/50">
-        <div className="max-w-4xl mx-auto">
+      {/* What's Included Section */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-bg-surface/50">
+        <div className="max-w-[1200px] mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-              Why Myjoe vs. Generic AI Tools
+              Built for Coloring Book Creators
             </h2>
+            <p className="text-zinc-400">Everything you need to create and publish</p>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-zinc-700">
-                  <th className="text-left py-4 px-4 text-zinc-400 font-medium">Feature</th>
-                  <th className="text-center py-4 px-4 text-zinc-400 font-medium">Generic AI</th>
-                  <th className="text-center py-4 px-4 font-medium text-blue-400">Myjoe</th>
-                </tr>
-              </thead>
-              <tbody className="text-sm">
-                {[
-                  { feature: "Character Consistency", generic: false, myjoe: true },
-                  { feature: "Age-Appropriate Complexity", generic: false, myjoe: true },
-                  { feature: "300 DPI Output", generic: false, myjoe: true },
-                  { feature: "KDP Margin Presets", generic: false, myjoe: true },
-                  { feature: "Content Safety for Kids", generic: false, myjoe: true },
-                  { feature: "Batch Generation", generic: false, myjoe: true },
-                  { feature: "SVG Vector Export", generic: false, myjoe: true },
-                  { feature: "Commercial License", generic: "Varies", myjoe: true }
-                ].map((row, i) => (
-                  <tr key={i} className="border-b border-zinc-800">
-                    <td className="py-4 px-4 text-zinc-300">{row.feature}</td>
-                    <td className="py-4 px-4 text-center">
-                      {row.generic === true ? (
-                        <Check className="w-5 h-5 text-green-500 mx-auto" />
-                      ) : row.generic === false ? (
-                        <span className="text-red-400">✕</span>
-                      ) : (
-                        <span className="text-yellow-500">{row.generic}</span>
-                      )}
-                    </td>
-                    <td className="py-4 px-4 text-center">
-                      <Check className="w-5 h-5 text-green-500 mx-auto" />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[
+              "Character consistency with Hero Sheets",
+              "Age-appropriate complexity presets",
+              "300 DPI print-ready output",
+              "KDP margin presets",
+              "Content moderation for kids' books",
+              "Batch page generation",
+              "PNG, PDF & SVG export",
+              "Commercial license included"
+            ].map((feature, i) => (
+              <div key={i} className="flex items-center gap-3 bg-zinc-800/30 rounded-lg p-4">
+                <Check className="w-5 h-5 text-accent-cyan shrink-0" />
+                <span className="text-zinc-300 text-sm">{feature}</span>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
       {/* FAQ Section */}
       <section id="faq" className="py-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-3xl mx-auto">
+        <div className="max-w-[1200px] mx-auto">
           <div className="text-center mb-12">
-            <span className="inline-block text-blue-400 font-medium mb-4">FAQ</span>
+            <span className="inline-block text-accent-cyan font-medium mb-4">FAQ</span>
             <h2 className="text-3xl sm:text-4xl font-bold mb-4">
               Common Questions
             </h2>
@@ -598,7 +554,7 @@ export default function LandingPage({ searchParams }: LandingPageProps) {
                 a: "PNG for individual pages, PDF for complete books with proper margins, and SVG vector files (great for Cricut and other cutting machines). All formats are included in paid plans."
               }
             ].map((faq, i) => (
-              <details key={i} className="group bg-zinc-900/50 border border-zinc-800 rounded-xl">
+              <details key={i} className="group bg-bg-surface/50 border border-zinc-800 rounded-xl">
                 <summary className="flex items-center justify-between p-6 cursor-pointer list-none">
                   <span className="font-medium pr-4">{faq.q}</span>
                   <ChevronRight className="w-5 h-5 text-zinc-500 group-open:rotate-90 transition-transform shrink-0" />
@@ -612,81 +568,10 @@ export default function LandingPage({ searchParams }: LandingPageProps) {
         </div>
       </section>
 
-      {/* Market Opportunity Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-transparent via-blue-950/20 to-transparent">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-12">
-            <span className="inline-block text-blue-400 font-medium mb-4">THE OPPORTUNITY</span>
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-              Why Coloring Books? Why Now?
-            </h2>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-8 items-center">
-            <div className="space-y-6">
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-green-500/10 border border-green-500/20 rounded-xl flex items-center justify-center shrink-0">
-                  <TrendingUp className="w-6 h-6 text-green-400" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-lg mb-1">$3.2 Billion Market</h3>
-                  <p className="text-zinc-400 text-sm">The coloring book industry is massive and growing 65% year-over-year on Amazon. The market isn't saturated — it's expanding.</p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-blue-500/10 border border-blue-500/20 rounded-xl flex items-center justify-center shrink-0">
-                  <DollarSign className="w-6 h-6 text-blue-400" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-lg mb-1">Zero Upfront Costs with KDP</h3>
-                  <p className="text-zinc-400 text-sm">Print-on-demand means no inventory, no printing costs, no risk. Amazon handles fulfillment. You collect royalties.</p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-purple-500/10 border border-purple-500/20 rounded-xl flex items-center justify-center shrink-0">
-                  <Layers className="w-6 h-6 text-purple-400" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-lg mb-1">Evergreen Passive Income</h3>
-                  <p className="text-zinc-400 text-sm">Coloring books sell year-round. Create once, earn forever. Publishers with 20+ titles report $2-5K/month in royalties.</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-zinc-800/50 border border-zinc-700/50 rounded-2xl p-8">
-              <h3 className="font-semibold text-xl mb-4 text-center">Quick Math: Your First Book</h3>
-              <div className="space-y-4 text-sm">
-                <div className="flex justify-between items-center py-2 border-b border-zinc-700/50">
-                  <span className="text-zinc-400">Average coloring book price</span>
-                  <span className="font-medium">$8.99</span>
-                </div>
-                <div className="flex justify-between items-center py-2 border-b border-zinc-700/50">
-                  <span className="text-zinc-400">Your royalty per sale (60%)</span>
-                  <span className="font-medium text-green-400">$2.50</span>
-                </div>
-                <div className="flex justify-between items-center py-2 border-b border-zinc-700/50">
-                  <span className="text-zinc-400">Cost per book (Creator 1000 Blots)</span>
-                  <span className="font-medium">~$3.40</span>
-                </div>
-                <div className="flex justify-between items-center py-2 bg-green-500/10 rounded-lg px-3">
-                  <span className="text-zinc-300">Sell 100/month across all titles</span>
-                  <span className="font-bold text-green-400">$250/month</span>
-                </div>
-              </div>
-              <p className="text-zinc-500 text-xs mt-4 text-center">
-                Most publishers reach 100 sales/month within 6 months with 5+ titles
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* Final CTA Section */}
       <section className="py-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-4xl mx-auto">
-          <div className="bg-gradient-to-r from-blue-600/20 via-purple-600/20 to-pink-600/20 border border-blue-500/30 rounded-3xl p-8 sm:p-12 text-center relative overflow-hidden">
+        <div className="max-w-[1200px] mx-auto">
+          <div className="bg-gradient-to-r from-accent-cyan/20 via-accent-purple/20 to-accent-purple/10 border border-accent-cyan/20 rounded-3xl p-8 sm:p-12 text-center relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 to-purple-600/5" />
             <div className="relative">
               <div className="inline-flex items-center gap-2 bg-green-500/10 border border-green-500/20 rounded-full px-4 py-2 mb-6">
@@ -734,7 +619,7 @@ export default function LandingPage({ searchParams }: LandingPageProps) {
 
       {/* Footer */}
       <footer className="py-12 px-4 sm:px-6 lg:px-8 border-t border-zinc-800">
-        <div className="max-w-6xl mx-auto">
+        <div className="max-w-[1200px] mx-auto">
           <div className="grid md:grid-cols-4 gap-8">
             <div>
               <Link href="/" className="inline-block mb-4">

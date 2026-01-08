@@ -2,7 +2,7 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
 const PUBLIC_ROUTES = ['/', '/login', '/auth/callback'];
-const PROTECTED_ROUTES = ['/studio', '/api'];
+const PROTECTED_ROUTES = ['/dashboard', '/studio', '/api'];
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({
@@ -29,9 +29,12 @@ export async function middleware(request: NextRequest) {
     }
   );
 
+  // Refresh session if needed (this ensures cookies are up to date)
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
+  
+  const user = session?.user ?? null;
 
   const pathname = request.nextUrl.pathname;
   
@@ -51,9 +54,9 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(redirectUrl);
   }
 
-  // Redirect to studio if accessing login while authenticated
+  // Redirect to dashboard if accessing login while authenticated
   if (pathname === '/login' && user) {
-    return NextResponse.redirect(new URL('/studio', request.url));
+    return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
   return response;

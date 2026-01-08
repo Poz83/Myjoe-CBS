@@ -28,7 +28,7 @@ export function AuthHandler() {
     });
 
     // Redirect immediately - session will be ready
-    router.push('/studio');
+    router.push('/dashboard');
   }, [router]);
 
   return null;

@@ -5,20 +5,34 @@ import { createClient } from './client';
  */
 export async function signInWithGoogle(redirectTo?: string) {
   const supabase = createClient();
+  
+  // Build redirect URL - Supabase will append the code parameter
+  // We use query params for our redirect parameter
   const redirectUrl = redirectTo 
     ? `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(redirectTo)}`
     : `${window.location.origin}/auth/callback`;
 
-  const { error } = await supabase.auth.signInWithOAuth({
+  console.log('Initiating Google OAuth with redirect:', redirectUrl);
+
+  const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
       redirectTo: redirectUrl,
+      queryParams: {
+        // Ensure we're using PKCE flow (default in Supabase)
+        access_type: 'offline',
+        prompt: 'consent',
+      },
     },
   });
 
   if (error) {
+    console.error('OAuth initiation error:', error);
     throw error;
   }
+
+  // The redirect happens automatically, so we don't need to do anything here
+  // The user will be redirected to Google, then back to our callback
 }
 
 /**

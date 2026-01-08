@@ -85,14 +85,14 @@ export function UserMenu() {
         {/* Menu items */}
         <div className="py-1">
           <DropdownMenuItem
-            onClick={() => router.push('/studio/settings')}
+            onClick={() => router.push('/dashboard/settings')}
             className="flex items-center gap-2 px-4 py-2 text-sm text-zinc-300 hover:text-white hover:bg-zinc-800 cursor-pointer"
           >
             <Settings className="h-4 w-4" />
             Settings
           </DropdownMenuItem>
           <DropdownMenuItem
-            onClick={() => router.push('/studio/settings?tab=billing')}
+            onClick={() => router.push('/dashboard/billing')}
             className="flex items-center gap-2 px-4 py-2 text-sm text-zinc-300 hover:text-white hover:bg-zinc-800 cursor-pointer"
           >
             <CreditCard className="h-4 w-4" />

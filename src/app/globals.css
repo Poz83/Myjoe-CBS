@@ -1,36 +1,85 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --bg-base: #0D0D0D;
-  --bg-surface: #1A1A1A;
-  --bg-elevated: #262626;
-  --bg-canvas: #171717;
+  --bg-base: #040510;
+  --bg-surface: #080c19;
+  --bg-elevated: #0d1324;
+  --accent-cyan: #3de8ff;
+  --accent-purple: #7c4dff;
+  --text-primary: #EAF4F8;
 }
 
 body {
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  background-color: var(--bg-base);
-  color: white;
+  font-family: 'DM Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background-color: rgb(4, 5, 16);
+  background-image:
+    radial-gradient(circle at 20% 20%, rgba(61, 232, 255, 0.18), rgba(0, 0, 0, 0) 55%),
+    radial-gradient(circle at 75% 12%, rgba(124, 77, 255, 0.22), rgba(0, 0, 0, 0) 60%),
+    linear-gradient(160deg, rgb(4, 5, 16) 0%, rgb(8, 12, 25) 45%, rgb(13, 19, 36) 100%);
+  background-attachment: fixed, fixed, fixed;
+  color: rgb(234, 244, 248);
+  min-height: 100vh;
+  overflow-x: hidden;
+  overscroll-behavior: none;
 }
 
-/* Studio pages require minimum width */
 .studio-layout {
   min-width: 1024px;
 }
 
 @keyframes shimmer {
-  0% {
-    background-position: -200% 0;
-  }
-  100% {
-    background-position: 200% 0;
-  }
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
 }
 
 .animate-shimmer {
   animation: shimmer 1.5s infinite;
 }
+
+@keyframes float {
+  0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0.1; }
+  50% { transform: translateY(-20px) rotate(5deg); opacity: 0.08; }
+}
+
+.animate-float {
+  animation: float 8s ease-in-out infinite;
+}
+
+.animate-float-delayed {
+  animation: float 10s ease-in-out infinite 2s;
+}
+
+.animate-float-slow {
+  animation: float 12s ease-in-out infinite 4s;
+}
+
+@keyframes drift-right {
+  0% { left: -5%; transform: rotate(0deg); }
+  100% { left: 105%; transform: rotate(360deg); }
+}
+
+@keyframes drift-left {
+  0% { right: -5%; transform: rotate(0deg); }
+  100% { right: 105%; transform: rotate(-360deg); }
+}
+
+.animate-drift-right {
+  animation: drift-right 25s linear infinite;
+}
+
+.animate-drift-left {
+  animation: drift-left 30s linear infinite;
+}
+
+.animate-drift-right-slow {
+  animation: drift-right 40s linear infinite;
+}
+
+.animate-drift-left-slow {
+  animation: drift-left 35s linear infinite;
+}
+

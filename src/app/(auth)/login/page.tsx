@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 function LoginForm() {
   const searchParams = useSearchParams();
   const error = searchParams.get('error');
+  const redirect = searchParams.get('redirect');
 
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -24,7 +25,8 @@ function LoginForm() {
   const handleGoogleSignIn = async () => {
     try {
       setIsLoading(true);
-      await signInWithGoogle();
+      // Pass redirect parameter if present
+      await signInWithGoogle(redirect || undefined);
     } catch (err) {
       console.error('Google sign in error:', err);
       setIsLoading(false);
@@ -42,7 +44,8 @@ function LoginForm() {
     try {
       setIsLoading(true);
       setMagicLinkError('');
-      await signInWithMagicLink(email);
+      // Pass redirect parameter if present
+      await signInWithMagicLink(email, redirect || undefined);
       setMagicLinkSent(true);
     } catch (err) {
       console.error('Magic link error:', err);
@@ -52,12 +55,21 @@ function LoginForm() {
     }
   };
 
-  const getErrorMessage = (errorCode: string | null) => {
+  const getErrorMessage = (errorCode: string | null): React.ReactNode => {
     switch (errorCode) {
       case 'auth_failed':
-        return 'Authentication failed. Please try again.';
+        return (
+          <div>
+            <p className="mb-2">Authentication failed. Please try again.</p>
+            <p className="text-xs text-red-300/80 mt-2">
+              If this persists, check your server console for details and ensure{' '}
+              <code className="bg-red-500/20 px-1 rounded">http://localhost:3000/auth/callback</code> is added to
+              your Supabase project&apos;s allowed redirect URLs.
+            </p>
+          </div>
+        );
       case 'no_code':
-        return 'No authentication code provided.';
+        return 'No authentication code provided. Please try signing in again.';
       default:
         return 'An error occurred. Please try again.';
     }
@@ -75,7 +87,7 @@ function LoginForm() {
       {/* Error Message */}
       {error && !dismissedError && (
         <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-md relative">
-          <p className="text-red-400 text-sm pr-6">{getErrorMessage(error)}</p>
+          <div className="text-red-400 text-sm pr-6">{getErrorMessage(error)}</div>
           <button
             onClick={() => setDismissedError(true)}
             className="absolute top-2 right-2 text-red-400 hover:text-red-300 transition-colors"

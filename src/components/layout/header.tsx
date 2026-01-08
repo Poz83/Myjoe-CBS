@@ -46,9 +46,9 @@ export function Header() {
         {/* Left: Logo */}
         <div className="flex items-center gap-4">
           <Link
-            href="/"
+            href="/dashboard"
             className="flex items-center hover:opacity-80 transition-opacity"
-            aria-label="Myjoe - Go to home page"
+            aria-label="Myjoe - Go to dashboard"
           >
             <Image
               src="/myjoe-logo.png"

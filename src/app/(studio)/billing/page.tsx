@@ -90,7 +90,7 @@ function BillingContent() {
   }, [searchParams, router, balance?.plan]);
 
   const handleBack = () => {
-    router.push('/studio');
+    router.push('/dashboard');
   };
 
   const handleManageSubscription = () => {

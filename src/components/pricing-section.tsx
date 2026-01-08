@@ -38,9 +38,9 @@ export function PricingSection() {
 
   return (
     <section id="pricing" className="py-20 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-5xl mx-auto">
+      <div className="max-w-[1200px] mx-auto">
         <div className="text-center mb-12">
-          <span className="inline-block text-blue-400 font-medium mb-4">PRICING</span>
+          <span className="inline-block text-accent-cyan font-medium mb-4">PRICING</span>
           <h2 className="text-3xl sm:text-4xl font-bold mb-4">
             Simple, Transparent Pricing
           </h2>
@@ -56,7 +56,7 @@ export function PricingSection() {
               onClick={() => setBillingInterval('monthly')}
               className={`px-6 py-2.5 rounded-lg font-medium transition-all ${
                 billingInterval === 'monthly'
-                  ? 'bg-blue-600 text-white shadow-lg'
+                  ? 'bg-accent-cyan text-white shadow-lg'
                   : 'text-zinc-400 hover:text-white'
               }`}
             >
@@ -66,7 +66,7 @@ export function PricingSection() {
               onClick={() => setBillingInterval('yearly')}
               className={`px-6 py-2.5 rounded-lg font-medium transition-all ${
                 billingInterval === 'yearly'
-                  ? 'bg-blue-600 text-white shadow-lg'
+                  ? 'bg-accent-cyan text-white shadow-lg'
                   : 'text-zinc-400 hover:text-white'
               }`}
             >
@@ -107,7 +107,7 @@ export function PricingSection() {
               <span className="text-4xl font-bold">$0</span>
               <span className="text-zinc-500">/month</span>
             </div>
-            <div className="text-blue-400 font-medium mb-6">75 Blots/month</div>
+            <div className="text-accent-cyan font-medium mb-6">75 Blots/month</div>
             <ul className="space-y-3 mb-8">
               {[
                 "15 coloring pages/month",
@@ -131,11 +131,11 @@ export function PricingSection() {
           </div>
 
           {/* Creator Tier */}
-          <div className="bg-gradient-to-b from-blue-600/10 to-transparent border-2 border-blue-500/50 rounded-2xl p-8 relative">
-            <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-full">
+          <div className="bg-gradient-to-b from-accent-cyan/10 to-transparent border-2 border-accent-cyan/50 rounded-2xl p-8 relative">
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-accent-cyan text-white text-xs font-bold px-3 py-1 rounded-full">
               MOST POPULAR
             </div>
-            <div className="text-blue-400 font-medium mb-2">Creator</div>
+            <div className="text-accent-cyan font-medium mb-2">Creator</div>
             <div className="flex items-baseline gap-2 mb-1">
               {billingInterval === 'yearly' && (
                 <span className="text-xl text-zinc-500 line-through">${creatorPlan.monthly}</span>
@@ -158,7 +158,7 @@ export function PricingSection() {
               <select
                 value={creatorIndex}
                 onChange={(e) => setCreatorIndex(Number(e.target.value))}
-                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 text-white font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer"
+                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 text-white font-medium focus:outline-none focus:ring-2 focus:ring-accent-cyan focus:border-transparent cursor-pointer"
               >
                 {PLAN_TIERS.creator.map((tier, i) => (
                   <option key={tier.blots} value={i}>
@@ -185,7 +185,7 @@ export function PricingSection() {
             </ul>
             <Link
               href="/login"
-              className="block w-full text-center bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-xl font-medium transition-colors"
+              className="block w-full text-center bg-accent-cyan hover:bg-accent-cyan/80 text-bg-base px-6 py-3 rounded-xl font-medium transition-colors"
             >
               Start Creating
             </Link>

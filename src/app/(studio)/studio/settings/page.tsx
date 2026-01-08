@@ -37,7 +37,7 @@ function SettingsContent() {
   };
 
   const handleBack = () => {
-    router.push('/studio');
+    router.push('/dashboard');
   };
 
   // Loading state
