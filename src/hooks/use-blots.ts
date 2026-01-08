@@ -13,7 +13,7 @@ export function useBlots(): UseBlots {
   const { data, isLoading, refetch } = useBalance();
 
   return {
-    blots: data?.total ?? 0,
+    blots: data?.blots ?? 0,
     plan: data?.plan ?? 'free',
     isLoading,
     refetch,
