@@ -23,7 +23,22 @@
       "Bash(npx next build)",
       "Bash(npx vercel --prod --yes)",
       "Bash(cat:*)",
-      "WebFetch(domain:myjoe.app)"
+      "WebFetch(domain:myjoe.app)",
+      "Bash(npx supabase migration repair:*)",
+      "Bash(npx supabase:*)",
+      "Bash(npx vercel deploy --prod --force --yes)",
+      "Bash(GIT_AUTHOR_EMAIL=\"\" npx vercel --prod --yes)",
+      "Bash(npx vercel deploy:*)",
+      "Bash(powershell -Command \"Invoke-RestMethod -Uri ''https://api.resend.com/emails'' -Method Post -Headers @{Authorization=''Bearer re_idx2AGeC_3S57bhXr2rc83oL4iMVGagRB''; ''Content-Type''=''application/json''} -Body ''{\"\"from\"\": \"\"noreply@myjoe.app\"\", \"\"to\"\": \"\"hello@myjoe.com\"\", \"\"subject\"\": \"\"Myjoe SMTP Test\"\", \"\"html\"\": \"\"<h2>SMTP is working!</h2><p>Your Resend integration is configured correctly.</p>\"\"}''\")",
+      "Bash(powershell -Command \"$body = @{from=''noreply@myjoe.app''; to=''hello@myjoe.com''; subject=''Myjoe SMTP Test''; html=''<h2>SMTP is working!</h2><p>Your Resend integration is configured correctly.</p>''} | ConvertTo-Json; Invoke-RestMethod -Uri ''https://api.resend.com/emails'' -Method Post -Headers @{Authorization=''Bearer re_idx2AGeC_3S57bhXr2rc83oL4iMVGagRB''; ''Content-Type''=''application/json''} -Body $body\")",
+      "Bash(node -e \"fetch\\(''https://api.resend.com/emails'', {method: ''POST'', headers: {''Authorization'': ''Bearer re_idx2AGeC_3S57bhXr2rc83oL4iMVGagRB'', ''Content-Type'': ''application/json''}, body: JSON.stringify\\({from: ''Myjoe <hello@myjoe.app>'', to: ''hello@myjoe.app'', subject: ''Myjoe SMTP Test'', html: ''<h2>SMTP is working!</h2><p>Your Resend integration is configured correctly.</p>''}\\)}\\).then\\(r => r.json\\(\\)\\).then\\(console.log\\).catch\\(console.error\\)\")",
+      "Bash(node -e \"fetch\\(''https://rziohajwncqcgzorjqff.supabase.co/auth/v1/recover'', {method: ''POST'', headers: {''apikey'': ''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ6aW9oYWp3bmNxY2d6b3JqcWZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc2OTA1MjMsImV4cCI6MjA4MzI2NjUyM30.QyXfOzjxexiuIKHODmLOs2N0mcHen28058AB9umoHm0'', ''Content-Type'': ''application/json''}, body: JSON.stringify\\({email: ''hello@myjoe.app''}\\)}\\).then\\(r => r.json\\(\\)\\).then\\(console.log\\).catch\\(console.error\\)\")",
+      "Bash(npm run dev)",
+      "Bash(node -e \"fetch\\(''https://rziohajwncqcgzorjqff.supabase.co/auth/v1/magiclink'', {method: ''POST'', headers: {''apikey'': ''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ6aW9oYWp3bmNxY2d6b3JqcWZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc2OTA1MjMsImV4cCI6MjA4MzI2NjUyM30.QyXfOzjxexiuIKHODmLOs2N0mcHen28058AB9umoHm0'', ''Content-Type'': ''application/json''}, body: JSON.stringify\\({email: ''hello@myjoe.app''}\\)}\\).then\\(r => r.json\\(\\)\\).then\\(console.log\\).catch\\(console.error\\)\")"
     ]
-  }
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "Sentry"
+  ]
 }
