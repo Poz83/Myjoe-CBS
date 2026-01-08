@@ -225,7 +225,7 @@ export function PageEditor({
                 <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
                 <div>
                   <p className="text-sm font-medium text-red-400">
-                    Content blocked: {editError.blocked.join(', ')}
+                    This content isn't suitable: {editError.blocked.join(', ')}
                   </p>
                   {editError.suggestions && editError.suggestions.length > 0 && (
                     <p className="text-xs text-zinc-400 mt-1">

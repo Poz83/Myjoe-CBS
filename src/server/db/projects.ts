@@ -22,7 +22,7 @@ export interface CreateProjectInput {
   name: string;
   description?: string | null;
   pageCount: number;
-  audience: Audience;
+  audience: Audience[];
   stylePreset: StylePreset;
   trimSize?: TrimSize;
   heroId?: string | null;
@@ -40,7 +40,7 @@ export interface UpdateProjectInput {
   page_count?: number;
   trim_size?: TrimSize;
   style_preset?: StylePreset;
-  audience?: Audience;
+  audience?: Audience[];
   line_thickness_pts?: number | null;
   line_thickness_auto?: boolean;
 }
@@ -122,8 +122,9 @@ export async function createProject(
 ): Promise<Project> {
   const supabase = await createClient();
 
-  // Derive DNA from audience
-  const dna = AUDIENCE_DNA_MAPPING[input.audience];
+  // Derive DNA from primary audience (first selection)
+  const primaryAudience = input.audience[0] ?? 'children';
+  const dna = AUDIENCE_DNA_MAPPING[primaryAudience];
 
   // Insert project
   const { data: project, error: projectError } = await supabase

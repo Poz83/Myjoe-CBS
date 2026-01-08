@@ -11,7 +11,7 @@ interface Project {
   page_count: number;
   trim_size: TrimSize;
   style_preset: StylePreset;
-  audience: Audience;
+  audience: Audience[];
   line_thickness_pts?: number | null;
   line_thickness_auto?: boolean;
   description?: string | null;

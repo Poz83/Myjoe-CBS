@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import type { Database } from '@/lib/supabase/types';
 import type { ProjectWithDetails } from '@/server/db/projects';
+import type { Audience, StylePreset, TrimSize } from '@/types/domain';
 
 type Project = Database['public']['Tables']['projects']['Row'];
 
@@ -15,9 +16,9 @@ interface CreateProjectInput {
   name: string;
   description?: string | null;
   pageCount: number;
-  audience: 'toddler' | 'children' | 'tween' | 'teen' | 'adult';
-  stylePreset: 'bold-simple' | 'kawaii' | 'whimsical' | 'cartoon' | 'botanical';
-  trimSize?: '8.5x11' | '8.5x8.5' | '6x9';
+  audience: Audience[];
+  stylePreset: StylePreset;
+  trimSize?: TrimSize;
   heroId?: string | null;
 }
 
@@ -31,8 +32,8 @@ export function useProjects() {
       const response = await fetch('/api/projects');
       
       if (!response.ok) {
-        const error = await response.json().catch(() => ({ error: 'Failed to fetch projects' }));
-        throw new Error(error.error || 'Failed to fetch projects');
+        const error = await response.json().catch(() => ({ error: "Couldn't load projects" }));
+        throw new Error(error.error || "Couldn't load projects");
       }
       
       const data: ProjectsResponse = await response.json();
@@ -51,8 +52,8 @@ export function useProject(id: string) {
       const response = await fetch(`/api/projects/${id}`);
       
       if (!response.ok) {
-        const error = await response.json().catch(() => ({ error: 'Failed to fetch project' }));
-        throw new Error(error.error || 'Failed to fetch project');
+        const error = await response.json().catch(() => ({ error: "Couldn't load project" }));
+        throw new Error(error.error || "Couldn't load project");
       }
       
       return response.json();
@@ -79,8 +80,8 @@ export function useCreateProject() {
       });
 
       if (!response.ok) {
-        const error = await response.json().catch(() => ({ error: 'Failed to create project' }));
-        throw new Error(error.error || 'Failed to create project');
+        const error = await response.json().catch(() => ({ error: "Couldn't create project" }));
+        throw new Error(error.error || "Couldn't create project");
       }
 
       return response.json();
@@ -148,8 +149,8 @@ export function useDeleteProject() {
       });
 
       if (!response.ok) {
-        const error = await response.json().catch(() => ({ error: 'Failed to delete project' }));
-        throw new Error(error.error || 'Failed to delete project');
+        const error = await response.json().catch(() => ({ error: "Couldn't delete project" }));
+        throw new Error(error.error || "Couldn't delete project");
       }
     },
     onMutate: async (projectId) => {
@@ -171,10 +172,10 @@ export function useDeleteProject() {
       if (context?.previousProjects) {
         queryClient.setQueryData(['projects'], context.previousProjects);
       }
-      toast.error(error.message || 'Failed to delete project');
+      toast.error(error.message || "Couldn't delete project");
     },
     onSuccess: () => {
-      toast.success('Project deleted successfully');
+      toast.success('Project deleted');
     },
     onSettled: () => {
       // Refetch to ensure consistency

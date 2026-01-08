@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { ChevronLeft, Check, Loader, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { StyleReadyBadge } from './style-calibration';
 import { useLayoutStore } from '@/stores/layout-store';
 import { cn } from '@/lib/utils';
 
@@ -109,8 +108,6 @@ export function ProjectHeader({
           {STATUS_LABELS[status]}
         </span>
 
-        {/* Style Ready Badge */}
-        {styleReady && <StyleReadyBadge />}
       </div>
 
       {/* Right Section */}

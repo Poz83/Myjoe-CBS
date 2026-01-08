@@ -29,9 +29,9 @@ export default function LibraryPage() {
     return (
       <div className="h-full flex items-center justify-center p-8">
         <div className="text-center space-y-4">
-          <p className="text-red-400">Failed to load heroes</p>
+          <p className="text-red-400">Couldn't load characters</p>
           <p className="text-sm text-zinc-400">
-            {error instanceof Error ? error.message : 'Unknown error'}
+            {error instanceof Error ? error.message : 'Something went wrong'}
           </p>
         </div>
       </div>

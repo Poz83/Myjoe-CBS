@@ -9,7 +9,6 @@ import { BlotsBadge } from './blots-badge';
 import { ViewModeTabs, type ViewMode } from './view-mode-tabs';
 import { HelpButton } from './help-button';
 import { UserMenu } from '@/components/features/auth/user-menu';
-import { StyleReadyBadge } from '@/components/features/project/style-calibration';
 import { useLayoutStore } from '@/stores/layout-store';
 import { cn } from '@/lib/utils';
 
@@ -136,9 +135,6 @@ export function EditorToolbar({
         >
           {STATUS_LABELS[status]}
         </span>
-
-        {/* Style Ready Badge */}
-        {styleReady && <StyleReadyBadge />}
 
         {/* Auto-save Indicator */}
         <div className="flex items-center gap-1.5 text-sm ml-2">

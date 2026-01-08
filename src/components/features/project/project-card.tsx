@@ -90,7 +90,7 @@ export function ProjectCard({ project, onDelete }: ProjectCardProps) {
 
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (onDelete && confirm(`Are you sure you want to delete "${project.name}"?`)) {
+    if (onDelete) {
       onDelete(project.id);
     }
   };

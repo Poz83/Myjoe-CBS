@@ -6,18 +6,18 @@ import {
   Layers, 
   Ruler, 
   Palette, 
-  Users, 
   Sparkles,
-  Save,
   Cloud,
   CloudOff,
   Loader2
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Slider } from '@/components/ui/slider';
+import { AudienceSelector } from './audience-selector';
 import { LineThicknessSelector } from './line-thickness-selector';
 import { IdeaBox } from './idea-box';
-import { AUDIENCES, STYLE_PRESETS, TRIM_SIZES, MAX_PAGES } from '@/lib/constants';
+import { STYLE_PRESETS, TRIM_SIZES, MAX_PAGES } from '@/lib/constants';
 import type { Audience, StylePreset, TrimSize } from '@/types/domain';
 import { cn } from '@/lib/utils';
 import { useProjectAutoSave } from '@/hooks/use-project-auto-save';
@@ -27,7 +27,7 @@ export interface ProjectSettings {
   pageCount: number;
   trimSize: TrimSize;
   stylePreset: StylePreset;
-  audience: Audience;
+  audience: Audience[];
   lineThicknessPts: number | null; // null means auto
   lineThicknessAuto: boolean;
   idea: string;
@@ -49,14 +49,14 @@ const STYLE_INFO: Record<StylePreset, { label: string; desc: string }> = {
   'whimsical': { label: 'Whimsical', desc: 'Playful, fantasy elements' },
   'cartoon': { label: 'Cartoon', desc: 'Classic cartoon style' },
   'botanical': { label: 'Botanical', desc: 'Nature, plants, flowers' },
-};
-
-const AUDIENCE_INFO: Record<Audience, { label: string; ages: string; desc: string }> = {
-  toddler: { label: 'Toddler', ages: '2-4', desc: 'Simple shapes' },
-  children: { label: 'Children', ages: '5-8', desc: 'Moderate detail' },
-  tween: { label: 'Tween', ages: '9-12', desc: 'Balanced' },
-  teen: { label: 'Teen', ages: '13-17', desc: 'Detailed' },
-  adult: { label: 'Adult', ages: '18+', desc: 'Intricate' },
+  mandala: { label: 'Mandala', desc: 'Intricate patterns for mindfulness' },
+  fantasy: { label: 'Fantasy', desc: 'Dragons, magic, and mythical worlds' },
+  gothic: { label: 'Gothic', desc: 'Dark, moody, horror-inspired art' },
+  cozy: { label: 'Cozy', desc: 'Warm hygge scenes and interiors' },
+  geometric: { label: 'Geometric', desc: 'Bold geometric and abstract shapes' },
+  wildlife: { label: 'Wildlife', desc: 'Realistic animals and nature scenes' },
+  floral: { label: 'Floral', desc: 'Lush flowers and garden motifs' },
+  abstract: { label: 'Abstract', desc: 'Modern artistic patterns' },
 };
 
 export function ProjectSettingsPanel({
@@ -90,10 +90,13 @@ export function ProjectSettingsPanel({
   };
 
   return (
-    <div className="h-full flex flex-col bg-zinc-900/50 border-r border-zinc-800 overflow-y-auto">
+    <div className="h-full flex flex-col bg-gradient-to-b from-zinc-900/80 to-[#0D0D0D] border-r border-white/5 overflow-y-auto">
       {/* Header */}
-      <div className="p-4 border-b border-zinc-800">
-        <h2 className="text-lg font-semibold text-white mb-1">Project Settings</h2>
+      <div className="p-5 border-b border-white/5 flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-semibold text-white">Project Settings</h2>
+          <p className="text-xs text-zinc-500">Fine-tune your book setup</p>
+        </div>
         <div className="flex items-center gap-2 text-xs text-zinc-500">
           {saveStatus === 'saving' && (
             <>
@@ -117,11 +120,11 @@ export function ProjectSettingsPanel({
       </div>
 
       {/* Settings Content */}
-      <div className="flex-1 p-4 space-y-6">
+      <div className="flex-1 p-5 space-y-6">
         {/* Project Name */}
-        <div className="space-y-2">
-          <label className="flex items-center gap-2 text-sm font-medium text-zinc-200">
-            <FileText className="w-4 h-4" />
+        <div className="space-y-2 bg-white/[0.02] border border-white/5 rounded-2xl p-4">
+          <label className="flex items-center gap-2 text-sm font-semibold text-white">
+            <FileText className="w-4 h-4 text-blue-300" />
             Project Name
           </label>
           <Input
@@ -130,49 +133,40 @@ export function ProjectSettingsPanel({
             disabled={disabled}
             placeholder="My Coloring Book"
             maxLength={100}
+            className="bg-zinc-900/80 border-white/10"
           />
         </div>
 
         {/* Page Count */}
-        <div className="space-y-2">
-          <label className="flex items-center gap-2 text-sm font-medium text-zinc-200">
-            <Layers className="w-4 h-4" />
-            Page Count
-          </label>
-          <div className="grid grid-cols-4 gap-2 mb-2">
-            {PAGE_COUNT_PRESETS.map((count) => (
-              <button
-                key={count}
-                onClick={() => handleSettingChange('pageCount', count)}
-                disabled={disabled}
-                className={cn(
-                  'px-3 py-2 rounded-lg border text-sm font-medium transition-colors',
-                  settings.pageCount === count
-                    ? 'bg-blue-500/10 border-blue-500/50 text-blue-300'
-                    : 'bg-zinc-800/30 border-zinc-700 text-zinc-300 hover:border-zinc-600'
-                )}
-              >
-                {count}
-              </button>
-            ))}
+        <div className="space-y-3 bg-gradient-to-br from-blue-500/10 to-blue-600/5 border border-white/5 rounded-2xl p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-sm font-semibold text-white">
+              <Layers className="w-4 h-4 text-blue-300" />
+              <span>Page Count</span>
+            </div>
+            <div className="text-sm font-semibold text-blue-200">{settings.pageCount} pages</div>
           </div>
-          <Input
-            type="number"
+          <Slider
+            value={[settings.pageCount]}
             min={1}
             max={MAX_PAGES}
-            value={settings.pageCount}
-            onChange={(e) => handleSettingChange('pageCount', parseInt(e.target.value) || 1)}
+            step={1}
             disabled={disabled}
-            className="w-full"
+            onValueChange={([v]) => handleSettingChange('pageCount', v)}
+            className="pt-2"
           />
+          <div className="flex justify-between text-xs text-zinc-500">
+            <span>1</span>
+            <span>{MAX_PAGES}</span>
+          </div>
         </div>
 
         {/* Trim Size */}
-        <div className="space-y-2">
-          <label className="flex items-center gap-2 text-sm font-medium text-zinc-200">
-            <Ruler className="w-4 h-4" />
+        <div className="space-y-3 bg-white/[0.02] border border-white/5 rounded-2xl p-4">
+          <div className="flex items-center gap-2 text-sm font-semibold text-white">
+            <Ruler className="w-4 h-4 text-blue-300" />
             Trim Size
-          </label>
+          </div>
           <div className="grid grid-cols-3 gap-2">
             {(Object.keys(TRIM_SIZES) as TrimSize[]).map((size) => (
               <button
@@ -180,13 +174,15 @@ export function ProjectSettingsPanel({
                 onClick={() => handleSettingChange('trimSize', size)}
                 disabled={disabled}
                 className={cn(
-                  'px-3 py-2 rounded-lg border text-sm font-medium transition-colors',
+                  'px-3 py-3 rounded-xl border text-sm font-medium transition-all',
+                  'bg-white/[0.02] border-white/5 hover:border-white/10 hover:scale-[1.01]',
                   settings.trimSize === size
-                    ? 'bg-blue-500/10 border-blue-500/50 text-blue-300'
-                    : 'bg-zinc-800/30 border-zinc-700 text-zinc-300 hover:border-zinc-600'
+                    ? 'border-blue-500/60 ring-1 ring-blue-500/30 bg-blue-500/5'
+                    : '',
+                  disabled && 'opacity-60 cursor-not-allowed'
                 )}
               >
-                <div className="font-semibold">{size}</div>
+                <div className="font-semibold text-white">{size}</div>
                 <div className="text-xs text-zinc-500 mt-0.5">
                   {TRIM_SIZES[size].aspectRatio}
                 </div>
@@ -196,25 +192,27 @@ export function ProjectSettingsPanel({
         </div>
 
         {/* Visual Style */}
-        <div className="space-y-2">
-          <label className="flex items-center gap-2 text-sm font-medium text-zinc-200">
-            <Palette className="w-4 h-4" />
+        <div className="space-y-3 bg-white/[0.02] border border-white/5 rounded-2xl p-4">
+          <div className="flex items-center gap-2 text-sm font-semibold text-white">
+            <Palette className="w-4 h-4 text-blue-300" />
             Visual Style
-          </label>
-          <div className="grid grid-cols-2 gap-2">
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             {STYLE_PRESETS.map((style) => (
               <button
                 key={style}
                 onClick={() => handleSettingChange('stylePreset', style)}
                 disabled={disabled}
                 className={cn(
-                  'px-3 py-2 rounded-lg border text-sm font-medium transition-colors text-left',
+                  'p-3 rounded-xl border text-sm font-medium transition-all text-left',
+                  'bg-white/[0.02] border-white/5 hover:border-white/10 hover:scale-[1.01]',
                   settings.stylePreset === style
-                    ? 'bg-blue-500/10 border-blue-500/50 text-blue-300'
-                    : 'bg-zinc-800/30 border-zinc-700 text-zinc-300 hover:border-zinc-600'
+                    ? 'border-blue-500/50 ring-1 ring-blue-500/30 bg-blue-500/5'
+                    : '',
+                  disabled && 'opacity-60 cursor-not-allowed'
                 )}
               >
-                <div className="font-semibold">{STYLE_INFO[style].label}</div>
+                <div className="font-semibold text-white">{STYLE_INFO[style].label}</div>
                 <div className="text-xs text-zinc-500 mt-0.5">{STYLE_INFO[style].desc}</div>
               </button>
             ))}
@@ -222,37 +220,20 @@ export function ProjectSettingsPanel({
         </div>
 
         {/* Target Audience */}
-        <div className="space-y-2">
-          <label className="flex items-center gap-2 text-sm font-medium text-zinc-200">
-            <Users className="w-4 h-4" />
-            Target Audience
-          </label>
-          <div className="grid grid-cols-5 gap-2">
-            {AUDIENCES.map((audience) => (
-              <button
-                key={audience}
-                onClick={() => handleSettingChange('audience', audience)}
-                disabled={disabled}
-                className={cn(
-                  'px-2 py-2 rounded-lg border text-xs font-medium transition-colors',
-                  settings.audience === audience
-                    ? 'bg-blue-500/10 border-blue-500/50 text-blue-300'
-                    : 'bg-zinc-800/30 border-zinc-700 text-zinc-300 hover:border-zinc-600'
-                )}
-              >
-                <div className="font-semibold">{AUDIENCE_INFO[audience].label}</div>
-                <div className="text-zinc-500 mt-0.5">{AUDIENCE_INFO[audience].ages}</div>
-              </button>
-            ))}
-          </div>
+        <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-4">
+          <AudienceSelector
+            selected={settings.audience}
+            onChange={(audiences) => handleSettingChange('audience', audiences)}
+            disabled={disabled}
+          />
         </div>
 
         {/* Line Thickness */}
-        <div className="space-y-2">
-          <label className="flex items-center gap-2 text-sm font-medium text-zinc-200">
-            <Sparkles className="w-4 h-4" />
+        <div className="space-y-3 bg-white/[0.02] border border-white/5 rounded-2xl p-4">
+          <div className="flex items-center gap-2 text-sm font-semibold text-white">
+            <Sparkles className="w-4 h-4 text-blue-300" />
             Line Thickness (pts)
-          </label>
+          </div>
           <LineThicknessSelector
             value={settings.lineThicknessPts}
             auto={settings.lineThicknessAuto}
@@ -265,7 +246,7 @@ export function ProjectSettingsPanel({
         </div>
 
         {/* Idea Box */}
-        <div className="space-y-2">
+        <div className="space-y-2 bg-white/[0.02] border border-white/5 rounded-2xl p-4">
           <IdeaBox
             value={settings.idea}
             onChange={(value) => handleSettingChange('idea', value)}

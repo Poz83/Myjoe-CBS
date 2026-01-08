@@ -28,13 +28,13 @@ export default function StudioError({
         <div className="space-y-2">
           <h1 className="text-2xl font-bold text-white">Something went wrong</h1>
           <p className="text-zinc-400">
-            We encountered an error while loading this page. Our team has been notified.
+            We couldn't load this page. Don't worry, we've been notified and are looking into it.
           </p>
         </div>
 
         {error.digest && (
           <p className="text-xs text-zinc-600 font-mono">
-            Error ID: {error.digest}
+            Reference: {error.digest}
           </p>
         )}
 

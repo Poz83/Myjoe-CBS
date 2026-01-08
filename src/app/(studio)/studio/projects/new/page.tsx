@@ -40,7 +40,7 @@ export default function NewProjectPage() {
   const canProceed = () => {
     switch (currentStep) {
       case 1:
-        return formData.name.trim().length > 0 && formData.pageCount >= 1 && formData.pageCount <= 45;
+        return formData.name.trim().length > 0 && formData.pageCount >= 1 && formData.pageCount <= 40;
       case 2:
         return formData.audience !== null;
       case 3:
@@ -73,7 +73,7 @@ export default function NewProjectPage() {
       const project = await createProject.mutateAsync({
         name: formData.name,
         pageCount: formData.pageCount,
-        audience: formData.audience,
+        audience: [formData.audience],
         stylePreset: formData.stylePreset,
         heroId: formData.heroId,
       });

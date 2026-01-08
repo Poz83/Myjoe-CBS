@@ -8,7 +8,7 @@ import type { Audience } from '@/lib/constants';
 interface HeroInput {
   name: string;
   description: string;
-  audience: Audience;
+  audience: Audience[];
 }
 
 interface HeroResult {
@@ -26,7 +26,8 @@ export async function compileHeroPrompt(input: HeroInput): Promise<{
   negativePrompt: string;
 }> {
   const { name, description, audience } = input;
-  const rules = AUDIENCE_DERIVATIONS[audience];
+  const primaryAudience = Array.isArray(audience) ? audience[0] : audience;
+  const rules = AUDIENCE_DERIVATIONS[primaryAudience];
   const linePrompt = LINE_WEIGHT_PROMPTS[rules.lineWeight];
 
   // Use GPT-4o-mini to expand description
@@ -45,7 +46,7 @@ Given a character description, create a detailed prompt for a 2×2 grid showing:
 
 The character must be:
 - Coloring book style with ${rules.lineWeight} black outlines
-- Age-appropriate for ${audience} (${rules.ageRange})
+- Age-appropriate for ${primaryAudience} (${rules.ageRange})
 - Consistent across all 4 views
 - Pure black lines on white background
 - No shading, no gradients
@@ -83,7 +84,8 @@ Output ONLY the prompt text, nothing else.`
 
 export async function generateHeroSheet(input: HeroInput): Promise<HeroResult> {
   // 1. Safety check
-  const safetyResult = await checkContentSafety(input.description, input.audience);
+  const primaryAudience = Array.isArray(input.audience) ? input.audience[0] : input.audience;
+  const safetyResult = await checkContentSafety(input.description, primaryAudience);
   if (!safetyResult.safe) {
     return {
       success: false,

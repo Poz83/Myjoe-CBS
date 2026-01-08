@@ -33,7 +33,7 @@ export default function PageEditorPage() {
           </Button>
         </header>
         <div className="flex-1 flex items-center justify-center">
-          <p className="text-red-400">{error.message || 'Failed to load page'}</p>
+          <p className="text-red-400">{error.message || "Couldn't load page"}</p>
         </div>
       </div>
     );

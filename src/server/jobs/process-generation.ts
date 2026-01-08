@@ -99,8 +99,11 @@ export async function processGenerationJob(jobId: string): Promise<void> {
     if (lineThicknessAuto && (lineThicknessPts === null || lineThicknessPts === undefined)) {
       // Auto-detect line thickness based on audience and idea
       try {
+        const primaryAudience = Array.isArray(project.audience)
+          ? (project.audience[0] as Audience)
+          : (project.audience as Audience);
         lineThicknessPts = await detectLineThickness(
-          project.audience as Audience,
+          primaryAudience,
           metadata.idea
         );
       } catch (error) {
@@ -114,7 +117,7 @@ export async function processGenerationJob(jobId: string): Promise<void> {
     const planResult = await planAndCompile({
       userIdea: metadata.idea,
       pageCount: pendingItems.length,
-      audience: project.audience as Audience,
+      audience: Array.isArray(project.audience) ? (project.audience[0] as Audience) : (project.audience as Audience),
       stylePreset: project.style_preset as StylePreset,
       lineWeight: project.line_weight,
       lineThicknessPts,

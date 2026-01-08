@@ -7,5 +7,4 @@ export type { TrimSize } from './cleanup';
 
 export { qualityCheck } from './quality-gate';
 export { compileHeroPrompt, generateHeroSheet } from './hero-generator';
-export { generateCalibrationSamples } from './style-calibration';
 export { inpaintImage } from './inpaint';

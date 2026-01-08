@@ -56,7 +56,7 @@ export async function apiClient<T>(
     // Handle 401 - Session timeout
     if (response.status === 401) {
       const returnUrl = encodeURIComponent(window.location.pathname);
-      toast.error('Session expired. Please sign in again.');
+      toast.error("You've been signed out. Please sign in again.");
       window.location.href = `/auth/signin?returnTo=${returnUrl}`;
       throw new ApiClientError('Session expired', 401);
     }
@@ -67,14 +67,14 @@ export async function apiClient<T>(
       const seconds = retryAfter ? parseInt(retryAfter, 10) : 60;
       
       if (showErrorToast) {
-        toast.error(`Too many requests. Try again in ${seconds} seconds.`);
+        toast.error(`You're doing that too fast. Please wait ${seconds} seconds and try again.`);
       }
       throw new ApiClientError('Rate limited', 429);
     }
 
     // Handle other errors
     if (!response.ok) {
-      let errorMsg = errorMessage || 'An error occurred';
+      let errorMsg = errorMessage || 'Something went wrong';
       
       try {
         const errorData = await response.json();
@@ -104,7 +104,7 @@ export async function apiClient<T>(
     }
 
     // Handle network errors
-    const networkError = 'Network error. Please check your connection.';
+    const networkError = "Can't connect right now. Please check your internet connection.";
     if (showErrorToast) {
       toast.error(networkError);
     }

@@ -14,6 +14,7 @@ import { HeroCard, HeroCardSkeleton } from '@/components/features/hero/hero-card
 import { useDeleteProject } from '@/hooks/use-projects';
 import { useDeleteHero } from '@/hooks/use-heroes';
 import { EmptyState } from '@/components/ui/empty-state';
+import { DeleteProjectDialog } from '@/components/features/project/delete-project-dialog';
 
 const tabs = [
   { id: 'projects', label: 'Projects', icon: Folder, description: 'Coloring Book Studio projects' },
@@ -392,9 +393,23 @@ function HeroesTab() {
 function ProjectsTab() {
   const { data: projects, isLoading, error } = useVaultProjects();
   const deleteProject = useDeleteProject();
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState<{ id: string; name: string } | null>(null);
 
   const handleDelete = (projectId: string) => {
-    deleteProject.mutate(projectId);
+    const project = projects?.find(p => p.id === projectId);
+    if (project) {
+      setProjectToDelete({ id: projectId, name: project.name });
+      setDeleteDialogOpen(true);
+    }
+  };
+
+  const confirmDelete = () => {
+    if (projectToDelete) {
+      deleteProject.mutate(projectToDelete.id);
+      setDeleteDialogOpen(false);
+      setProjectToDelete(null);
+    }
   };
 
   if (error) {
@@ -455,7 +470,7 @@ function ProjectsTab() {
             <div key={project.id} className="relative">
               <ProjectCard
                 project={project}
-                onDelete={handleDelete}
+                onDelete={(id) => handleDelete(id)}
               />
               {/* Storage info overlay */}
               <div className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
@@ -465,6 +480,15 @@ function ProjectsTab() {
           ))}
         </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <DeleteProjectDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        projectName={projectToDelete?.name || ''}
+        onConfirm={confirmDelete}
+        isDeleting={deleteProject.isPending}
+      />
     </div>
   );
 }

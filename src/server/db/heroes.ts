@@ -12,7 +12,7 @@ export interface CreateHeroInput {
   owner_id: string;
   name: string;
   description: string;
-  audience: Audience;
+  audience: Audience | Audience[];
   compiled_prompt: string;
   negative_prompt: string | null;
   reference_key: string;
@@ -78,6 +78,7 @@ export async function getHero(heroId: string, userId: string): Promise<Hero> {
  */
 export async function createHero(data: CreateHeroInput): Promise<Hero> {
   const supabase = await createClient();
+  const audienceArray = Array.isArray(data.audience) ? data.audience : [data.audience];
 
   const { data: hero, error } = await supabase
     .from('heroes')
@@ -85,7 +86,7 @@ export async function createHero(data: CreateHeroInput): Promise<Hero> {
       owner_id: data.owner_id,
       name: data.name,
       description: data.description,
-      audience: data.audience,
+      audience: audienceArray,
       compiled_prompt: data.compiled_prompt,
       negative_prompt: data.negative_prompt,
       reference_key: data.reference_key,

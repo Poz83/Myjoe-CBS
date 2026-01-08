@@ -97,7 +97,8 @@ export function HeroCard({ hero, onDelete, onClick }: HeroCardProps) {
     }
   };
 
-  const audienceConfig = AUDIENCE_CONFIG[hero.audience as keyof typeof AUDIENCE_CONFIG] || AUDIENCE_CONFIG.children;
+  const primaryAudience = Array.isArray(hero.audience) ? hero.audience[0] : hero.audience;
+  const audienceConfig = AUDIENCE_CONFIG[primaryAudience as keyof typeof AUDIENCE_CONFIG] || AUDIENCE_CONFIG.children;
 
   return (
     <div

@@ -7,7 +7,15 @@ export type StylePreset =
   | 'kawaii' 
   | 'whimsical' 
   | 'cartoon' 
-  | 'botanical';
+  | 'botanical'
+  | 'mandala'
+  | 'fantasy'
+  | 'gothic'
+  | 'cozy'
+  | 'geometric'
+  | 'wildlife'
+  | 'floral'
+  | 'abstract';
 
 export type LineWeight = 'thick' | 'medium' | 'fine';
 
@@ -22,7 +30,7 @@ export type FluxModel = 'flux-lineart' | 'flux-dev-lora' | 'flux-pro';
 export interface ProjectDNA {
   pageCount: number;
   trimSize: TrimSize;
-  audience: Audience;
+  audience: Audience[];
   stylePreset: StylePreset;
   lineWeight: LineWeight;
   complexity: Complexity;
@@ -33,7 +41,7 @@ export interface ProjectDNA {
 export interface HeroDNA {
   name: string;
   description: string;
-  audience: Audience;
+  audience: Audience[];
   referenceKey: string;            // R2 key for hero reference sheet
   compiledPrompt: string;          // GPT-compiled hero description
 }
@@ -43,7 +51,7 @@ export interface Project {
   ownerId: string;
   name: string;
   trimSize: TrimSize;
-  audience: Audience;
+  audience: Audience[];
   stylePreset: StylePreset;
   styleAnchorKey?: string;
   createdAt: Date;
@@ -55,7 +63,7 @@ export interface Hero {
   ownerId: string;
   name: string;
   description: string;
-  audience: Audience;
+  audience: Audience[];
   referenceKey: string;
   compiledPrompt: string;
   createdAt: Date;

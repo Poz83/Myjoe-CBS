@@ -92,7 +92,7 @@ export async function POST(
 
     // Get project for context (audience, style)
     const project = await getProject(page.project_id, user.id);
-    const audience = project.audience as Audience;
+    const audience = Array.isArray(project.audience) ? (project.audience[0] as Audience) : (project.audience as Audience);
 
     // Check content safety if prompt provided
     if (prompt) {

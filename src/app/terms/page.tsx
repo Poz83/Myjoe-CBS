@@ -12,7 +12,7 @@ export default function TermsPage() {
     <div className="min-h-screen bg-[#0D0D0D] py-16 px-4">
       <div className="max-w-3xl mx-auto">
         <Link 
-          href="/" 
+          href="/landing" 
           className="inline-flex items-center gap-2 text-zinc-400 hover:text-white mb-8 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" aria-hidden="true" />

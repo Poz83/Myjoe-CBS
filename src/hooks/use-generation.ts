@@ -90,8 +90,8 @@ export function useGenerationJob(jobId: string | null) {
       const response = await fetch(`/api/generate/${jobId}`);
 
       if (!response.ok) {
-        const error = await response.json().catch(() => ({ error: 'Failed to fetch job status' }));
-        throw new Error(error.error || 'Failed to fetch job status');
+        const error = await response.json().catch(() => ({ error: "Couldn't check progress" }));
+        throw new Error(error.error || "Couldn't check progress");
       }
 
       return response.json();
@@ -144,11 +144,11 @@ export function useStartGeneration() {
     onError: (error) => {
       // Only show toast for non-safety errors (safety errors shown inline)
       if (!error.blocked && !error.shortfall) {
-        toast.error(error.error || 'Failed to start generation');
+        toast.error(error.error || "Couldn't start creating pages");
       }
     },
     onSuccess: (data) => {
-      toast.success(`Generation started! ${data.totalItems} pages queued.`);
+      toast.success(`Started creating your ${data.totalItems} pages!`);
       // Invalidate profile to update blot balance
       queryClient.invalidateQueries({ queryKey: ['profile'] });
     },
@@ -171,19 +171,19 @@ export function useCancelGeneration() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to cancel job');
+        throw new Error(data.error || "Couldn't cancel");
       }
 
       return data as CancelJobResponse;
     },
     onError: (error) => {
-      toast.error(error.message || 'Failed to cancel generation');
+      toast.error(error.message || "Couldn't cancel");
     },
     onSuccess: (data) => {
       if (data.blotsRefunded > 0) {
-        toast.success(`Generation cancelled. ${data.blotsRefunded} blots refunded.`);
+        toast.success(`Cancelled. ${data.blotsRefunded} blots returned to your account.`);
       } else {
-        toast.success('Generation cancelled.');
+        toast.success('Cancelled.');
       }
       // Invalidate profile to update blot balance
       queryClient.invalidateQueries({ queryKey: ['profile'] });

@@ -25,7 +25,7 @@ type AccountItem = {
 };
 
 const studios: StudioItem[] = [
-  { name: 'Coloring Book Studio', desc: 'Create stunning coloring pages', icon: Palette, href: '/studio', color: 'from-blue-500/20 to-blue-600/5', iconColor: 'text-blue-400', ready: true },
+  { name: 'Coloring Book Studio', desc: 'Create stunning coloring pages', icon: Palette, href: '/studio/projects', color: 'from-blue-500/20 to-blue-600/5', iconColor: 'text-blue-400', ready: true },
   { name: 'Hero Lab', desc: 'Design your characters', icon: Users, href: '/studio/library/heroes', color: 'from-purple-500/20 to-purple-600/5', iconColor: 'text-purple-400', ready: true },
   { name: 'Book Cover Creator', desc: 'Design book covers', icon: BookOpen, href: '#', color: 'from-amber-500/20 to-amber-600/5', iconColor: 'text-amber-400', ready: false },
   { name: 'Monochrome Maker', desc: 'Black & white magic', icon: Contrast, href: '#', color: 'from-zinc-400/20 to-zinc-500/5', iconColor: 'text-zinc-300', ready: false },

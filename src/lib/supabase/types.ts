@@ -59,8 +59,8 @@ export interface Database {
           description: string | null;
           page_count: number;
           trim_size: '8.5x11' | '8.5x8.5' | '6x9';
-          audience: 'toddler' | 'children' | 'tween' | 'teen' | 'adult';
-          style_preset: 'bold-simple' | 'kawaii' | 'whimsical' | 'cartoon' | 'botanical';
+          audience: string[];
+          style_preset: 'bold-simple' | 'kawaii' | 'whimsical' | 'cartoon' | 'botanical' | 'mandala' | 'fantasy' | 'gothic' | 'cozy' | 'geometric' | 'wildlife' | 'floral' | 'abstract';
           line_weight: 'thick' | 'medium' | 'fine';
           complexity: 'minimal' | 'moderate' | 'detailed' | 'intricate';
           style_anchor_key: string | null;
@@ -79,7 +79,7 @@ export interface Database {
           owner_id: string;
           name: string;
           description: string;
-          audience: 'toddler' | 'children' | 'tween' | 'teen' | 'adult';
+          audience: string[];
           compiled_prompt: string;
           negative_prompt: string | null;
           reference_key: string;

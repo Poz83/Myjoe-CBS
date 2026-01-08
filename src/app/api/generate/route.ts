@@ -72,24 +72,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Check content safety for the idea
-    const safetyResult = await checkContentSafety(idea, project.audience as Audience);
+    const primaryAudience = Array.isArray(project.audience) ? (project.audience[0] as Audience) : (project.audience as Audience);
+    const safetyResult = await checkContentSafety(idea, primaryAudience);
     if (!safetyResult.safe) {
       return NextResponse.json(
         {
           error: 'Content not suitable for the target audience',
           blocked: safetyResult.blocked,
           suggestions: safetyResult.suggestions,
-          correlationId,
-        },
-        { status: 400 }
-      );
-    }
-
-    // Verify style anchor exists
-    if (!project.style_anchor_key) {
-      return NextResponse.json(
-        {
-          error: 'Style calibration required before generation',
           correlationId,
         },
         { status: 400 }

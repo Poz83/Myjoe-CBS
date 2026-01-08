@@ -5,6 +5,7 @@ import { PostHogProvider } from "../components/PostHogProvider";
 import { QueryProvider } from "../providers/query-provider";
 import { Toaster } from "../components/ui/toast";
 import { CookieConsentBanner } from "../components/cookie-consent-banner";
+import { ChunkLoadErrorBoundary } from "../components/errors/chunk-load-error-boundary";
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -66,13 +67,15 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className="bg-bg-base text-white antialiased">
-        <PostHogProvider>
-          <QueryProvider>
-            {children}
-          </QueryProvider>
-        </PostHogProvider>
-        <CookieConsentBanner />
-        <Toaster />
+        <ChunkLoadErrorBoundary>
+          <PostHogProvider>
+            <QueryProvider>
+              {children}
+            </QueryProvider>
+          </PostHogProvider>
+          <CookieConsentBanner />
+          <Toaster />
+        </ChunkLoadErrorBoundary>
       </body>
     </html>
   );

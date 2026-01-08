@@ -68,7 +68,7 @@ export function useStartExport() {
       return data as StartExportResponse;
     },
     onError: (error) => {
-      toast.error(error.error || 'Failed to start export');
+      toast.error(error.error || "Couldn't start export");
     },
     onSuccess: () => {
       toast.success('Export started!');
@@ -89,8 +89,8 @@ export function useExportStatus(jobId: string | null) {
       const response = await fetch(`/api/export/${jobId}`);
 
       if (!response.ok) {
-        const error = await response.json().catch(() => ({ error: 'Failed to fetch export status' }));
-        throw new Error(error.error || 'Failed to fetch export status');
+        const error = await response.json().catch(() => ({ error: "Couldn't check export progress" }));
+        throw new Error(error.error || "Couldn't check export progress");
       }
 
       return response.json();

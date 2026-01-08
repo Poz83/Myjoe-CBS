@@ -63,8 +63,8 @@ export function usePageDetail(pageId: string | null) {
       const response = await fetch(`/api/pages/${pageId}`);
 
       if (!response.ok) {
-        const error = await response.json().catch(() => ({ error: 'Failed to fetch page' }));
-        throw new Error(error.error || 'Failed to fetch page');
+        const error = await response.json().catch(() => ({ error: "Couldn't load page" }));
+        throw new Error(error.error || "Couldn't load page");
       }
 
       return response.json();
@@ -106,11 +106,11 @@ export function useEditPage() {
     onError: (error) => {
       // Only show toast for non-safety errors (safety errors shown inline)
       if (!error.blocked && !error.required) {
-        toast.error(error.error || 'Failed to edit page');
+        toast.error(error.error || "Couldn't edit page");
       }
     },
     onSuccess: (data, variables) => {
-      toast.success('Page edited successfully');
+      toast.success('Page updated!');
       // Invalidate page and project queries
       queryClient.invalidateQueries({ queryKey: ['page', variables.pageId] });
       queryClient.invalidateQueries({ queryKey: ['projects', variables.projectId] });
@@ -139,8 +139,8 @@ export function useRestoreVersion() {
       });
 
       if (!response.ok) {
-        const error = await response.json().catch(() => ({ error: 'Failed to restore version' }));
-        throw new Error(error.error || 'Failed to restore version');
+        const error = await response.json().catch(() => ({ error: "Couldn't restore version" }));
+        throw new Error(error.error || "Couldn't restore version");
       }
 
       return response.json();
@@ -171,7 +171,7 @@ export function useRestoreVersion() {
       if (ctx?.previousPage) {
         queryClient.setQueryData(['page', variables.pageId], ctx.previousPage);
       }
-      toast.error(error.message || 'Failed to restore version');
+      toast.error(error.message || "Couldn't restore version");
     },
     onSuccess: (_data, variables) => {
       toast.success(`Restored to version ${variables.version}`);

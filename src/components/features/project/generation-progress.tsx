@@ -142,10 +142,10 @@ export function GenerationProgress({
         <div className="max-w-md mx-auto p-8 text-center">
           <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
           <h2 className="text-xl font-semibold text-white mb-2">
-            Generation Failed
+            Couldn't create your pages
           </h2>
           <p className="text-zinc-400 mb-6">
-            {job.errorMessage || 'An error occurred during generation.'}
+            {job.errorMessage || "Something went wrong while creating your pages."}
           </p>
           <Button variant="secondary" onClick={onCancel}>
             Go Back
@@ -220,7 +220,7 @@ export function GenerationProgress({
         {failedItems > 0 && (
           <div className="flex items-center justify-center gap-2 text-amber-400 text-sm">
             <AlertCircle className="w-4 h-4" />
-            <span>{failedItems} page{failedItems > 1 ? 's' : ''} failed to generate</span>
+            <span>{failedItems} page{failedItems > 1 ? 's' : ''} couldn't be created</span>
           </div>
         )}
 

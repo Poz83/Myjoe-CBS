@@ -182,7 +182,8 @@ export function HeroSelector({
             <div className="grid grid-cols-3 md:grid-cols-4 gap-3">
               {filteredHeroes.map((hero) => {
                 const isSelected = tempSelection === hero.id;
-                const audienceConfig = AUDIENCE_CONFIG[hero.audience];
+                const primaryAudience = Array.isArray(hero.audience) ? hero.audience[0] : hero.audience;
+                const audienceConfig = AUDIENCE_CONFIG[primaryAudience];
 
                 return (
                   <button

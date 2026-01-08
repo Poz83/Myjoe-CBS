@@ -134,7 +134,21 @@ export const AUDIENCE_DNA_MAPPING = {
 } as const;
 
 // === STYLE PRESETS ===
-export const STYLE_PRESETS: readonly StylePreset[] = ['bold-simple', 'kawaii', 'whimsical', 'cartoon', 'botanical'] as const;
+export const STYLE_PRESETS: readonly StylePreset[] = [
+  'bold-simple',
+  'kawaii',
+  'whimsical',
+  'cartoon',
+  'botanical',
+  'mandala',
+  'fantasy',
+  'gothic',
+  'cozy',
+  'geometric',
+  'wildlife',
+  'floral',
+  'abstract',
+] as const;
 
 // === AUDIENCE DERIVATIONS (with safety) ===
 export const AUDIENCE_DERIVATIONS: Record<Audience, {
@@ -178,7 +192,7 @@ export const COMPLEXITY_PROMPTS = {
 } as const;
 
 // === LIMITS ===
-export const MAX_PAGES = 45;
+export const MAX_PAGES = 40;
 export const MAX_VERSIONS = 10;
 export const MAX_PROMPT_LENGTH = 500;
 

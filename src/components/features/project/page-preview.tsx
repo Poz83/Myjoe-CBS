@@ -172,20 +172,14 @@ export function PagePreview({
           <p className="text-zinc-400 mb-8 text-center max-w-md">
             Generate your coloring book pages with AI-powered illustration
           </p>
-          {styleReady ? (
-            <Button
-              variant="primary"
-              size="lg"
-              onClick={onGeneratePages}
-              icon={<Sparkles className="w-5 h-5" />}
-            >
-              Generate Pages
-            </Button>
-          ) : (
-            <p className="text-amber-400/80 text-sm">
-              Complete style calibration first
-            </p>
-          )}
+          <Button
+            variant="primary"
+            size="lg"
+            onClick={onGeneratePages}
+            icon={<Sparkles className="w-5 h-5" />}
+          >
+            Generate Pages
+          </Button>
         </div>
       </div>
     );

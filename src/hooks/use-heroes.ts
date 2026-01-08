@@ -47,8 +47,8 @@ export function useHeroes() {
       const response = await fetch('/api/heroes');
 
       if (!response.ok) {
-        const error = await response.json().catch(() => ({ error: 'Failed to fetch heroes' }));
-        throw new Error(error.error || 'Failed to fetch heroes');
+        const error = await response.json().catch(() => ({ error: "Couldn't load characters" }));
+        throw new Error(error.error || "Couldn't load characters");
       }
 
       const data: HeroesResponse = await response.json();
@@ -67,8 +67,8 @@ export function useHero(id: string | null) {
       const response = await fetch(`/api/heroes/${id}`);
 
       if (!response.ok) {
-        const error = await response.json().catch(() => ({ error: 'Failed to fetch hero' }));
-        throw new Error(error.error || 'Failed to fetch hero');
+        const error = await response.json().catch(() => ({ error: "Couldn't load character" }));
+        throw new Error(error.error || "Couldn't load character");
       }
 
       return response.json();
@@ -104,11 +104,11 @@ export function useCreateHero() {
     onError: (error) => {
       // Only show toast for non-safety/non-blot errors (those are shown inline)
       if (!error.blocked && !error.shortfall) {
-        toast.error(error.error || 'Failed to create hero');
+        toast.error(error.error || "Couldn't create character");
       }
     },
     onSuccess: () => {
-      toast.success('Hero creation started!');
+      toast.success('Started creating your character!');
       // Invalidate profile to update blot balance
       queryClient.invalidateQueries({ queryKey: ['profile'] });
     },
@@ -129,8 +129,8 @@ export function useDeleteHero() {
       });
 
       if (!response.ok) {
-        const error = await response.json().catch(() => ({ error: 'Failed to delete hero' }));
-        throw new Error(error.error || 'Failed to delete hero');
+        const error = await response.json().catch(() => ({ error: "Couldn't delete character" }));
+        throw new Error(error.error || "Couldn't delete character");
       }
     },
     onMutate: async (heroId) => {
@@ -152,10 +152,10 @@ export function useDeleteHero() {
       if (context?.previousHeroes) {
         queryClient.setQueryData(['heroes'], context.previousHeroes);
       }
-      toast.error(error instanceof Error ? error.message : 'Failed to delete hero');
+      toast.error(error instanceof Error ? error.message : "Couldn't delete character");
     },
     onSuccess: () => {
-      toast.success('Hero deleted successfully');
+      toast.success('Character deleted');
     },
     onSettled: () => {
       // Refetch to ensure consistency
@@ -174,8 +174,8 @@ export function useHeroJob(jobId: string | null) {
       const response = await fetch(`/api/generate/${jobId}`);
 
       if (!response.ok) {
-        const error = await response.json().catch(() => ({ error: 'Failed to fetch job status' }));
-        throw new Error(error.error || 'Failed to fetch job status');
+        const error = await response.json().catch(() => ({ error: "Couldn't check progress" }));
+        throw new Error(error.error || "Couldn't check progress");
       }
 
       return response.json();

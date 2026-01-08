@@ -159,11 +159,11 @@ export function GenerationStart({ project, onStarted }: GenerationStartProps) {
                 <AlertCircle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
                 <div>
                   <p className="text-sm font-medium text-amber-400">
-                    Insufficient blots
+                    You don't have enough blots
                   </p>
                   <p className="text-xs text-zinc-400 mt-1">
-                    Need {safetyError?.required} blots, but you have {safetyError?.available}.
-                    You need {safetyError?.shortfall} more blots.
+                    You need {safetyError?.required} blots, but you only have {safetyError?.available}.
+                    Get {safetyError?.shortfall} more blots to continue.
                   </p>
                 </div>
               </div>

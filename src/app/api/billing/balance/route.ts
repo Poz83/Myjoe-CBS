@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { performanceLogger } from '@/lib/performance-logger';
 
 // Force dynamic rendering since this route uses cookies
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
+  const startTime = Date.now();
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -57,6 +59,12 @@ export async function GET(request: NextRequest) {
     const blots = profile.blots ?? profile.subscription_blots ?? 0;
     const planBlots = profile.plan_blots ?? blots;
 
+    const duration = Date.now() - startTime;
+    performanceLogger.logApiCall('/api/billing/balance', duration, {
+      userId: user.id,
+      profileExists: !!profile,
+    });
+
     return NextResponse.json({
       blots,
       planBlots,
@@ -65,8 +73,16 @@ export async function GET(request: NextRequest) {
       storageUsed: profile.storage_used_bytes ?? 0,
       storageLimit: profile.storage_limit_bytes ?? 1073741824,
       commercialProjectsUsed: profile.commercial_projects_used ?? 0,
+    }, {
+      headers: {
+        'Cache-Control': 'private, max-age=60', // Cache for 60 seconds
+      },
     });
   } catch (error) {
+    const duration = Date.now() - startTime;
+    performanceLogger.logApiCall('/api/billing/balance', duration, {
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
     console.error('Balance error:', error);
     return NextResponse.json(
       { error: 'Failed to fetch balance' },

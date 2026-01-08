@@ -3,14 +3,13 @@
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { LayoutDashboard, Palette, Library, Settings, User } from 'lucide-react';
-import { UserMenu } from '@/components/features/auth/user-menu';
+import { LayoutDashboard, Palette, Library, Settings } from 'lucide-react';
 import { BlotDisplay } from '@/components/billing/blot-display';
 import { cn } from '@/lib/utils';
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/studio', label: 'Studio', icon: Palette },
+  { href: '/studio/projects', label: 'Studio', icon: Palette },
   { href: '/library', label: 'Library', icon: Library },
   { href: '/dashboard/settings', label: 'Settings', icon: Settings },
 ] as const;
@@ -65,10 +64,9 @@ export function StudioNavBar() {
           })}
         </nav>
 
-        {/* Right: Blot balance, User menu */}
+        {/* Right: Blot balance */}
         <div className="flex items-center gap-4">
           <BlotDisplay onClick={() => router.push('/dashboard/billing')} />
-          <UserMenu />
         </div>
       </div>
     </nav>

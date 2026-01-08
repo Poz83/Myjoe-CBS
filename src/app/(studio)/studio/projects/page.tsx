@@ -1,86 +1,78 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { Book } from 'lucide-react';
-import { useProjects, useDeleteProject } from '@/hooks/use-projects';
-import { ProjectCard } from '@/components/features/project/project-card';
-import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
-import { EmptyState } from '@/components/ui/empty-state';
+import { FolderOpen, Plus } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 export default function ProjectsPage() {
   const router = useRouter();
-  const { data: projects, isLoading, error } = useProjects();
-  const deleteProject = useDeleteProject();
 
-  const handleNewProject = () => {
+  const handleOpenProject = () => {
+    router.push('/studio/projects/open');
+  };
+
+  const handleCreateNew = () => {
     router.push('/studio/projects/new');
   };
 
-  const handleDelete = (projectId: string) => {
-    deleteProject.mutate(projectId);
-  };
-
-  if (error) {
-    return (
-      <div className="h-full flex items-center justify-center p-8">
-        <div className="text-center space-y-4">
-          <p className="text-red-400">Failed to load projects</p>
-          <p className="text-sm text-zinc-400">
-            {error instanceof Error ? error.message : 'Unknown error'}
-          </p>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="h-full p-6 overflow-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-semibold text-white">My Projects</h1>
-        <Button onClick={handleNewProject} variant="primary">
-          New Project
-        </Button>
-      </div>
+    <div className="h-full flex items-center justify-center p-8">
+      <div className="w-full max-w-4xl">
+        <div className="mb-8 text-center">
+          <h1 className="text-3xl font-bold text-white mb-2">Coloring Book Studio</h1>
+          <p className="text-zinc-400">Choose an option to get started</p>
+        </div>
 
-      {/* Loading state */}
-      {isLoading && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="bg-zinc-900 rounded-lg border border-zinc-800 overflow-hidden">
-              <Skeleton variant="image" className="aspect-[3/4]" />
-              <div className="p-4 space-y-2">
-                <Skeleton variant="text" className="h-4 w-3/4" />
-                <Skeleton variant="text" className="h-3 w-1/2" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Open Project Tile */}
+          <button
+            onClick={handleOpenProject}
+            className={cn(
+              'group relative p-8 rounded-2xl border border-zinc-800',
+              'bg-gradient-to-br from-zinc-900/50 to-zinc-900/30',
+              'hover:border-blue-500/50 hover:bg-gradient-to-br hover:from-blue-500/10 hover:to-blue-600/5',
+              'transition-all duration-300 cursor-pointer',
+              'focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:ring-offset-2 focus:ring-offset-zinc-900'
+            )}
+          >
+            <div className="flex flex-col items-center text-center space-y-4">
+              <div className="w-16 h-16 rounded-xl bg-blue-500/10 group-hover:bg-blue-500/20 flex items-center justify-center transition-colors">
+                <FolderOpen className="w-8 h-8 text-blue-400" />
+              </div>
+              <div>
+                <h2 className="text-xl font-semibold text-white mb-2">Open Project</h2>
+                <p className="text-sm text-zinc-400">
+                  Continue working on an existing project from your vault
+                </p>
               </div>
             </div>
-          ))}
-        </div>
-      )}
+          </button>
 
-      {/* Empty state */}
-      {!isLoading && (!projects || projects.length === 0) && (
-        <EmptyState
-          icon={Book}
-          title="No projects yet"
-          description="Create your first coloring book and bring your ideas to life."
-          action={{ label: 'Create Project', onClick: handleNewProject }}
-        />
-      )}
-
-      {/* Projects grid */}
-      {!isLoading && projects && projects.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
-          {projects.map((project) => (
-            <ProjectCard
-              key={project.id}
-              project={project}
-              onDelete={handleDelete}
-            />
-          ))}
+          {/* Create New Project Tile */}
+          <button
+            onClick={handleCreateNew}
+            className={cn(
+              'group relative p-8 rounded-2xl border border-zinc-800',
+              'bg-gradient-to-br from-zinc-900/50 to-zinc-900/30',
+              'hover:border-blue-500/50 hover:bg-gradient-to-br hover:from-blue-500/10 hover:to-blue-600/5',
+              'transition-all duration-300 cursor-pointer',
+              'focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:ring-offset-2 focus:ring-offset-zinc-900'
+            )}
+          >
+            <div className="flex flex-col items-center text-center space-y-4">
+              <div className="w-16 h-16 rounded-xl bg-blue-500/10 group-hover:bg-blue-500/20 flex items-center justify-center transition-colors">
+                <Plus className="w-8 h-8 text-blue-400" />
+              </div>
+              <div>
+                <h2 className="text-xl font-semibold text-white mb-2">Create New Project</h2>
+                <p className="text-sm text-zinc-400">
+                  Start a new coloring book project from scratch
+                </p>
+              </div>
+            </div>
+          </button>
         </div>
-      )}
+      </div>
     </div>
   );
 }

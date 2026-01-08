@@ -46,7 +46,7 @@ export function handleStorageCheck(
   onUpgrade?: () => void
 ): boolean {
   if (!check.hasSpace) {
-    toast.error('Not enough storage space. Upgrade your plan for more storage.', {
+    toast.error("You're running low on storage space. Upgrade your plan to get more room.", {
       action: onUpgrade ? {
         label: 'Upgrade',
         onClick: onUpgrade,
@@ -57,7 +57,7 @@ export function handleStorageCheck(
 
   // Warn if over 90% used
   if (check.percentUsed >= 90) {
-    toast.warning(`Storage almost full (${check.percentUsed.toFixed(0)}% used)`);
+    toast.warning(`Your storage is almost full (${check.percentUsed.toFixed(0)}% used)`);
   }
 
   return true;

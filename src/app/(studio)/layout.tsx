@@ -1,9 +1,6 @@
 'use client';
 
 import { StudioNavBar } from '@/components/layout/studio-nav-bar';
-import { StudioLeftNav } from '@/components/layout/studio-left-nav';
-import { Inspector } from '@/components/layout/inspector';
-import { useLayoutStore } from '@/stores/layout-store';
 import { useEffect, useState } from 'react';
 import { AlertCircle } from 'lucide-react';
 
@@ -12,18 +9,12 @@ export default function StudioLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { inspectorCollapsed, setInspectorCollapsed } = useLayoutStore();
   const [windowWidth, setWindowWidth] = useState(0);
 
   // Handle window resize
   useEffect(() => {
     const handleResize = () => {
       setWindowWidth(window.innerWidth);
-      
-      // Auto-collapse inspector on smaller screens
-      if (window.innerWidth < 1280 && !inspectorCollapsed) {
-        setInspectorCollapsed(true);
-      }
     };
 
     // Set initial width
@@ -31,7 +22,7 @@ export default function StudioLayout({
 
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, [inspectorCollapsed, setInspectorCollapsed]);
+  }, []);
 
   // Show "Desktop required" message for screens smaller than 1024px
   if (windowWidth > 0 && windowWidth < 1024) {
@@ -57,20 +48,12 @@ export default function StudioLayout({
       {/* Top Navigation Bar */}
       <StudioNavBar />
 
-      {/* Main Layout: Far Left Nav | Content | Inspector */}
+      {/* Main Layout: Content */}
       <div className="flex-1 flex pt-14 overflow-hidden">
-        {/* Far Left Navigation */}
-        <StudioLeftNav />
-
         {/* Main Content Area (will contain settings panel + canvas) */}
         <main className="flex-1 min-w-[400px] bg-[#171717] overflow-hidden">
           {children}
         </main>
-
-        {/* Right Inspector */}
-        <aside className="flex-shrink-0 h-full overflow-hidden">
-          <Inspector />
-        </aside>
       </div>
     </div>
   );

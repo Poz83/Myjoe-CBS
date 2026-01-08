@@ -9,11 +9,6 @@ import { useUser } from '@/hooks/use-user';
 import { useProjectSettings } from '@/hooks/use-project-settings';
 import { ProjectSettingsPanel } from '@/components/features/project/project-settings-panel';
 import { ThumbnailGrid } from '@/components/features/project/thumbnail-grid';
-import { PageInspector } from '@/components/features/project/page-inspector';
-import {
-  StyleCalibrationModal,
-  CalibrationBanner,
-} from '@/components/features/project/style-calibration';
 import { GenerationProgress } from '@/components/features/project/generation-progress';
 import { ExportDialog } from '@/components/features/export/export-dialog';
 import { BillingModal } from '@/components/studio/billing-modal';
@@ -32,15 +27,10 @@ export default function ProjectEditorPage() {
 
   const [selectedPageId, setSelectedPageId] = useState<string | null>(null);
   const [settingsPanelCollapsed, setSettingsPanelCollapsed] = useState(false);
-  const [inspectorCollapsed, setInspectorCollapsed] = useState(false);
-  const [calibrationModalOpen, setCalibrationModalOpen] = useState(false);
   const [exportModalOpen, setExportModalOpen] = useState(false);
   const [billingModalOpen, setBillingModalOpen] = useState(false);
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
-
-  // Check if project needs calibration
-  const needsCalibration = project && !project.style_anchor_key;
 
   // Check if generation is in progress
   const isGeneratingStatus = project?.status === 'generating' || !!activeJobId || isGenerating;
@@ -52,8 +42,6 @@ export default function ProjectEditorPage() {
     }
   }, [project, selectedPageId]);
 
-  // Get the currently selected page
-  const selectedPage = project?.pages?.find((p) => p.id === selectedPageId) || null;
 
   // Loading state
   if (projectLoading || settingsLoading) {
@@ -79,7 +67,7 @@ export default function ProjectEditorPage() {
     pageCount: project.page_count,
     trimSize: project.trim_size,
     stylePreset: project.style_preset,
-    audience: project.audience,
+    audience: Array.isArray(project.audience) ? project.audience : [project.audience],
     lineThicknessPts: (project as any).line_thickness_pts ?? null,
     lineThicknessAuto: (project as any).line_thickness_auto ?? true,
     idea: project.description || '',
@@ -114,16 +102,10 @@ export default function ProjectEditorPage() {
       queryClient.invalidateQueries({ queryKey: ['projects', projectId] });
     } catch (error) {
       console.error('Generation error:', error);
-      alert(error instanceof Error ? error.message : 'Failed to start generation');
+      alert(error instanceof Error ? error.message : "Couldn't start creating pages");
     } finally {
       setIsGenerating(false);
     }
-  };
-
-  // Handle calibration completion
-  const handleCalibrationComplete = () => {
-    setCalibrationModalOpen(false);
-    queryClient.invalidateQueries({ queryKey: ['projects', projectId] });
   };
 
   // Handle generation complete
@@ -142,37 +124,32 @@ export default function ProjectEditorPage() {
 
   // Calculate grid template columns
   const getGridColumns = () => {
-    if (settingsPanelCollapsed && inspectorCollapsed) {
-      return '0px 1fr 0px';
-    } else if (settingsPanelCollapsed) {
-      return '0px 1fr 360px';
-    } else if (inspectorCollapsed) {
-      return '300px 1fr 0px';
+    if (settingsPanelCollapsed) {
+      return '0px 1fr';
     }
-    return '300px 1fr 360px';
+    return '300px 1fr';
   };
 
   // Convert pages to thumbnail format
-  const thumbnailPages = (project.pages || []).map((page) => ({
-    id: page.id,
-    sortOrder: page.sort_order,
-    imageUrl: null,
-    isLoading: false,
-  }));
+  // Only include pages that have been generated (have a current_version > 0)
+  // Pages without versions won't have images, so we filter them out
+  const thumbnailPages = (project.pages || [])
+    .filter((page) => {
+      // Only show pages that have been generated (current_version > 0 indicates generation started)
+      // New pages start with current_version = 1, but we check if they've been updated
+      // This is a heuristic - pages that haven't been generated won't have images
+      return page.current_version > 0;
+    })
+    .map((page) => ({
+      id: page.id,
+      sortOrder: page.sort_order,
+      imageUrl: null, // Will be resolved by getImageUrl
+      isLoading: false,
+    }));
 
   return (
     <div className="h-full flex flex-col">
-      {/* Calibration Banner - show if not calibrated */}
-      {needsCalibration && (
-        <div className="px-4 py-3 border-b border-zinc-800">
-          <CalibrationBanner
-            blotBalance={profile?.blots || 0}
-            onClick={() => setCalibrationModalOpen(true)}
-          />
-        </div>
-      )}
-
-      {/* 3-Column Grid Layout: Settings Panel | Canvas | Inspector */}
+      {/* 2-Column Grid Layout: Settings Panel | Canvas */}
       <div
         className="flex-1 overflow-hidden"
         style={{
@@ -188,7 +165,6 @@ export default function ProjectEditorPage() {
             initialSettings={currentSettings}
             onGenerate={handleGenerate}
             isGenerating={isGeneratingStatus}
-            disabled={needsCalibration}
           />
 
           {/* Collapse Toggle */}
@@ -202,7 +178,7 @@ export default function ProjectEditorPage() {
           )}
         </div>
 
-        {/* Center Panel - Thumbnail Grid */}
+        {/* Right Panel - Thumbnail Grid */}
         <div className="overflow-hidden min-w-[400px] bg-[#171717]">
           {settingsPanelCollapsed && (
             <button
@@ -220,42 +196,7 @@ export default function ProjectEditorPage() {
             emptyMessage="Your canvas is ready"
           />
         </div>
-
-        {/* Right Panel - Inspector */}
-        <div className={cn('relative overflow-hidden', inspectorCollapsed && 'w-0')}>
-          <PageInspector
-            page={selectedPage}
-            onRegenerate={() => {
-              // TODO: Implement regenerate
-            }}
-            onEdit={() => {
-              // TODO: Implement edit
-            }}
-            onSimplify={() => {
-              // TODO: Implement simplify
-            }}
-          />
-
-          {/* Collapse Toggle */}
-          {!inspectorCollapsed && (
-            <button
-              onClick={() => setInspectorCollapsed(true)}
-              className="absolute top-1/2 -translate-y-1/2 -left-3 z-10 w-6 h-12 bg-zinc-800 border border-zinc-700 rounded-l flex items-center justify-center hover:bg-zinc-700 transition-colors"
-            >
-              <ChevronRight className="w-4 h-4 text-zinc-400 rotate-180" />
-            </button>
-          )}
-        </div>
       </div>
-
-      {/* Style Calibration Modal */}
-      <StyleCalibrationModal
-        open={calibrationModalOpen}
-        onOpenChange={setCalibrationModalOpen}
-        projectId={projectId}
-        blotBalance={profile?.blots || 0}
-        onComplete={handleCalibrationComplete}
-      />
 
       {/* Generation Progress Overlay */}
       {activeJobId && (
