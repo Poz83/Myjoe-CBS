@@ -1,16 +1,15 @@
 'use client';
 
 import { useState } from 'react';
-import { Palette, ExternalLink, Loader, Check, Crown, CreditCard, Download, Wand2, Plus, RotateCw } from 'lucide-react';
+import { ExternalLink, Loader, Crown, CreditCard, Download, Wand2, RotateCw, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { BLOT_PACKS, PLAN_TIERS, PLAN_LIMITS, type PackId, type TierName } from '@/lib/constants';
+import { PLAN_TIERS, type TierName } from '@/lib/constants';
 import { LowBlotsBanner } from '@/components/billing/low-blots-banner';
-import { useBalance, useTransactions, useUsage, usePackCheckout, useCustomerPortal } from '@/hooks/use-billing';
+import { useBalance, useTransactions, useUsage, useCustomerPortal } from '@/hooks/use-billing';
 import { cn } from '@/lib/utils';
 
 type Interval = 'monthly' | 'yearly';
 
-const formatPrice = (cents: number) => `$${(cents / 100).toFixed(0)}`;
 const formatBytes = (bytes: number) => {
   if (bytes === 0) return '0 GB';
   return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
@@ -24,10 +23,8 @@ export function SettingsBilling() {
   const { data: balance, isLoading: balanceLoading } = useBalance();
   const { data: txData } = useTransactions(5);
   const { data: usageData } = useUsage();
-  const packCheckout = usePackCheckout();
   const portal = useCustomerPortal();
 
-  const handleBuyPack = (packId: PackId) => packCheckout.mutate(packId);
   const handleManageSubscription = () => portal.mutate();
 
   if (balanceLoading || !balance) {
@@ -47,7 +44,7 @@ export function SettingsBilling() {
       {/* Low Blots Banner */}
       <LowBlotsBanner
         balance={balance.total}
-        onBuyPack={() => document.getElementById('packs')?.scrollIntoView({ behavior: 'smooth' })}
+        onUpgrade={handleManageSubscription}
       />
 
       {/* Current Plan */}
@@ -80,7 +77,7 @@ export function SettingsBilling() {
             <span className="text-2xl font-bold text-blue-400">{balance.total.toLocaleString()}</span>
           </div>
           <p className="text-sm text-zinc-500 mb-3">
-            {balance.subscription} subscription + {balance.pack} packs
+            {balance.subscription} Blots remaining this period
           </p>
           <div className="w-full h-2 bg-zinc-700 rounded-full overflow-hidden">
             <div className="h-full bg-blue-500 rounded-full transition-all" style={{ width: `${blotPercentage}%` }} />
@@ -103,7 +100,7 @@ export function SettingsBilling() {
           <button onClick={() => setSelectedInterval(i => i === 'monthly' ? 'yearly' : 'monthly')} className="relative w-11 h-6 bg-zinc-700 rounded-full">
             <div className={cn('absolute w-5 h-5 bg-blue-500 rounded-full top-0.5 transition-all', selectedInterval === 'yearly' ? 'left-5' : 'left-0.5')} />
           </button>
-          <span className={cn('text-sm', selectedInterval === 'yearly' ? 'text-white' : 'text-zinc-400')}>Yearly <span className="text-green-500 ml-1">Save 17%</span></span>
+          <span className={cn('text-sm', selectedInterval === 'yearly' ? 'text-white' : 'text-zinc-400')}>Yearly <span className="text-green-500 ml-1">Save 20%</span></span>
         </div>
         <div className="grid grid-cols-3 gap-4">
           {PLAN_TIERS[selectedTier].map((plan) => (
@@ -120,36 +117,16 @@ export function SettingsBilling() {
         </div>
       </div>
 
-      {/* Blot Packs */}
-      <div id="packs">
-        <h3 className="text-lg font-semibold text-white mb-2">Top-Up Your Blots</h3>
-        <p className="text-sm text-zinc-400 mb-4">One-time purchases. Never expire.</p>
-        <div className="grid grid-cols-2 gap-4">
-          {(Object.entries(BLOT_PACKS) as [PackId, typeof BLOT_PACKS[PackId]][]).map(([packId, pack]) => (
-            <button
-              key={packId}
-              onClick={() => handleBuyPack(packId)}
-              disabled={packCheckout.isPending}
-              className={cn(
-                'relative flex flex-col items-center gap-3 p-6 rounded-lg border transition-all',
-                'popular' in pack && pack.popular ? 'border-blue-500/50 bg-blue-500/5 hover:bg-blue-500/10' : 'border-zinc-700 bg-zinc-800/30 hover:bg-zinc-800/50',
-                'disabled:opacity-50'
-              )}
-            >
-              {'popular' in pack && pack.popular && <div className="absolute -top-2 text-xs bg-blue-500 px-2 py-0.5 rounded text-white">Popular</div>}
-              <span className="text-4xl">{pack.emoji}</span>
-              <div className="text-center">
-                <p className="font-semibold text-white">{pack.name}</p>
-                <p className="text-sm text-zinc-400">{pack.blots} blots</p>
-              </div>
-              {packCheckout.isPending ? (
-                <Loader className="w-4 h-4 animate-spin text-zinc-400" />
-              ) : (
-                <span className="text-lg font-bold text-white">{formatPrice(pack.priceCents)}</span>
-              )}
-            </button>
-          ))}
-        </div>
+      {/* Need More Blots? Upgrade prompt */}
+      <div className="p-6 bg-zinc-800/30 rounded-lg border border-zinc-700">
+        <h3 className="text-lg font-semibold text-white mb-2">Need More Blots?</h3>
+        <p className="text-sm text-zinc-400 mb-4">
+          Upgrade your plan to get more Blots. Changes take effect immediately with prorated billing.
+        </p>
+        <Button variant="secondary" onClick={handleManageSubscription} disabled={portal.isPending}>
+          {portal.isPending ? <Loader className="w-4 h-4 animate-spin mr-2" /> : <ExternalLink className="w-4 h-4 mr-2" />}
+          Manage Plan
+        </Button>
       </div>
 
       {/* Usage & Storage */}
@@ -191,8 +168,8 @@ export function SettingsBilling() {
               {txData.transactions.map((tx) => (
                 <div key={tx.id} className="flex items-center justify-between p-3 rounded-lg border border-zinc-700/50">
                   <div className="flex items-center gap-3">
-                    <div className={cn('p-2 rounded-lg', tx.type === 'generation' || tx.type === 'edit' ? 'bg-blue-500/10' : tx.type === 'pack_purchase' ? 'bg-green-500/10' : 'bg-purple-500/10')}>
-                      {tx.type === 'generation' || tx.type === 'edit' ? <Wand2 className="w-4 h-4 text-blue-400" /> : tx.type === 'pack_purchase' ? <Plus className="w-4 h-4 text-green-400" /> : <RotateCw className="w-4 h-4 text-purple-400" />}
+                    <div className={cn('p-2 rounded-lg', tx.type === 'generation' || tx.type === 'edit' || tx.type === 'hero' || tx.type === 'calibration' ? 'bg-blue-500/10' : tx.type === 'subscription_reset' || tx.type === 'subscription_upgrade' ? 'bg-green-500/10' : 'bg-purple-500/10')}>
+                      {tx.type === 'generation' || tx.type === 'edit' || tx.type === 'hero' || tx.type === 'calibration' ? <Wand2 className="w-4 h-4 text-blue-400" /> : tx.type === 'subscription_reset' || tx.type === 'subscription_upgrade' ? <Plus className="w-4 h-4 text-green-400" /> : <RotateCw className="w-4 h-4 text-purple-400" />}
                     </div>
                     <div>
                       <p className="text-sm font-medium text-white">{tx.description || tx.type}</p>

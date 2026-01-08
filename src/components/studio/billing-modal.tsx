@@ -1,11 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { Palette, ExternalLink, Loader } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Palette, ExternalLink, Loader, Sparkles } from 'lucide-react';
 import { Dialog } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { BLOT_PACKS, type PackId } from '@/lib/constants';
-import { cn } from '@/lib/utils';
 
 interface BillingModalProps {
   open: boolean;
@@ -22,33 +21,9 @@ export function BillingModal({
   plan = 'free',
   hasStripeCustomer = false,
 }: BillingModalProps) {
-  const [loadingPack, setLoadingPack] = useState<PackId | null>(null);
+  const router = useRouter();
   const [loadingPortal, setLoadingPortal] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const handleBuyPack = async (packId: PackId) => {
-    setError(null);
-    setLoadingPack(packId);
-
-    try {
-      const response = await fetch('/api/billing/checkout/pack', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ packId }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to start checkout');
-      }
-
-      window.location.href = data.url;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong');
-      setLoadingPack(null);
-    }
-  };
 
   const handleManageSubscription = async () => {
     setError(null);
@@ -69,7 +44,10 @@ export function BillingModal({
     }
   };
 
-  const formatPrice = (cents: number) => `$${(cents / 100).toFixed(0)}`;
+  const handleGoToBilling = () => {
+    onOpenChange(false);
+    router.push('/billing');
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange} title="Get More Blots" className="max-w-md">
@@ -90,50 +68,39 @@ export function BillingModal({
           </span>
         </div>
 
-        {/* Pack Selection */}
+        {/* Upgrade CTA */}
         <div className="space-y-3">
-          <h3 className="text-sm font-medium text-zinc-300">Buy Blot Packs</h3>
+          <p className="text-sm text-zinc-400 text-center">
+            {plan === 'free'
+              ? 'Upgrade to a paid plan to get more Blots and unlock commercial usage.'
+              : 'Adjust your plan to get more Blots each month.'}
+          </p>
 
-          {(Object.entries(BLOT_PACKS) as [PackId, typeof BLOT_PACKS[PackId]][]).map(([packId, pack]) => {
-            const isLoading = loadingPack === packId;
-            const isPopular = 'popular' in pack && pack.popular;
-
-            return (
-              <button
-                key={packId}
-                onClick={() => handleBuyPack(packId)}
-                disabled={!!loadingPack}
-                className={cn(
-                  'w-full flex items-center gap-4 p-4 rounded-lg border transition-all',
-                  isPopular ? 'bg-blue-500/5 border-blue-500/30 hover:bg-blue-500/10' : 'bg-zinc-800/30 border-zinc-700 hover:border-zinc-600',
-                  'disabled:opacity-50 disabled:cursor-not-allowed',
-                  'focus:outline-none focus:ring-2 focus:ring-blue-500/40'
-                )}
-              >
-                <span className="text-3xl">{pack.emoji}</span>
-                <div className="flex-1 text-left">
-                  <div className="flex items-baseline gap-2">
-                    <span className="font-semibold text-white">{pack.name}</span>
-                    <span className="text-sm text-zinc-400">{pack.blots} blots</span>
-                  </div>
-                </div>
-                {isLoading ? (
-                  <Loader className="w-4 h-4 animate-spin text-zinc-400" />
-                ) : (
-                  <span className="font-semibold text-white">{formatPrice(pack.priceCents)}</span>
-                )}
-              </button>
-            );
-          })}
+          <Button
+            onClick={handleGoToBilling}
+            className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+          >
+            <Sparkles className="w-4 h-4 mr-2" />
+            {plan === 'free' ? 'View Plans' : 'Manage Plan'}
+          </Button>
         </div>
 
         {error && <p className="text-sm text-red-400 text-center">{error}</p>}
 
         {hasStripeCustomer && (
           <div className="pt-4 border-t border-zinc-800">
-            <Button variant="ghost" className="w-full justify-center text-zinc-400 hover:text-white" onClick={handleManageSubscription} disabled={loadingPortal}>
-              {loadingPortal ? <Loader className="w-4 h-4 animate-spin mr-2" /> : <ExternalLink className="w-4 h-4 mr-2" />}
-              Manage Subscription
+            <Button
+              variant="ghost"
+              className="w-full justify-center text-zinc-400 hover:text-white"
+              onClick={handleManageSubscription}
+              disabled={loadingPortal}
+            >
+              {loadingPortal ? (
+                <Loader className="w-4 h-4 animate-spin mr-2" />
+              ) : (
+                <ExternalLink className="w-4 h-4 mr-2" />
+              )}
+              Billing Portal
             </Button>
           </div>
         )}

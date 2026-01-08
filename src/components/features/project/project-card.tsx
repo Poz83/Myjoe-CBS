@@ -25,6 +25,10 @@ const STATUS_CONFIG = {
     label: 'Draft',
     className: 'bg-zinc-600 text-zinc-100',
   },
+  calibrating: {
+    label: 'Calibrating',
+    className: 'bg-amber-600 text-white animate-pulse',
+  },
   generating: {
     label: 'Generating',
     className: 'bg-blue-600 text-white animate-pulse',

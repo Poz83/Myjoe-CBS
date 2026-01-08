@@ -126,7 +126,7 @@ export async function POST(request: NextRequest) {
 
     // Check project limit
     const limit = PROJECT_LIMITS[profile.plan as keyof typeof PROJECT_LIMITS];
-    if (count !== null && count >= limit) {
+    if (limit !== null && count !== null && count >= limit) {
       return NextResponse.json(
         {
           error: `Project limit reached. Your ${profile.plan} plan allows ${limit} projects.`,

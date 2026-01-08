@@ -13,7 +13,7 @@ import { StyleReadyBadge } from '@/components/features/project/style-calibration
 import { useLayoutStore } from '@/stores/layout-store';
 import { cn } from '@/lib/utils';
 
-type ProjectStatus = 'draft' | 'generating' | 'ready' | 'exported';
+type ProjectStatus = 'draft' | 'calibrating' | 'generating' | 'ready' | 'exported';
 
 interface EditorToolbarProps {
   projectId: string;
@@ -30,6 +30,7 @@ interface EditorToolbarProps {
 
 const STATUS_STYLES: Record<ProjectStatus, string> = {
   draft: 'bg-zinc-700 text-zinc-300',
+  calibrating: 'bg-amber-600 text-white',
   generating: 'bg-blue-600 text-white',
   ready: 'bg-green-600 text-white',
   exported: 'bg-purple-600 text-white',
@@ -37,6 +38,7 @@ const STATUS_STYLES: Record<ProjectStatus, string> = {
 
 const STATUS_LABELS: Record<ProjectStatus, string> = {
   draft: 'Draft',
+  calibrating: 'Calibrating',
   generating: 'Generating',
   ready: 'Ready',
   exported: 'Exported',
