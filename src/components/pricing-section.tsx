@@ -56,7 +56,7 @@ export function PricingSection() {
               onClick={() => setBillingInterval('monthly')}
               className={`px-6 py-2.5 rounded-lg font-medium transition-all ${
                 billingInterval === 'monthly'
-                  ? 'bg-accent-cyan text-white shadow-lg'
+                  ? 'bg-accent-cyan text-black shadow-lg'
                   : 'text-zinc-400 hover:text-white'
               }`}
             >
@@ -66,7 +66,7 @@ export function PricingSection() {
               onClick={() => setBillingInterval('yearly')}
               className={`px-6 py-2.5 rounded-lg font-medium transition-all ${
                 billingInterval === 'yearly'
-                  ? 'bg-accent-cyan text-white shadow-lg'
+                  ? 'bg-accent-cyan text-black shadow-lg'
                   : 'text-zinc-400 hover:text-white'
               }`}
             >
@@ -132,7 +132,7 @@ export function PricingSection() {
 
           {/* Creator Tier */}
           <div className="bg-gradient-to-b from-accent-cyan/10 to-transparent border-2 border-accent-cyan/50 rounded-2xl p-8 relative">
-            <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-accent-cyan text-white text-xs font-bold px-3 py-1 rounded-full">
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-accent-cyan text-black text-xs font-bold px-3 py-1 rounded-full">
               MOST POPULAR
             </div>
             <div className="text-accent-cyan font-medium mb-2">Creator</div>
@@ -185,7 +185,7 @@ export function PricingSection() {
             </ul>
             <Link
               href="/login"
-              className="block w-full text-center bg-accent-cyan hover:bg-accent-cyan/80 text-bg-base px-6 py-3 rounded-xl font-medium transition-colors"
+              className="block w-full text-center bg-accent-cyan hover:bg-accent-cyan/80 text-black px-6 py-3 rounded-xl font-medium transition-colors"
             >
               Start Creating
             </Link>

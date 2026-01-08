@@ -157,7 +157,7 @@ export default function LandingPage() {
               </Link>
               <Link
                 href="/login"
-                className="bg-accent-cyan hover:bg-accent-cyan/80 text-bg-base px-4 py-2 rounded-lg font-medium transition-colors"
+                className="bg-accent-cyan hover:bg-accent-cyan/80 text-black px-4 py-2 rounded-lg font-medium transition-colors"
               >
                 Create Free Book
               </Link>
@@ -368,7 +368,7 @@ export default function LandingPage() {
           <div className="text-center mt-12">
             <Link
               href="/login"
-              className="inline-flex items-center gap-2 bg-accent-cyan hover:bg-accent-cyan/80 text-bg-base px-6 py-3 rounded-xl font-semibold transition-all hover:scale-105"
+              className="inline-flex items-center gap-2 bg-accent-cyan hover:bg-accent-cyan/80 text-black px-6 py-3 rounded-xl font-semibold transition-all hover:scale-105"
             >
               See These Features in Action
               <ArrowRight className="w-4 h-4" />
