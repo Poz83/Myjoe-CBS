@@ -18,8 +18,17 @@ interface HeroWithUrls extends Hero {
   thumbnailUrl: string | null;
 }
 
+// Flexible hero type for vault view (may not have all fields)
+interface VaultHeroMinimal {
+  id: string;
+  name: string;
+  audience: 'toddler' | 'children' | 'tween' | 'teen' | 'adult';
+  thumbnailUrl: string | null;
+  times_used?: number;
+}
+
 interface HeroCardProps {
-  hero: HeroWithUrls;
+  hero: HeroWithUrls | VaultHeroMinimal | { id: string; name: string; audience: 'toddler' | 'children' | 'tween' | 'teen' | 'adult'; thumbnailUrl: string | null; times_used?: number };
   onDelete?: (heroId: string) => void;
   onClick?: (heroId: string) => void;
 }
@@ -88,7 +97,7 @@ export function HeroCard({ hero, onDelete, onClick }: HeroCardProps) {
     }
   };
 
-  const audienceConfig = AUDIENCE_CONFIG[hero.audience];
+  const audienceConfig = AUDIENCE_CONFIG[hero.audience as keyof typeof AUDIENCE_CONFIG] || AUDIENCE_CONFIG.children;
 
   return (
     <div
@@ -169,9 +178,11 @@ export function HeroCard({ hero, onDelete, onClick }: HeroCardProps) {
           </span>
         </div>
 
-        <p className="text-xs text-zinc-400">
-          Used in {hero.times_used} {hero.times_used === 1 ? 'project' : 'projects'}
-        </p>
+        {hero.times_used !== undefined && (
+          <p className="text-xs text-zinc-400">
+            Used in {hero.times_used} {hero.times_used === 1 ? 'project' : 'projects'}
+          </p>
+        )}
       </div>
     </div>
   );

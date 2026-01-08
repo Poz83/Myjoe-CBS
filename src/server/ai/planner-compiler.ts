@@ -102,7 +102,7 @@ export async function planAndCompile(input: PlannerInput): Promise<PlannerResult
   
   // Determine line weight from thickness (pts) or fallback to legacy lineWeight
   let lineWeight = input.lineWeight;
-  let lineWeightDescription = LINE_WEIGHT_PROMPTS[input.lineWeight as keyof typeof LINE_WEIGHT_PROMPTS];
+  let lineWeightDescription: string = LINE_WEIGHT_PROMPTS[input.lineWeight as keyof typeof LINE_WEIGHT_PROMPTS];
   
   if (input.lineThicknessPts !== null && input.lineThicknessPts !== undefined) {
     // Convert points to line weight category

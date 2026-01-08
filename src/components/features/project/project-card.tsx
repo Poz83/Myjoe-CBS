@@ -15,8 +15,16 @@ import type { Database } from '@/lib/supabase/types';
 
 type Project = Database['public']['Tables']['projects']['Row'];
 
+// Flexible project type for vault view (may not have all fields)
+interface VaultProjectMinimal {
+  id: string;
+  name: string;
+  page_count: number;
+  status: string;
+}
+
 interface ProjectCardProps {
-  project: Project;
+  project: Project | VaultProjectMinimal;
   onDelete?: (projectId: string) => void;
 }
 
@@ -87,7 +95,7 @@ export function ProjectCard({ project, onDelete }: ProjectCardProps) {
     }
   };
 
-  const statusConfig = STATUS_CONFIG[project.status];
+  const statusConfig = STATUS_CONFIG[project.status as keyof typeof STATUS_CONFIG] || STATUS_CONFIG.draft;
 
   return (
     <div

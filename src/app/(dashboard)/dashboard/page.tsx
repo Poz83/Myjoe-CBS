@@ -4,8 +4,27 @@ import Link from 'next/link';
 import { Palette, Users, BookOpen, Contrast, Grid3X3, Settings, CreditCard, Sliders } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { VaultTile } from '@/components/dashboard/vault-tile';
+import type { LucideIcon } from 'lucide-react';
 
-const studios = [
+type StudioItem = {
+  name: string;
+  desc: string;
+  icon: LucideIcon | null;
+  href: string;
+  color: string;
+  iconColor: string;
+  ready: boolean;
+  isVault?: boolean;
+};
+
+type AccountItem = {
+  name: string;
+  desc: string;
+  icon: LucideIcon;
+  href: string;
+};
+
+const studios: StudioItem[] = [
   { name: 'Coloring Book Studio', desc: 'Create stunning coloring pages', icon: Palette, href: '/studio', color: 'from-blue-500/20 to-blue-600/5', iconColor: 'text-blue-400', ready: true },
   { name: 'Hero Lab', desc: 'Design your characters', icon: Users, href: '/studio/library/heroes', color: 'from-purple-500/20 to-purple-600/5', iconColor: 'text-purple-400', ready: true },
   { name: 'Book Cover Creator', desc: 'Design book covers', icon: BookOpen, href: '#', color: 'from-amber-500/20 to-amber-600/5', iconColor: 'text-amber-400', ready: false },
@@ -14,7 +33,7 @@ const studios = [
   { name: 'Vault', desc: 'Your creative storage', icon: null, href: '/dashboard/vault', color: 'from-indigo-500/20 to-indigo-600/5', iconColor: 'text-indigo-400', ready: true, isVault: true },
 ];
 
-const account = [
+const account: AccountItem[] = [
   { name: 'Settings', desc: 'Profile & account', icon: Settings, href: '/dashboard/settings' },
   { name: 'Billing', desc: 'Plans & usage', icon: CreditCard, href: '/dashboard/billing' },
   { name: 'Preferences', desc: 'Customize defaults', icon: Sliders, href: '/dashboard/settings?tab=preferences' },
@@ -33,6 +52,11 @@ export default function DashboardPage() {
             return <VaultTile key={s.name} />;
           }
 
+          const Icon = s.icon;
+          if (!Icon) {
+            return null;
+          }
+
           return (
             <Link
               key={s.name}
@@ -44,7 +68,7 @@ export default function DashboardPage() {
               )}
             >
               <div className={cn('w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center mb-4', s.iconColor)}>
-                <s.icon className="w-6 h-6" />
+                <Icon className="w-6 h-6" />
               </div>
               <h3 className="text-lg font-semibold text-white mb-1">{s.name}</h3>
               <p className="text-sm text-zinc-500">{s.desc}</p>

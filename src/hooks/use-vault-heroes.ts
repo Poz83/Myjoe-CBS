@@ -6,7 +6,7 @@ interface VaultHero {
   id: string;
   name: string;
   description: string;
-  audience: string;
+  audience: 'toddler' | 'children' | 'tween' | 'teen' | 'adult';
   created_at: string;
   thumbnailUrl: string | null;
   referenceUrl?: string | null;
