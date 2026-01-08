@@ -45,15 +45,19 @@ export function Tabs({
 export interface TabsListProps {
   children: React.ReactNode;
   className?: string;
+  variant?: 'underline' | 'pill';
 }
 
-export function TabsList({ children, className }: TabsListProps) {
+export function TabsList({ children, className, variant = 'underline' }: TabsListProps) {
+  const variants = {
+    underline: 'flex items-center gap-1 border-b border-border-subtle',
+    pill: 'inline-flex items-center gap-1 p-1 bg-bg-elevated rounded-lg',
+  };
+
   return (
     <div
-      className={cn(
-        'flex items-center border-b border-zinc-800',
-        className
-      )}
+      role="tablist"
+      className={cn(variants[variant], className)}
     >
       {children}
     </div>
@@ -64,9 +68,10 @@ export interface TabsTriggerProps {
   value: string;
   children: React.ReactNode;
   className?: string;
+  disabled?: boolean;
 }
 
-export function TabsTrigger({ value, children, className }: TabsTriggerProps) {
+export function TabsTrigger({ value, children, className, disabled }: TabsTriggerProps) {
   const context = useContext(TabsContext);
   
   if (!context) {
@@ -77,17 +82,23 @@ export function TabsTrigger({ value, children, className }: TabsTriggerProps) {
 
   return (
     <button
-      onClick={() => context.onValueChange(value)}
+      onClick={() => !disabled && context.onValueChange(value)}
+      disabled={disabled}
       className={cn(
-        'h-10 px-4 font-medium transition-colors',
-        'focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:ring-offset-2 focus:ring-offset-zinc-900',
+        // Base styles
+        'h-10 px-4 text-sm font-medium transition-all duration-base',
+        'focus:outline-none focus-visible:ring-2 focus-visible:ring-border-focus focus-visible:ring-offset-2 focus-visible:ring-offset-bg-base',
+        // Active/inactive states
         isActive
-          ? 'text-white border-b-2 border-blue-500'
-          : 'text-zinc-400 hover:text-white',
+          ? 'text-text-primary border-b-2 border-accent-cyan -mb-px'
+          : 'text-text-secondary hover:text-text-primary border-b-2 border-transparent',
+        // Disabled state
+        disabled && 'opacity-50 cursor-not-allowed',
         className
       )}
       role="tab"
       aria-selected={isActive}
+      tabIndex={isActive ? 0 : -1}
     >
       {children}
     </button>
@@ -113,8 +124,12 @@ export function TabsContent({ value, children, className }: TabsContentProps) {
 
   return (
     <div
-      className={cn('mt-4', className)}
+      className={cn(
+        'mt-4 animate-in fade-in-0 duration-200',
+        className
+      )}
       role="tabpanel"
+      tabIndex={0}
     >
       {children}
     </div>

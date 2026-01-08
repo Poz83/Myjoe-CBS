@@ -83,7 +83,7 @@ export interface DraftProjectSettings {
   pageCount: number;
   trimSize: string;
   stylePreset: string;
-  audience: string;
+  audience: string[];
   lineThicknessPts: number | null;
   lineThicknessAuto: boolean;
   idea: string;

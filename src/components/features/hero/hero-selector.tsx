@@ -29,6 +29,8 @@ const AUDIENCE_CONFIG = {
   adult: { label: 'Adult', className: 'bg-orange-600/20 text-orange-300' },
 } as const;
 
+type AudienceKey = keyof typeof AUDIENCE_CONFIG;
+
 export function HeroSelector({
   open,
   onClose,
@@ -183,7 +185,11 @@ export function HeroSelector({
               {filteredHeroes.map((hero) => {
                 const isSelected = tempSelection === hero.id;
                 const primaryAudience = Array.isArray(hero.audience) ? hero.audience[0] : hero.audience;
-                const audienceConfig = AUDIENCE_CONFIG[primaryAudience];
+                const audienceKey: AudienceKey =
+                  primaryAudience && primaryAudience in AUDIENCE_CONFIG
+                    ? (primaryAudience as AudienceKey)
+                    : 'children';
+                const audienceConfig = AUDIENCE_CONFIG[audienceKey];
 
                 return (
                   <button

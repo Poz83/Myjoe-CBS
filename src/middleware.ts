@@ -5,6 +5,10 @@ const PUBLIC_ROUTES = ['/', '/landing', '/login', '/auth/callback'];
 const PROTECTED_ROUTES = ['/dashboard', '/studio', '/api'];
 
 export async function middleware(request: NextRequest) {
+  // #region agent log
+  fetch('http://127.0.0.1:7243/ingest/4b5f8db5-0ff7-4203-b2e4-06e25ade0057',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'middleware.ts:7',message:'Middleware entry',data:{pathname:request.nextUrl.pathname},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+  // #endregion
+
   let response = NextResponse.next({
     request: {
       headers: request.headers,
@@ -38,6 +42,10 @@ export async function middleware(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname;
   
+  // #region agent log
+  fetch('http://127.0.0.1:7243/ingest/4b5f8db5-0ff7-4203-b2e4-06e25ade0057',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'middleware.ts:37',message:'Auth check result',data:{pathname,hasUser:!!user,userId:user?.id||null},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+  // #endregion
+  
   // Check if route is public
   const isPublicRoute = PUBLIC_ROUTES.some(route => pathname === route || pathname.startsWith(route + '/'));
   
@@ -47,17 +55,31 @@ export async function middleware(request: NextRequest) {
   // Check if route is protected
   const isProtectedRoute = PROTECTED_ROUTES.some(route => pathname.startsWith(route)) && !isWebhook;
 
+  // #region agent log
+  fetch('http://127.0.0.1:7243/ingest/4b5f8db5-0ff7-4203-b2e4-06e25ade0057',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'middleware.ts:48',message:'Route classification',data:{pathname,isPublicRoute,isProtectedRoute,isWebhook},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+  // #endregion
+
   // Redirect to login if accessing protected route without auth
   if (isProtectedRoute && !user) {
     const redirectUrl = new URL('/login', request.url);
     redirectUrl.searchParams.set('redirect', pathname);
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/4b5f8db5-0ff7-4203-b2e4-06e25ade0057',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'middleware.ts:51',message:'Redirecting to login',data:{pathname,redirectTo:redirectUrl.toString()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
     return NextResponse.redirect(redirectUrl);
   }
 
   // Redirect to dashboard if accessing login while authenticated
   if (pathname === '/login' && user) {
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/4b5f8db5-0ff7-4203-b2e4-06e25ade0057',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'middleware.ts:58',message:'Redirecting authenticated user from login',data:{userId:user.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+    // #endregion
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
+
+  // #region agent log
+  fetch('http://127.0.0.1:7243/ingest/4b5f8db5-0ff7-4203-b2e4-06e25ade0057',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'middleware.ts:62',message:'Middleware allowing request',data:{pathname},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+  // #endregion
 
   return response;
 }

@@ -148,10 +148,12 @@ export async function processGenerationJob(jobId: string): Promise<void> {
 
     // 8. Process in batches
     for (let i = 0; i < itemPageMap.length; i += BATCH_SIZE) {
-      // Check if job was cancelled mid-processing
-      const currentJob = await getJob(jobId, userId);
-      if (currentJob.status === 'cancelled') {
-        break;
+      // Check if job was cancelled mid-processing (cache the check to avoid repeated DB calls)
+      if (i % BATCH_SIZE === 0) { // Only check every batch, not every item
+        const currentJob = await getJob(jobId, userId);
+        if (currentJob.status === 'cancelled') {
+          break;
+        }
       }
 
       const batch = itemPageMap.slice(i, i + BATCH_SIZE);
@@ -202,10 +204,12 @@ async function processJobItem(
 
   try {
     // Generate page image
+    const primaryAudience = Array.isArray(project.audience) ? project.audience[0] : project.audience;
+    const audience = (typeof primaryAudience === 'string' ? primaryAudience : 'children') as Audience;
     const result = await generatePage({
       compiledPrompt: compiled.compiledPrompt,
       negativePrompt: compiled.negativePrompt,
-      audience: project.audience as Audience,
+      audience,
       fluxModel: 'flux-lineart' as FluxModel,
       trimSize: project.trim_size as TrimSize,
       maxRetries: MAX_RETRIES,

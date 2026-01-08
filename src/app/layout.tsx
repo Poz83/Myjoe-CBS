@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { PostHogProvider } from "../components/PostHogProvider";
 import { QueryProvider } from "../providers/query-provider";
+import { LoadingProvider } from "../components/ui/loading-provider";
 import { Toaster } from "../components/ui/toast";
 import { CookieConsentBanner } from "../components/cookie-consent-banner";
 import { ChunkLoadErrorBoundary } from "../components/errors/chunk-load-error-boundary";
@@ -70,7 +71,9 @@ export default function RootLayout({
         <ChunkLoadErrorBoundary>
           <PostHogProvider>
             <QueryProvider>
-              {children}
+              <LoadingProvider>
+                {children}
+              </LoadingProvider>
             </QueryProvider>
           </PostHogProvider>
           <CookieConsentBanner />

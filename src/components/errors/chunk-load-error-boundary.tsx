@@ -18,6 +18,11 @@ interface State {
 export class ChunkLoadErrorBoundary extends Component<Props, State> {
   private retryTimeoutId: NodeJS.Timeout | null = null;
 
+  private reloadPage = () => {
+    // Some builds/type environments model `window` as `never`; globalThis is stable.
+    (globalThis as unknown as Window).location.reload();
+  };
+
   constructor(props: Props) {
     super(props);
     this.state = {
@@ -82,7 +87,7 @@ export class ChunkLoadErrorBoundary extends Component<Props, State> {
     // Limit retries to prevent infinite loops
     if (retryCount >= 3) {
       // Force a hard reload after 3 retries
-      window.location.reload();
+      this.reloadPage();
       return;
     }
 
@@ -94,21 +99,21 @@ export class ChunkLoadErrorBoundary extends Component<Props, State> {
 
     // Force a reload of the page to clear any cached chunks
     this.retryTimeoutId = setTimeout(() => {
-      window.location.reload();
+      this.reloadPage();
     }, 100);
   };
 
   handleHardReload = () => {
     // Clear cache and reload
-    if ('caches' in window) {
+    if ('caches' in globalThis) {
       caches.keys().then((names) => {
         names.forEach((name) => {
           caches.delete(name);
         });
-        window.location.reload();
+        this.reloadPage();
       });
     } else {
-      window.location.reload();
+      this.reloadPage();
     }
   };
 

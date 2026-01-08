@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect } from 'react';
-import { Sparkles, X, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Sparkles, X, AlertCircle, CheckCircle2, Loader2, Image as ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
 import { useGenerationJob, useCancelGeneration, type JobItem } from '@/hooks/use-generation';
 import { cn } from '@/lib/utils';
+import Image from 'next/image';
 
 interface GenerationProgressProps {
   jobId: string;
@@ -24,51 +24,6 @@ function formatTimeRemaining(seconds: number): string {
   return `~${minutes} minute${minutes > 1 ? 's' : ''}`;
 }
 
-function ThumbnailItem({ item }: { item: JobItem }) {
-  const isCompleted = item.status === 'completed';
-  const isFailed = item.status === 'failed';
-  const isProcessing = item.status === 'processing';
-
-  return (
-    <div
-      className={cn(
-        'relative aspect-[3/4] rounded-lg overflow-hidden border-2 transition-all',
-        isCompleted && 'border-green-500/50',
-        isFailed && 'border-red-500/50',
-        isProcessing && 'border-blue-500/50 animate-pulse',
-        !isCompleted && !isFailed && !isProcessing && 'border-zinc-700'
-      )}
-    >
-      {isCompleted && item.thumbnailUrl ? (
-        <img
-          src={item.thumbnailUrl}
-          alt="Generated page"
-          className="w-full h-full object-cover"
-        />
-      ) : (
-        <div className="w-full h-full bg-zinc-800 flex items-center justify-center">
-          {isProcessing && (
-            <Loader2 className="w-6 h-6 text-blue-400 animate-spin" />
-          )}
-          {isFailed && (
-            <AlertCircle className="w-6 h-6 text-red-400" />
-          )}
-          {!isProcessing && !isFailed && (
-            <div className="w-8 h-8 rounded-full bg-zinc-700" />
-          )}
-        </div>
-      )}
-
-      {/* Status overlay */}
-      {isCompleted && (
-        <div className="absolute top-1 right-1">
-          <CheckCircle2 className="w-4 h-4 text-green-400" />
-        </div>
-      )}
-    </div>
-  );
-}
-
 export function GenerationProgress({
   jobId,
   onComplete,
@@ -76,11 +31,15 @@ export function GenerationProgress({
 }: GenerationProgressProps) {
   const { job, items, isLoading, error } = useGenerationJob(jobId);
   const cancelGeneration = useCancelGeneration();
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   // Handle job completion
   useEffect(() => {
     if (job?.status === 'completed') {
-      onComplete();
+      const timer = setTimeout(() => {
+        onComplete();
+      }, 1500); // Small delay to show completion state
+      return () => clearTimeout(timer);
     }
   }, [job?.status, onComplete]);
 
@@ -88,6 +47,17 @@ export function GenerationProgress({
     await cancelGeneration.mutateAsync(jobId);
     onCancel();
   };
+
+  // Find the currently processing item or the last completed one to show
+  const processingItemIndex = items.findIndex(i => i.status === 'processing');
+  const lastCompletedIndex = items.findLastIndex(i => i.status === 'completed');
+  
+  // Determine which image to show in the "hero" spot
+  // If processing, show processing placeholder. If recently completed, show that.
+  const activeIndex = processingItemIndex !== -1 ? processingItemIndex : 
+                      lastCompletedIndex !== -1 ? lastCompletedIndex : 0;
+  
+  const activeItem = items[activeIndex];
 
   // Calculate progress
   const totalItems = job?.totalItems || 0;
@@ -105,30 +75,29 @@ export function GenerationProgress({
     if (!job) return 'Starting...';
     if (job.status === 'pending') return 'Preparing generation...';
     if (job.status === 'processing') {
-      const processingItem = items.find(i => i.status === 'processing');
-      if (processingItem) {
-        const itemIndex = items.indexOf(processingItem) + 1;
-        return `Generating page ${itemIndex} of ${totalItems}...`;
+      if (activeItem) {
+        return `Generating page ${activeIndex + 1} of ${totalItems}...`;
       }
       return `Generating pages... (${completedItems}/${totalItems})`;
     }
     if (job.status === 'failed') return 'Generation failed';
     if (job.status === 'cancelled') return 'Generation cancelled';
+    if (job.status === 'completed') return 'All pages created!';
     return 'Processing...';
   };
 
   // Error state
   if (error) {
     return (
-      <div className="fixed inset-0 z-50 bg-zinc-950 flex items-center justify-center">
-        <div className="max-w-md mx-auto p-8 text-center">
+      <div className="fixed inset-0 z-50 bg-zinc-950/90 backdrop-blur-sm flex items-center justify-center">
+        <div className="max-w-md w-full bg-zinc-900 border border-zinc-800 rounded-xl p-8 text-center shadow-2xl">
           <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
           <h2 className="text-xl font-semibold text-white mb-2">
             Something went wrong
           </h2>
           <p className="text-zinc-400 mb-6">{error.message}</p>
           <Button variant="secondary" onClick={onCancel}>
-            Go Back
+            Close
           </Button>
         </div>
       </div>
@@ -138,8 +107,8 @@ export function GenerationProgress({
   // Failed state
   if (job?.status === 'failed') {
     return (
-      <div className="fixed inset-0 z-50 bg-zinc-950 flex items-center justify-center">
-        <div className="max-w-md mx-auto p-8 text-center">
+      <div className="fixed inset-0 z-50 bg-zinc-950/90 backdrop-blur-sm flex items-center justify-center">
+        <div className="max-w-md w-full bg-zinc-900 border border-zinc-800 rounded-xl p-8 text-center shadow-2xl">
           <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
           <h2 className="text-xl font-semibold text-white mb-2">
             Couldn't create your pages
@@ -148,7 +117,7 @@ export function GenerationProgress({
             {job.errorMessage || "Something went wrong while creating your pages."}
           </p>
           <Button variant="secondary" onClick={onCancel}>
-            Go Back
+            Close
           </Button>
         </div>
       </div>
@@ -156,87 +125,86 @@ export function GenerationProgress({
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-zinc-950 flex items-center justify-center p-4">
-      <div className="w-full max-w-xl mx-auto space-y-8">
-        {/* Header */}
-        <div className="text-center">
-          <div className="w-16 h-16 rounded-full bg-blue-500/20 flex items-center justify-center mx-auto mb-4">
-            <Sparkles className="w-8 h-8 text-blue-400" />
-          </div>
-          <h1 className="text-2xl font-bold text-white mb-2">
-            Generating your coloring book...
-          </h1>
-          <p className="text-zinc-400">{getStatusText()}</p>
-        </div>
-
-        {/* Progress Bar */}
-        <div className="space-y-2">
-          <div className="h-3 bg-zinc-800 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-blue-500 to-blue-400 rounded-full transition-all duration-500 ease-out"
-              style={{ width: `${progressPercent}%` }}
+    <div className="fixed inset-0 z-50 bg-zinc-950/95 backdrop-blur-md flex flex-col items-center justify-center p-6">
+      <div className="w-full max-w-lg mx-auto flex flex-col items-center space-y-8">
+        
+        {/* Main Preview Area */}
+        <div className="relative w-64 aspect-[3/4] bg-zinc-900 rounded-xl border border-zinc-800 shadow-2xl overflow-hidden flex flex-col items-center justify-center group">
+          {activeItem?.status === 'completed' && activeItem.thumbnailUrl ? (
+            <Image
+              src={activeItem.thumbnailUrl}
+              alt="Generated page"
+              fill
+              className="object-contain p-4"
             />
-          </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-zinc-400">
-              {completedItems} of {totalItems} pages
-            </span>
-            <span className="text-zinc-400">
-              {Math.round(progressPercent)}%
-            </span>
-          </div>
-        </div>
-
-        {/* Thumbnail Grid */}
-        <div className="grid grid-cols-4 gap-3">
-          {isLoading || items.length === 0 ? (
-            // Loading skeletons
-            Array.from({ length: Math.min(totalItems || 8, 12) }).map((_, i) => (
-              <Skeleton key={i} variant="image" className="aspect-[3/4]" />
-            ))
           ) : (
-            // Actual items (show first 12)
-            items.slice(0, 12).map((item) => (
-              <ThumbnailItem key={item.id} item={item} />
-            ))
+            <div className="flex flex-col items-center justify-center text-zinc-600 space-y-4">
+              <div className="relative">
+                <div className="absolute inset-0 bg-blue-500/20 blur-xl rounded-full animate-pulse" />
+                <Sparkles className="w-12 h-12 text-blue-400 relative z-10 animate-bounce-subtle" />
+              </div>
+              <p className="text-sm font-medium text-zinc-500">
+                {activeItem?.status === 'pending' ? 'Waiting...' : 'Creating magic...'}
+              </p>
+            </div>
           )}
+
+          {/* Status Badge */}
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-zinc-800/80 backdrop-blur border border-zinc-700 text-xs font-medium text-white flex items-center gap-2">
+            {activeItem?.status === 'processing' && <Loader2 className="w-3 h-3 animate-spin text-blue-400" />}
+            {activeItem?.status === 'completed' && <CheckCircle2 className="w-3 h-3 text-green-400" />}
+            <span>Page {activeIndex + 1}</span>
+          </div>
         </div>
 
-        {/* Show more indicator */}
-        {items.length > 12 && (
-          <p className="text-center text-sm text-zinc-500">
-            +{items.length - 12} more pages
-          </p>
-        )}
-
-        {/* Time Remaining */}
-        {job?.status === 'processing' && remainingItems > 0 && (
-          <p className="text-center text-sm text-zinc-500">
-            {formatTimeRemaining(secondsRemaining)} remaining
-          </p>
-        )}
-
-        {/* Failed Items Warning */}
-        {failedItems > 0 && (
-          <div className="flex items-center justify-center gap-2 text-amber-400 text-sm">
-            <AlertCircle className="w-4 h-4" />
-            <span>{failedItems} page{failedItems > 1 ? 's' : ''} couldn't be created</span>
+        {/* Status Text & Progress */}
+        <div className="w-full text-center space-y-4">
+          <div>
+            <h2 className="text-2xl font-bold text-white mb-2 tracking-tight">
+              {job?.status === 'completed' ? 'Generation Complete!' : 'Creating your book...'}
+            </h2>
+            <p className="text-zinc-400 flex items-center justify-center gap-2">
+              {getStatusText()}
+            </p>
           </div>
-        )}
 
-        {/* Cancel Button */}
-        {(job?.status === 'pending' || job?.status === 'processing') && (
-          <div className="flex justify-center">
+          <div className="space-y-2 max-w-sm mx-auto">
+            <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-blue-600 to-cyan-400 rounded-full transition-all duration-500 ease-out"
+                style={{ width: `${progressPercent}%` }}
+              />
+            </div>
+            <div className="flex justify-between text-xs text-zinc-500 px-1">
+               <span>{Math.round(progressPercent)}%</span>
+               {job?.status === 'processing' && remainingItems > 0 && (
+                 <span>{formatTimeRemaining(secondsRemaining)} left</span>
+               )}
+            </div>
+          </div>
+        </div>
+
+        {/* Footer Actions */}
+        <div className="pt-4">
+          {(job?.status === 'pending' || job?.status === 'processing') && (
             <Button
-              variant="danger"
+              variant="ghost"
+              className="text-zinc-500 hover:text-red-400 hover:bg-red-500/10"
               onClick={handleCancel}
-              loading={cancelGeneration.isPending}
-              icon={<X className="w-4 h-4" />}
+              disabled={cancelGeneration.isPending}
             >
               Cancel Generation
             </Button>
-          </div>
-        )}
+          )}
+          {job?.status === 'completed' && (
+             <Button
+               className="bg-white text-black hover:bg-zinc-200 min-w-[120px]"
+               onClick={onComplete}
+             >
+               View Pages
+             </Button>
+          )}
+        </div>
       </div>
     </div>
   );

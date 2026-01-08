@@ -4,10 +4,11 @@ import { useState, useRef, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 
 export interface TooltipProps {
-  content: string;
+  content: React.ReactNode;
   children: React.ReactNode;
   position?: 'top' | 'bottom' | 'left' | 'right';
   delay?: number;
+  className?: string;
 }
 
 export function Tooltip({
@@ -15,6 +16,7 @@ export function Tooltip({
   children,
   position = 'top',
   delay = 200,
+  className,
 }: TooltipProps) {
   const [isVisible, setIsVisible] = useState(false);
   const triggerRef = useRef<HTMLDivElement>(null);
@@ -51,34 +53,42 @@ export function Tooltip({
     right: 'left-full top-1/2 -translate-y-1/2 ml-2',
   };
 
+  // Arrow colors use CSS variable for consistency
   const arrowClasses = {
-    top: 'top-full left-1/2 -translate-x-1/2 border-t-zinc-800 border-l-transparent border-r-transparent border-b-transparent',
-    bottom: 'bottom-full left-1/2 -translate-x-1/2 border-b-zinc-800 border-l-transparent border-r-transparent border-t-transparent',
-    left: 'left-full top-1/2 -translate-y-1/2 border-l-zinc-800 border-t-transparent border-b-transparent border-r-transparent',
-    right: 'right-full top-1/2 -translate-y-1/2 border-r-zinc-800 border-t-transparent border-b-transparent border-l-transparent',
+    top: 'top-full left-1/2 -translate-x-1/2 border-t-[var(--bg-elevated)] border-l-transparent border-r-transparent border-b-transparent',
+    bottom: 'bottom-full left-1/2 -translate-x-1/2 border-b-[var(--bg-elevated)] border-l-transparent border-r-transparent border-t-transparent',
+    left: 'left-full top-1/2 -translate-y-1/2 border-l-[var(--bg-elevated)] border-t-transparent border-b-transparent border-r-transparent',
+    right: 'right-full top-1/2 -translate-y-1/2 border-r-[var(--bg-elevated)] border-t-transparent border-b-transparent border-l-transparent',
   };
 
   return (
     <div
       ref={triggerRef}
-      className="relative inline-block"
+      className="relative inline-flex"
       onMouseEnter={showTooltip}
       onMouseLeave={hideTooltip}
+      onFocus={showTooltip}
+      onBlur={hideTooltip}
     >
       {children}
       {isVisible && (
         <div
+          role="tooltip"
           className={cn(
-            'absolute z-50 px-3 py-1.5 bg-zinc-800 text-zinc-200 text-sm rounded',
+            'absolute z-popover',
+            'px-3 py-1.5 rounded-md',
+            'bg-bg-elevated text-text-primary text-sm',
+            'border border-border-subtle shadow-md',
             'whitespace-nowrap pointer-events-none',
-            'opacity-100 transition-opacity duration-200',
-            positionClasses[position]
+            'animate-in fade-in-0 zoom-in-95 duration-150',
+            positionClasses[position],
+            className
           )}
         >
           {content}
           <div
             className={cn(
-              'absolute w-0 h-0 border-4',
+              'absolute w-0 h-0 border-[5px]',
               arrowClasses[position]
             )}
           />
@@ -87,3 +97,21 @@ export function Tooltip({
     </div>
   );
 }
+
+// Provider pattern for more complex tooltip scenarios
+export interface TooltipProviderProps {
+  children: React.ReactNode;
+  delayDuration?: number;
+}
+
+export function TooltipProvider({ children }: TooltipProviderProps) {
+  return <>{children}</>;
+}
+
+export const TooltipTrigger = ({ children, asChild }: { children: React.ReactNode; asChild?: boolean }) => {
+  return <>{children}</>;
+};
+
+export const TooltipContent = ({ children }: { children: React.ReactNode }) => {
+  return <>{children}</>;
+};

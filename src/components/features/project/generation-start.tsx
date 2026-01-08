@@ -33,6 +33,7 @@ export function GenerationStart({ project, onStarted }: GenerationStartProps) {
 
   const pageCount = project.pages?.length || project.page_count;
   const blotCost = pageCount * BLOT_COSTS.generatePage;
+  const audienceKey = Array.isArray(project.audience) ? project.audience[0] : project.audience;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -117,7 +118,7 @@ export function GenerationStart({ project, onStarted }: GenerationStartProps) {
                 <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
                 <div>
                   <p className="text-sm font-medium text-red-400">
-                    This content isn&apos;t suitable for {AUDIENCE_LABELS[project.audience] || project.audience}
+                    This content isn&apos;t suitable for {AUDIENCE_LABELS[audienceKey] || audienceKey}
                   </p>
                   <p className="text-xs text-zinc-400 mt-1">
                     Blocked: {safetyError.blocked?.join(', ')}

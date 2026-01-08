@@ -19,13 +19,13 @@ export function StudioNavBar() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 h-14 bg-zinc-900/80 backdrop-blur-sm border-b border-zinc-800">
+    <nav className="fixed top-0 left-0 right-0 z-sticky h-14 bg-bg-surface/80 backdrop-blur-sm border-b border-border-subtle">
       <div className="h-full flex items-center justify-between px-4">
         {/* Left: Logo */}
         <div className="flex items-center gap-4">
           <Link
             href="/dashboard"
-            className="flex items-center hover:opacity-80 transition-opacity"
+            className="flex items-center hover:opacity-80 transition-opacity duration-base"
             aria-label="Myjoe - Go to dashboard"
           >
             <Image
@@ -43,18 +43,21 @@ export function StudioNavBar() {
         <nav className="hidden md:flex items-center gap-1">
           {navItems.map((item) => {
             const Icon = item.icon;
-            const isActive = pathname?.startsWith(item.href) || 
-              (item.href === '/studio' && pathname?.includes('/studio'));
+            const isActive =
+              item.href === '/dashboard'
+                ? pathname === '/dashboard'
+                : pathname?.startsWith(item.href);
             
             return (
               <Link
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors',
+                  'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium',
+                  'transition-colors duration-base',
                   isActive
-                    ? 'bg-zinc-800 text-white'
-                    : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'
+                    ? 'bg-selected-bg text-text-primary'
+                    : 'text-text-secondary hover:text-text-primary hover:bg-hover-overlay'
                 )}
               >
                 <Icon className="w-4 h-4" />

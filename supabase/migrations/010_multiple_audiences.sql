@@ -11,10 +11,7 @@ ALTER TABLE public.projects
 ALTER TABLE public.projects
   ADD CONSTRAINT projects_audience_check CHECK (
     array_length(audience, 1) >= 1
-    AND (
-      SELECT bool_and(aud IN ('toddler', 'children', 'tween', 'teen', 'adult'))
-      FROM unnest(audience) AS aud
-    )
+    AND audience <@ ARRAY['toddler', 'children', 'tween', 'teen', 'adult']::TEXT[]
   );
 
 -- Heroes: audience -> TEXT[] (for consistency with projects)
@@ -28,8 +25,5 @@ ALTER TABLE public.heroes
 ALTER TABLE public.heroes
   ADD CONSTRAINT heroes_audience_check CHECK (
     array_length(audience, 1) >= 1
-    AND (
-      SELECT bool_and(aud IN ('toddler', 'children', 'tween', 'teen', 'adult'))
-      FROM unnest(audience) AS aud
-    )
+    AND audience <@ ARRAY['toddler', 'children', 'tween', 'teen', 'adult']::TEXT[]
   );

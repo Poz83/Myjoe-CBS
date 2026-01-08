@@ -78,7 +78,7 @@ export async function processHeroJob(jobId: string): Promise<void> {
     const result = await generateHeroSheet({
       name: metadata.name,
       description: metadata.description,
-      audience: metadata.audience,
+      audience: [metadata.audience],
     });
 
     // 4. Check for safety issues

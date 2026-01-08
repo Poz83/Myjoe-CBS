@@ -47,9 +47,23 @@ export function useBalance() {
   return useQuery({
     queryKey: ['balance'],
     queryFn: async (): Promise<Balance> => {
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/4b5f8db5-0ff7-4203-b2e4-06e25ade0057',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'use-billing.ts:49',message:'useBalance queryFn called',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+      // #endregion
       const res = await fetch('/api/billing/balance');
-      if (!res.ok) throw new Error('Failed to fetch balance');
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/4b5f8db5-0ff7-4203-b2e4-06e25ade0057',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'use-billing.ts:51',message:'Balance API response received',data:{ok:res.ok,status:res.status},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+      // #endregion
+      if (!res.ok) {
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/4b5f8db5-0ff7-4203-b2e4-06e25ade0057',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'use-billing.ts:52',message:'Balance API error',data:{status:res.status},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+        // #endregion
+        throw new Error('Failed to fetch balance');
+      }
       const data = await res.json();
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/4b5f8db5-0ff7-4203-b2e4-06e25ade0057',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'use-billing.ts:55',message:'Balance data parsed',data:{blots:data.blots,hasData:!!data},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+      // #endregion
 
       return {
         blots: data.blots ?? 0,

@@ -14,6 +14,13 @@ import {
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from '@/components/ui/select';
 import { AudienceSelector } from './audience-selector';
 import { LineThicknessSelector } from './line-thickness-selector';
 import { IdeaBox } from './idea-box';
@@ -90,41 +97,41 @@ export function ProjectSettingsPanel({
   };
 
   return (
-    <div className="h-full flex flex-col bg-gradient-to-b from-zinc-900/80 to-[#0D0D0D] border-r border-white/5 overflow-y-auto">
+    <div className="h-full flex flex-col bg-bg-surface overflow-y-auto scrollbar-thin">
       {/* Header */}
-      <div className="p-5 border-b border-white/5 flex items-center justify-between">
+      <div className="panel-header sticky top-0 bg-bg-surface/95 backdrop-blur z-sticky">
         <div>
-          <h2 className="text-xl font-semibold text-white">Project Settings</h2>
-          <p className="text-xs text-zinc-500">Fine-tune your book setup</p>
+          <h2 className="panel-header-title">Settings</h2>
+          <p className="text-xs text-text-muted mt-0.5">Project Configuration</p>
         </div>
-        <div className="flex items-center gap-2 text-xs text-zinc-500">
+        <div className="flex items-center gap-2 text-xs font-medium">
           {saveStatus === 'saving' && (
-            <>
+            <div className="flex items-center gap-1.5 text-text-muted">
               <Loader2 className="w-3 h-3 animate-spin" />
               <span>Saving...</span>
-            </>
+            </div>
           )}
           {saveStatus === 'saved' && (
-            <>
-              <Cloud className="w-3 h-3 text-green-500" />
-              <span className="text-green-500">Saved</span>
-            </>
+            <div className="flex items-center gap-1.5 text-success">
+              <Cloud className="w-3 h-3" />
+              <span>Saved</span>
+            </div>
           )}
           {saveStatus === 'error' && (
-            <>
-              <CloudOff className="w-3 h-3 text-red-500" />
-              <span className="text-red-500">Error</span>
-            </>
+            <div className="flex items-center gap-1.5 text-error">
+              <CloudOff className="w-3 h-3" />
+              <span>Error</span>
+            </div>
           )}
         </div>
       </div>
 
       {/* Settings Content */}
-      <div className="flex-1 p-5 space-y-6">
+      <div className="flex-1 px-6 py-6 space-y-8">
         {/* Project Name */}
-        <div className="space-y-2 bg-white/[0.02] border border-white/5 rounded-2xl p-4">
-          <label className="flex items-center gap-2 text-sm font-semibold text-white">
-            <FileText className="w-4 h-4 text-blue-300" />
+        <div className="space-y-3">
+          <label className="form-label flex items-center gap-2">
+            <FileText className="w-3.5 h-3.5 text-accent-cyan" />
             Project Name
           </label>
           <Input
@@ -133,57 +140,64 @@ export function ProjectSettingsPanel({
             disabled={disabled}
             placeholder="My Coloring Book"
             maxLength={100}
-            className="bg-zinc-900/80 border-white/10"
           />
         </div>
+
+        <div className="divider" />
 
         {/* Page Count */}
-        <div className="space-y-3 bg-gradient-to-br from-blue-500/10 to-blue-600/5 border border-white/5 rounded-2xl p-4">
+        <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-sm font-semibold text-white">
-              <Layers className="w-4 h-4 text-blue-300" />
+            <div className="form-label flex items-center gap-2 mb-0">
+              <Layers className="w-3.5 h-3.5 text-accent-cyan" />
               <span>Page Count</span>
             </div>
-            <div className="text-sm font-semibold text-blue-200">{settings.pageCount} pages</div>
+            <div className="text-xs font-bold text-accent-cyan bg-accent-cyan-muted px-2.5 py-1 rounded-md border border-accent-cyan/20">
+              {settings.pageCount} pages
+            </div>
           </div>
-          <Slider
-            value={[settings.pageCount]}
-            min={1}
-            max={MAX_PAGES}
-            step={1}
-            disabled={disabled}
-            onValueChange={([v]) => handleSettingChange('pageCount', v)}
-            className="pt-2"
-          />
-          <div className="flex justify-between text-xs text-zinc-500">
-            <span>1</span>
-            <span>{MAX_PAGES}</span>
+          <div className="bg-bg-elevated p-5 rounded-lg border border-border-subtle hover:border-border-default transition-colors duration-base">
+            <Slider
+              value={[settings.pageCount]}
+              min={1}
+              max={MAX_PAGES}
+              step={1}
+              disabled={disabled}
+              onValueChange={([v]) => handleSettingChange('pageCount', v)}
+              className="py-2"
+            />
+            <div className="flex justify-between text-[10px] text-text-muted font-medium mt-3 uppercase tracking-wider">
+              <span>1 Page</span>
+              <span>{MAX_PAGES} Pages</span>
+            </div>
           </div>
         </div>
 
+        <div className="divider" />
+
         {/* Trim Size */}
-        <div className="space-y-3 bg-white/[0.02] border border-white/5 rounded-2xl p-4">
-          <div className="flex items-center gap-2 text-sm font-semibold text-white">
-            <Ruler className="w-4 h-4 text-blue-300" />
+        <div className="space-y-3">
+          <div className="form-label flex items-center gap-2 mb-0">
+            <Ruler className="w-3.5 h-3.5 text-accent-cyan" />
             Trim Size
           </div>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-3 gap-2.5">
             {(Object.keys(TRIM_SIZES) as TrimSize[]).map((size) => (
               <button
                 key={size}
                 onClick={() => handleSettingChange('trimSize', size)}
                 disabled={disabled}
                 className={cn(
-                  'px-3 py-3 rounded-xl border text-sm font-medium transition-all',
-                  'bg-white/[0.02] border-white/5 hover:border-white/10 hover:scale-[1.01]',
+                  'px-3 py-3 rounded-lg border text-sm font-medium transition-all duration-base',
+                  'bg-bg-elevated border-border-subtle hover:border-border-default',
                   settings.trimSize === size
-                    ? 'border-blue-500/60 ring-1 ring-blue-500/30 bg-blue-500/5'
-                    : '',
+                    ? 'border-accent-cyan/50 ring-1 ring-accent-cyan/20 bg-selected-bg text-text-primary shadow-glow-cyan'
+                    : 'text-text-secondary',
                   disabled && 'opacity-60 cursor-not-allowed'
                 )}
               >
-                <div className="font-semibold text-white">{size}</div>
-                <div className="text-xs text-zinc-500 mt-0.5">
+                <div className="font-bold">{size}</div>
+                <div className="text-[10px] text-text-muted mt-1 font-mono">
                   {TRIM_SIZES[size].aspectRatio}
                 </div>
               </button>
@@ -191,36 +205,45 @@ export function ProjectSettingsPanel({
           </div>
         </div>
 
+        <div className="divider" />
+
         {/* Visual Style */}
-        <div className="space-y-3 bg-white/[0.02] border border-white/5 rounded-2xl p-4">
-          <div className="flex items-center gap-2 text-sm font-semibold text-white">
-            <Palette className="w-4 h-4 text-blue-300" />
+        <div className="space-y-3">
+          <div className="form-label flex items-center gap-2 mb-0">
+            <Palette className="w-3.5 h-3.5 text-accent-cyan" />
             Visual Style
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            {STYLE_PRESETS.map((style) => (
-              <button
-                key={style}
-                onClick={() => handleSettingChange('stylePreset', style)}
-                disabled={disabled}
-                className={cn(
-                  'p-3 rounded-xl border text-sm font-medium transition-all text-left',
-                  'bg-white/[0.02] border-white/5 hover:border-white/10 hover:scale-[1.01]',
-                  settings.stylePreset === style
-                    ? 'border-blue-500/50 ring-1 ring-blue-500/30 bg-blue-500/5'
-                    : '',
-                  disabled && 'opacity-60 cursor-not-allowed'
-                )}
-              >
-                <div className="font-semibold text-white">{STYLE_INFO[style].label}</div>
-                <div className="text-xs text-zinc-500 mt-0.5">{STYLE_INFO[style].desc}</div>
-              </button>
-            ))}
+          
+          <div className="space-y-3">
+            <Select 
+              value={settings.stylePreset} 
+              onValueChange={(val) => handleSettingChange('stylePreset', val as StylePreset)}
+              disabled={disabled}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select a style" />
+              </SelectTrigger>
+              <SelectContent>
+                {STYLE_PRESETS.map((style) => (
+                  <SelectItem key={style} value={style}>
+                    <span className="font-medium">{STYLE_INFO[style].label}</span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            
+            {/* Selected Style Description */}
+            <div className="bg-accent-cyan-muted border border-accent-cyan/10 rounded-lg p-3.5 text-xs text-text-secondary leading-relaxed">
+              <span className="font-semibold text-accent-cyan mr-1.5">Info:</span>
+              {STYLE_INFO[settings.stylePreset].desc}
+            </div>
           </div>
         </div>
 
+        <div className="divider" />
+
         {/* Target Audience */}
-        <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-4">
+        <div className="space-y-3">
           <AudienceSelector
             selected={settings.audience}
             onChange={(audiences) => handleSettingChange('audience', audiences)}
@@ -228,11 +251,13 @@ export function ProjectSettingsPanel({
           />
         </div>
 
+        <div className="divider" />
+
         {/* Line Thickness */}
-        <div className="space-y-3 bg-white/[0.02] border border-white/5 rounded-2xl p-4">
-          <div className="flex items-center gap-2 text-sm font-semibold text-white">
-            <Sparkles className="w-4 h-4 text-blue-300" />
-            Line Thickness (pts)
+        <div className="space-y-3">
+          <div className="form-label flex items-center gap-2 mb-0">
+            <Sparkles className="w-3.5 h-3.5 text-accent-cyan" />
+            Line Thickness
           </div>
           <LineThicknessSelector
             value={settings.lineThicknessPts}
@@ -245,8 +270,10 @@ export function ProjectSettingsPanel({
           />
         </div>
 
+        <div className="divider" />
+
         {/* Idea Box */}
-        <div className="space-y-2 bg-white/[0.02] border border-white/5 rounded-2xl p-4">
+        <div className="space-y-3 pb-8">
           <IdeaBox
             value={settings.idea}
             onChange={(value) => handleSettingChange('idea', value)}

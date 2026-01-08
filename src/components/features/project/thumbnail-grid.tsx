@@ -242,7 +242,7 @@ export function ThumbnailGrid({
                 
                 const isSelected = selectedPageId === page.id;
                 // Only mark as loading if explicitly set AND we have an image URL or expect one
-                const isLoading = page.isLoading && (imageUrl !== null || page.imageUrl !== null);
+                const isLoading = (page.isLoading ?? false) && (imageUrl !== null || page.imageUrl !== null);
 
                 return (
                   <ThumbnailItem

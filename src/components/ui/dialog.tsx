@@ -10,6 +10,8 @@ export interface DialogProps {
   onOpenChange: (open: boolean) => void;
   children: React.ReactNode;
   title?: string;
+  description?: string;
+  size?: 'sm' | 'md' | 'lg' | 'xl';
   className?: string;
 }
 
@@ -18,11 +20,21 @@ export function Dialog({
   onOpenChange,
   children,
   title,
+  description,
+  size = 'md',
   className,
 }: DialogProps) {
   const [mounted, setMounted] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
   const previousActiveElementRef = useRef<HTMLElement | null>(null);
+
+  // Size variants
+  const sizeStyles = {
+    sm: 'max-w-sm',
+    md: 'max-w-lg',
+    lg: 'max-w-2xl',
+    xl: 'max-w-4xl',
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -111,7 +123,7 @@ export function Dialog({
 
   const dialogContent = (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center"
+      className="fixed inset-0 z-modal flex items-center justify-center"
       onClick={(e) => {
         if (e.target === e.currentTarget) {
           onOpenChange(false);
@@ -119,7 +131,7 @@ export function Dialog({
       }}
     >
       {/* Backdrop */}
-      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" />
+      <div className="fixed inset-0 bg-bg-overlay backdrop-blur-sm animate-in fade-in-0 duration-200" />
       
       {/* Dialog Content */}
       <div
@@ -127,11 +139,15 @@ export function Dialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby={title ? 'dialog-title' : undefined}
+        aria-describedby={description ? 'dialog-description' : undefined}
         className={cn(
-          'relative z-50 bg-zinc-900 rounded-lg border border-zinc-800',
-          'shadow-[0_20px_40px_rgba(0,0,0,0.4)]',
-          'max-w-lg w-full mx-4 p-6',
+          'relative z-modal',
+          'bg-bg-surface rounded-xl border border-border-subtle',
+          'shadow-lg',
+          'w-full mx-4 p-6',
           'focus:outline-none',
+          'animate-in fade-in-0 zoom-in-95 duration-200',
+          sizeStyles[size],
           className
         )}
         onClick={(e) => e.stopPropagation()}
@@ -139,17 +155,33 @@ export function Dialog({
         {/* Close Button */}
         <button
           onClick={() => onOpenChange(false)}
-          className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-md text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+          className={cn(
+            'absolute top-4 right-4 h-8 w-8',
+            'flex items-center justify-center rounded-lg',
+            'text-text-muted hover:text-text-primary',
+            'hover:bg-hover-overlay',
+            'transition-colors duration-base',
+            'focus:outline-none focus-visible:ring-2 focus-visible:ring-border-focus'
+          )}
           aria-label="Close dialog"
         >
           <X className="w-5 h-5" />
         </button>
 
-        {/* Title */}
-        {title && (
-          <h2 id="dialog-title" className="text-xl font-semibold mb-4 pr-8">
-            {title}
-          </h2>
+        {/* Header */}
+        {(title || description) && (
+          <div className="mb-6 pr-8">
+            {title && (
+              <h2 id="dialog-title" className="text-heading-lg text-text-primary">
+                {title}
+              </h2>
+            )}
+            {description && (
+              <p id="dialog-description" className="mt-2 text-sm text-text-secondary">
+                {description}
+              </p>
+            )}
+          </div>
         )}
 
         {/* Content */}
@@ -159,4 +191,21 @@ export function Dialog({
   );
 
   return createPortal(dialogContent, document.body);
+}
+
+// Dialog sub-components for better composition
+export function DialogHeader({ children, className }: { children: React.ReactNode; className?: string }) {
+  return <div className={cn('mb-6', className)}>{children}</div>;
+}
+
+export function DialogTitle({ children, className }: { children: React.ReactNode; className?: string }) {
+  return <h2 className={cn('text-heading-lg text-text-primary', className)}>{children}</h2>;
+}
+
+export function DialogDescription({ children, className }: { children: React.ReactNode; className?: string }) {
+  return <p className={cn('mt-2 text-sm text-text-secondary', className)}>{children}</p>;
+}
+
+export function DialogFooter({ children, className }: { children: React.ReactNode; className?: string }) {
+  return <div className={cn('mt-6 flex items-center justify-end gap-3', className)}>{children}</div>;
 }

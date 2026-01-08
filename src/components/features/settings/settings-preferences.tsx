@@ -39,6 +39,14 @@ const STYLE_INFO: Record<StylePreset, { label: string; desc: string }> = {
   'whimsical': { label: 'Whimsical', desc: 'Playful and imaginative' },
   'cartoon': { label: 'Cartoon', desc: 'Fun animated style' },
   'botanical': { label: 'Botanical', desc: 'Nature and flowers' },
+  mandala: { label: 'Mandala', desc: 'Intricate patterns for mindfulness' },
+  fantasy: { label: 'Fantasy', desc: 'Dragons, magic, and mythical worlds' },
+  gothic: { label: 'Gothic', desc: 'Dark, moody, horror-inspired art' },
+  cozy: { label: 'Cozy', desc: 'Warm hygge scenes and interiors' },
+  geometric: { label: 'Geometric', desc: 'Bold geometric and abstract shapes' },
+  wildlife: { label: 'Wildlife', desc: 'Realistic animals and nature scenes' },
+  floral: { label: 'Floral', desc: 'Lush flowers and garden motifs' },
+  abstract: { label: 'Abstract', desc: 'Modern artistic patterns' },
 };
 
 const TRIM_SIZES = [
