@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import NextImage from 'next/image';
-import { useEffect } from 'react';
+import { useEffect, Suspense } from 'react';
 import { motion } from 'framer-motion';
 import { AuthHandler } from '@/components/auth-handler';
 import { PricingSection } from '@/components/pricing-section';
@@ -116,7 +116,7 @@ function FloatingCards() {
   );
 }
 
-export default function LandingPage() {
+function SearchParamsHandler() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -127,8 +127,15 @@ export default function LandingPage() {
     }
   }, [searchParams, router]);
 
+  return null;
+}
+
+function LandingPageContent() {
   return (
     <main className="min-h-screen text-[#EAF4F8] overflow-x-hidden relative">
+      <Suspense fallback={null}>
+        <SearchParamsHandler />
+      </Suspense>
       <FloatingPencils />
       <AuthHandler />
       {/* Navigation */}
@@ -671,5 +678,19 @@ export default function LandingPage() {
         </div>
       </footer>
     </main>
+  );
+}
+
+export default function LandingPage() {
+  return (
+    <Suspense fallback={
+      <main className="min-h-screen text-[#EAF4F8] overflow-x-hidden relative">
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-zinc-400">Loading...</div>
+        </div>
+      </main>
+    }>
+      <LandingPageContent />
+    </Suspense>
   );
 }
