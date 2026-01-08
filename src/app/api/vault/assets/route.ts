@@ -5,6 +5,9 @@ import { getProjects } from '@/server/db/projects';
 import { getHeroes } from '@/server/db/heroes';
 import { z } from 'zod';
 
+// Force dynamic rendering since this route uses cookies for authentication
+export const dynamic = 'force-dynamic';
+
 const querySchema = z.object({
   type: z.enum(['projects', 'heroes', 'pages', 'exports']).optional(),
 });
