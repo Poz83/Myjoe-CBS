@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import NextImage from 'next/image';
 import { AuthHandler } from '@/components/auth-handler';
+import { PricingSection } from '@/components/pricing-section';
 import {
   Sparkles,
   Download,
@@ -246,7 +247,7 @@ export default function LandingPage({ searchParams }: LandingPageProps) {
                 icon: Sparkles,
                 title: "One-Click Batch Generation",
                 description: "Generate your entire 40-page book in one session. No repetitive prompting. Just describe your theme and go.",
-                highlight: "~$2 per complete book"
+                highlight: "~$3-4 per complete book"
               },
               {
                 icon: Users,
@@ -386,7 +387,7 @@ export default function LandingPage({ searchParams }: LandingPageProps) {
                 <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-6 text-center">
                   <div className="text-3xl font-bold text-green-400">2-4 hrs</div>
                   <div className="text-zinc-400 text-sm mt-1">With Myjoe</div>
-                  <div className="text-green-400/60 text-xs mt-2">~$2 total cost</div>
+                  <div className="text-green-400/60 text-xs mt-2">~$3-4 total cost</div>
                 </div>
               </div>
             </div>
@@ -503,137 +504,7 @@ export default function LandingPage({ searchParams }: LandingPageProps) {
       </section>
 
       {/* Pricing Section */}
-      <section id="pricing" className="py-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-12">
-            <span className="inline-block text-blue-400 font-medium mb-4">PRICING</span>
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-              Simple, Transparent Pricing
-            </h2>
-            <p className="text-zinc-400 text-lg">
-              Start free, scale as you grow. No hidden fees.
-            </p>
-          </div>
-
-          {/* Blot Explanation */}
-          <div className="bg-zinc-800/30 border border-zinc-700/50 rounded-xl p-6 mb-8 text-center">
-            <div className="flex items-center justify-center gap-2 mb-2">
-              <span className="text-2xl">🎨</span>
-              <span className="font-semibold">Blots = Your Creative Currency</span>
-            </div>
-            <p className="text-zinc-400 text-sm max-w-xl mx-auto">
-              1 coloring page = 5 Blots (~$0.01). A complete 40-page book uses about 212 Blots including setup.
-            </p>
-          </div>
-
-          <div className="grid lg:grid-cols-3 gap-6">
-            {/* Free Tier */}
-            <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-8">
-              <div className="text-zinc-400 font-medium mb-2">Free</div>
-              <div className="flex items-baseline gap-1 mb-2">
-                <span className="text-4xl font-bold">$0</span>
-                <span className="text-zinc-500">/month</span>
-              </div>
-              <div className="text-blue-400 font-medium mb-6">50 Blots/month</div>
-              <ul className="space-y-3 mb-8">
-                {[
-                  "~10 coloring pages/month",
-                  "3 projects max",
-                  "25 GB storage",
-                  "PNG + PDF export",
-                  "All 5 style presets"
-                ].map((feature, i) => (
-                  <li key={i} className="flex items-center gap-2 text-sm text-zinc-300">
-                    <Check className="w-4 h-4 text-green-500 shrink-0" />
-                    {feature}
-                  </li>
-                ))}
-              </ul>
-              <Link
-                href="/login"
-                className="block w-full text-center border border-zinc-700 hover:border-zinc-600 text-white px-6 py-3 rounded-xl font-medium transition-colors"
-              >
-                Start Free
-              </Link>
-            </div>
-
-            {/* Creator Tier */}
-            <div className="bg-gradient-to-b from-blue-600/10 to-transparent border-2 border-blue-500/50 rounded-2xl p-8 relative">
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-full">
-                MOST POPULAR
-              </div>
-              <div className="text-blue-400 font-medium mb-2">Creator</div>
-              <div className="flex items-baseline gap-1 mb-1">
-                <span className="text-4xl font-bold">$15</span>
-                <span className="text-zinc-500">/month</span>
-              </div>
-              <div className="text-xs text-zinc-500 mb-2">or $150/year (2 months free)</div>
-              <div className="text-blue-400 font-medium mb-6">500 Blots/month</div>
-              <ul className="space-y-3 mb-8">
-                {[
-                  "~2 complete books/month",
-                  "Unlimited projects",
-                  "25 GB storage",
-                  "Commercial license",
-                  "Hero Reference Sheets",
-                  "PNG + PDF + SVG export"
-                ].map((feature, i) => (
-                  <li key={i} className="flex items-center gap-2 text-sm text-zinc-300">
-                    <Check className="w-4 h-4 text-green-500 shrink-0" />
-                    {feature}
-                  </li>
-                ))}
-              </ul>
-              <Link
-                href="/login"
-                className="block w-full text-center bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-xl font-medium transition-colors"
-              >
-                Start Creating
-              </Link>
-            </div>
-
-            {/* Studio Tier */}
-            <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-8">
-              <div className="text-purple-400 font-medium mb-2">Studio</div>
-              <div className="flex items-baseline gap-1 mb-1">
-                <span className="text-4xl font-bold">$49</span>
-                <span className="text-zinc-500">/month</span>
-              </div>
-              <div className="text-xs text-zinc-500 mb-2">or $490/year (2 months free)</div>
-              <div className="text-purple-400 font-medium mb-6">2,000 Blots/month</div>
-              <ul className="space-y-3 mb-8">
-                {[
-                  "~9 complete books/month",
-                  "Unlimited projects",
-                  "50 GB storage",
-                  "Commercial license",
-                  "Priority support",
-                  "Everything in Creator"
-                ].map((feature, i) => (
-                  <li key={i} className="flex items-center gap-2 text-sm text-zinc-300">
-                    <Check className="w-4 h-4 text-green-500 shrink-0" />
-                    {feature}
-                  </li>
-                ))}
-              </ul>
-              <Link
-                href="/login"
-                className="block w-full text-center border border-zinc-700 hover:border-zinc-600 text-white px-6 py-3 rounded-xl font-medium transition-colors"
-              >
-                Go Studio
-              </Link>
-            </div>
-          </div>
-
-          {/* Need More Section */}
-          <div className="mt-8 text-center">
-            <p className="text-zinc-400">
-              Need more Blots? Add a <span className="text-white font-medium">Top-Up Pack (100 Blots / $5)</span> or
-              <span className="text-white font-medium"> Boost Pack (500 Blots / $20)</span> anytime. Packs never expire.
-            </p>
-          </div>
-        </div>
-      </section>
+      <PricingSection />
 
       {/* Comparison Section */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-zinc-900/50">
@@ -796,8 +667,8 @@ export default function LandingPage({ searchParams }: LandingPageProps) {
                   <span className="font-medium text-green-400">$2.50</span>
                 </div>
                 <div className="flex justify-between items-center py-2 border-b border-zinc-700/50">
-                  <span className="text-zinc-400">Sales needed to cover Creator plan</span>
-                  <span className="font-medium">6 books/month</span>
+                  <span className="text-zinc-400">Cost per book (Creator 1000 Blots)</span>
+                  <span className="font-medium">~$3.40</span>
                 </div>
                 <div className="flex justify-between items-center py-2 bg-green-500/10 rounded-lg px-3">
                   <span className="text-zinc-300">Sell 100/month across all titles</span>
@@ -823,7 +694,7 @@ export default function LandingPage({ searchParams }: LandingPageProps) {
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
                 </span>
-                <span className="text-green-400 text-sm font-medium">Free tier includes 10 pages to start</span>
+                <span className="text-green-400 text-sm font-medium">Free tier includes 75 Blots (~15 pages) to start</span>
               </div>
 
               <h2 className="text-3xl sm:text-4xl font-bold mb-4">
