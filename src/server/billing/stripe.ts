@@ -14,8 +14,8 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
 // Import constants dynamically to avoid build-time env var access
 async function getStripeConfig() {
-  const { STRIPE_PRICES, BLOT_PACKS, BLOTS_PER_UNIT } = await import('@/lib/constants');
-  return { STRIPE_PRICES, BLOT_PACKS, BLOTS_PER_UNIT };
+  const { STRIPE_PRICES, BLOTS_PER_UNIT } = await import('@/lib/constants');
+  return { STRIPE_PRICES, BLOTS_PER_UNIT };
 }
 
 export async function createSubscriptionCheckout(
@@ -48,35 +48,7 @@ export async function createSubscriptionCheckout(
   return session.url!;
 }
 
-export async function createPackCheckout(
-  userId: string,
-  email: string,
-  packId: string
-): Promise<string> {
-  const { STRIPE_PRICES, BLOT_PACKS } = await getStripeConfig();
-  const pack = BLOT_PACKS[packId as keyof typeof BLOT_PACKS];
-  const priceId = STRIPE_PRICES.packs[packId as keyof typeof STRIPE_PRICES.packs];
-
-  if (!pack || !priceId) {
-    throw new Error(`Pack not found: ${packId}. Valid packs: topup, boost`);
-  }
-
-  const session = await stripe.checkout.sessions.create({
-    mode: 'payment',
-    customer_email: email,
-    line_items: [{ price: priceId, quantity: 1 }],
-    metadata: {
-      userId,
-      packId,
-      blots: pack.blots.toString(),
-      type: 'blot_pack',
-    },
-    success_url: `${APP_URL}/studio/settings?tab=billing&success=pack&blots=${pack.blots}`,
-    cancel_url: `${APP_URL}/studio/settings?tab=billing&canceled=true`,
-  });
-
-  return session.url!;
-}
+// createPackCheckout removed - using Corbin's 2-tier dropdown method instead
 
 export async function createPortalSession(customerId: string): Promise<string> {
   const session = await stripe.billingPortal.sessions.create({

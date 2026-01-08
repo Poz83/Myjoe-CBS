@@ -19,11 +19,20 @@ import { uploadFile, getSignedDownloadUrl, generateR2Key } from '@/server/storag
 import { createAsset } from '@/server/storage/assets';
 import { BLOT_COSTS, LINE_WEIGHT_PROMPTS, COMPLEXITY_PROMPTS } from '@/lib/constants';
 import type { Audience } from '@/types/domain';
+import { rateLimit } from '@/lib/rate-limit';
+
+// Data URL regex for validating base64 PNG images
+const DATA_URL_REGEX = /^data:image\/png;base64,[A-Za-z0-9+/]+=*$/;
 
 const editRequestSchema = z.object({
   type: z.enum(['regenerate', 'inpaint', 'quick_action']),
   prompt: z.string().max(500).optional(),
-  maskDataUrl: z.string().optional(),
+  maskDataUrl: z.string()
+    .refine(
+      (val) => !val || DATA_URL_REGEX.test(val),
+      { message: 'Invalid mask data URL format - must be a base64 PNG data URL' }
+    )
+    .optional(),
 });
 
 /**
@@ -46,6 +55,10 @@ export async function POST(
         { status: 401 }
       );
     }
+
+    // Rate limit: expensive operation (page editing)
+    const rateLimitResult = rateLimit(user.id, 'expensive');
+    if (rateLimitResult) return rateLimitResult;
 
     const pageId = params.pageId;
 
@@ -138,13 +151,32 @@ export async function POST(
         );
       }
 
-      // Get current image
+      // Get current image with error handling
       const currentImageUrl = await getSignedDownloadUrl(currentVersion.asset_key);
-      const currentImageResponse = await fetch(currentImageUrl);
-      const currentImageBuffer = Buffer.from(await currentImageResponse.arrayBuffer());
+      let currentImageBuffer: Buffer;
+      try {
+        const currentImageResponse = await fetch(currentImageUrl);
+        if (!currentImageResponse.ok) {
+          throw new Error(`Failed to fetch current image: ${currentImageResponse.status}`);
+        }
+        currentImageBuffer = Buffer.from(await currentImageResponse.arrayBuffer());
+      } catch (fetchError) {
+        console.error('Failed to fetch current image:', fetchError);
+        return NextResponse.json(
+          { error: 'Failed to retrieve current page image', correlationId },
+          { status: 500 }
+        );
+      }
 
-      // Convert mask data URL to buffer
-      const maskBase64 = maskDataUrl.split(',')[1];
+      // Convert mask data URL to buffer (already validated by schema)
+      const maskParts = maskDataUrl.split(',');
+      if (maskParts.length !== 2) {
+        return NextResponse.json(
+          { error: 'Invalid mask data URL format', correlationId },
+          { status: 400 }
+        );
+      }
+      const maskBase64 = maskParts[1];
       const maskBuffer = Buffer.from(maskBase64, 'base64');
 
       // Call inpaint function

@@ -9,8 +9,11 @@ import { getProject, updateProject } from '@/server/db/projects';
 import { uploadFile, deleteFiles, generateR2Key, getSignedDownloadUrl } from '@/server/storage/r2';
 import { getOpenAIClient } from '@/server/ai/openai-client';
 
+// Valid sample IDs are strictly '1', '2', '3', or '4' to prevent path traversal
+const VALID_SAMPLE_IDS = ['1', '2', '3', '4'] as const;
+
 const selectSchema = z.object({
-  selectedId: z.string().min(1).max(10),
+  selectedId: z.enum(VALID_SAMPLE_IDS),
 });
 
 /**
@@ -73,7 +76,13 @@ export async function POST(
     });
 
     const tempObject = await r2Client.send(getCommand);
-    const imageBuffer = await streamToBuffer(tempObject.Body as any);
+    if (!tempObject.Body) {
+      return NextResponse.json(
+        { error: 'Selected sample not found', correlationId },
+        { status: 404 }
+      );
+    }
+    const imageBuffer = await streamToBuffer(tempObject.Body as NodeJS.ReadableStream);
 
     // Generate permanent R2 key for style anchor
     const permanentKey = generateR2Key('style_anchor', {
@@ -142,12 +151,21 @@ export async function POST(
 }
 
 /**
- * Helper: Convert readable stream to buffer
+ * Helper: Convert readable stream to buffer with size limit
  */
-async function streamToBuffer(stream: any): Promise<Buffer> {
-  const chunks: any[] = [];
+const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB max
+
+async function streamToBuffer(stream: NodeJS.ReadableStream): Promise<Buffer> {
+  const chunks: Buffer[] = [];
+  let totalSize = 0;
+
   for await (const chunk of stream) {
-    chunks.push(chunk);
+    const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+    totalSize += buffer.length;
+    if (totalSize > MAX_IMAGE_SIZE) {
+      throw new Error('Image exceeds maximum allowed size of 10MB');
+    }
+    chunks.push(buffer);
   }
   return Buffer.concat(chunks);
 }

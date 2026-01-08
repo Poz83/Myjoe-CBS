@@ -1,4 +1,6 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
+import NextImage from 'next/image';
 import {
   Sparkles,
   Download,
@@ -21,19 +23,34 @@ import {
   Image
 } from 'lucide-react';
 
-export default function LandingPage() {
+interface LandingPageProps {
+  searchParams: { code?: string | string[]; [key: string]: string | string[] | undefined };
+}
+
+export default function LandingPage({ searchParams }: LandingPageProps) {
+  // If OAuth code is present, redirect to auth callback handler
+  const code = searchParams.code;
+  if (code) {
+    const codeValue = Array.isArray(code) ? code[0] : code;
+    redirect(`/auth/callback?code=${codeValue}`);
+  }
+
   return (
     <main className="min-h-screen bg-[#0D0D0D] text-white overflow-x-hidden">
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-[#0D0D0D]/80 backdrop-blur-lg border-b border-zinc-800/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                <Palette className="w-5 h-5 text-white" />
-              </div>
-              <span className="text-xl font-bold">Myjoe</span>
-            </div>
+            <Link href="/" className="flex items-center hover:opacity-80 transition-opacity">
+              <NextImage
+                src="/myjoe-logo.png"
+                alt="Myjoe Coloring Studios"
+                width={140}
+                height={40}
+                priority
+                className="h-10 w-auto"
+              />
+            </Link>
             <div className="hidden md:flex items-center gap-8">
               <a href="#features" className="text-zinc-400 hover:text-white transition-colors">Features</a>
               <a href="#how-it-works" className="text-zinc-400 hover:text-white transition-colors">How It Works</a>
@@ -847,12 +864,15 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto">
           <div className="grid md:grid-cols-4 gap-8">
             <div>
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                  <Palette className="w-5 h-5 text-white" />
-                </div>
-                <span className="text-xl font-bold">Myjoe</span>
-              </div>
+              <Link href="/" className="inline-block mb-4">
+                <NextImage
+                  src="/myjoe-logo.png"
+                  alt="Myjoe Coloring Studios"
+                  width={140}
+                  height={40}
+                  className="h-10 w-auto"
+                />
+              </Link>
               <p className="text-zinc-500 text-sm">
                 AI Coloring Book Studio for KDP publishers and Etsy sellers.
               </p>

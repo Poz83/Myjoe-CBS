@@ -6,6 +6,7 @@ import { useProjects, useDeleteProject } from '@/hooks/use-projects';
 import { ProjectCard } from '@/components/features/project/project-card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { EmptyState } from '@/components/ui/empty-state';
 
 export default function ProjectsPage() {
   const router = useRouter();
@@ -60,18 +61,12 @@ export default function ProjectsPage() {
 
       {/* Empty state */}
       {!isLoading && (!projects || projects.length === 0) && (
-        <div className="flex flex-col items-center justify-center py-16 px-8">
-          <div className="w-16 h-16 rounded-full bg-zinc-800 flex items-center justify-center mb-4">
-            <Book className="w-8 h-8 text-zinc-400" />
-          </div>
-          <h2 className="text-xl font-semibold text-white mb-2">No projects yet</h2>
-          <p className="text-zinc-400 mb-6 text-center max-w-md">
-            Create your first coloring book
-          </p>
-          <Button onClick={handleNewProject} variant="primary">
-            Create Project
-          </Button>
-        </div>
+        <EmptyState
+          icon={Book}
+          title="No projects yet"
+          description="Create your first coloring book and bring your ideas to life."
+          action={{ label: 'Create Project', onClick: handleNewProject }}
+        />
       )}
 
       {/* Projects grid */}

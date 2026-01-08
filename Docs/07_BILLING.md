@@ -1,26 +1,36 @@
 # Billing & Blots
 
-## Overview
+## Overview (Corbin Method - Semi-Aggressive Pricing)
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                    2-TIER UNIT-BASED MODEL                      │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│   FREE             CREATOR                STUDIO                │
-│   ────             ───────                ──────                │
-│   50 Blots         300/500/800            2500/4000/5000        │
-│   25GB             25GB                   50GB                  │
-│   3 projects       Unlimited              Unlimited             │
-│   No commercial    Commercial ✅           Commercial ✅          │
-│                                           Priority support      │
-│                                                                 │
-│   + BLOT PACKS (anytime)                                        │
-│     Top-Up: 100 Blots ($5)                                      │
-│     Boost: 500 Blots ($20)                                      │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
++-------------------------------------------------------------------+
+|                2-TIER DROPDOWN MODEL (NO PACKS)                   |
++-------------------------------------------------------------------+
+|                                                                   |
+|   FREE             CREATOR                   STUDIO               |
+|   ----             -------                   ------               |
+|   75 Blots         500-4500 Blots            7500-15000 Blots     |
+|   25GB             25GB                      50GB                 |
+|   3 projects       Unlimited                 Unlimited            |
+|   Personal only    Commercial                Commercial           |
+|   1 comm trial     No watermark              Priority support     |
+|   Watermark                                                       |
+|                                                                   |
+|   Unit Rates:                                                     |
+|   Creator: $1.60/unit monthly, $1.28/unit yearly (20% off)        |
+|   Studio:  $1.00/unit monthly, $0.80/unit yearly (20% off)        |
+|                                                                   |
++-------------------------------------------------------------------+
 ```
+
+### Key Changes from Previous Model
+
+1. **No more packs** - Users upgrade via dropdown, not one-time purchases
+2. **Single blot pool** - Simplified from dual (subscription + pack) pools
+3. **75 free blots** - Up from 50, better trial experience
+4. **1 commercial trial** - Free users get 1 commercial project to test KDP
+5. **20% annual discount** - More aggressive than previous 17%
+6. **Watermark on free** - Clear upgrade incentive
 
 ---
 
@@ -84,70 +94,80 @@ We create **ONE product** with **different rates**:
 
 ## Tier Structure
 
-### Pricing Rates
+### Pricing Rates (Semi-Aggressive)
 
 **1 Unit = 100 Blots**
 
 | Tier | Monthly Rate | Annual Rate | Savings |
 |------|--------------|-------------|---------|
-| Creator | $3.00/unit | $2.50/unit | 17% |
-| Studio | $2.00/unit | $1.75/unit | 12.5% |
+| Creator | $1.60/unit | $1.28/unit | 20% |
+| Studio | $1.00/unit | $0.80/unit | 20% |
 
 ### Free Tier
 
 | Attribute | Value |
 |-----------|-------|
 | Price | $0 |
-| Blots | 50/month |
+| Blots | 75 |
 | Storage | 25 GB |
 | Projects | 3 max |
-| Commercial | ❌ |
+| Commercial | Personal use only |
+| Commercial Trial | 1 project allowed |
+| Watermark | Yes (on exports) |
 
 ### Creator Tier (Individuals)
 
-Users select their Blot level:
+Users select their Blot level via dropdown:
 
-| Blots | Units | Monthly | Annual | Books/Mo |
-|-------|-------|---------|--------|----------|
-| **300** | 3 | **$9** | $90 | ~1 |
-| **500** | 5 | **$15** | $150 | ~2 |
-| **800** | 8 | **$24** | $240 | ~3-4 |
+| Blots | Units | Monthly | Annual/mo | Books/Mo |
+|-------|-------|---------|-----------|----------|
+| **500** | 5 | **$8** | $6.40 | ~2 |
+| **1,000** | 10 | **$16** | $12.80 | ~4 |
+| **2,000** | 20 | **$32** | $25.60 | ~9 |
+| **3,000** | 30 | **$48** | $38.40 | ~14 |
+| **4,500** | 45 | **$72** | $57.60 | ~21 (CEILING) |
 
 **Included:**
 - 25 GB storage
 - Unlimited projects
-- Commercial license ✅
-- SVG + PDF exports
+- Commercial license
+- SVG + PDF exports (no watermark)
 
 ### Studio Tier (Power Users & Agencies)
 
-| Blots | Units | Monthly | Annual | Books/Mo |
-|-------|-------|---------|--------|----------|
-| **2,500** | 25 | **$50** | $525 | ~11 |
-| **4,000** | 40 | **$80** | $840 | ~18 |
-| **5,000** | 50 | **$100** | $1,050 | ~23 |
+| Blots | Units | Monthly | Annual/mo | Books/Mo |
+|-------|-------|---------|-----------|----------|
+| **7,500** | 75 | **$75** | $60 | ~35 |
+| **10,000** | 100 | **$100** | $80 | ~47 |
+| **15,000** | 150 | **$150** | $120 | ~70 |
 
 **Included:**
 - 50 GB storage
 - Unlimited projects
-- Commercial license ✅
-- SVG + PDF exports
-- Priority support ✅
+- Commercial license
+- SVG + PDF exports (no watermark)
+- Priority support
+
+### Upgrade Psychology
+
+Creator ceiling ($72) to Studio entry ($75) = **$3 for 67% more blots**
+
+This creates natural pull toward Studio for power users.
 
 ---
 
-## Blot Packs (One-Time)
+## Blot Packs - REMOVED
 
-| Pack | Blots | Price | Per Blot |
-|------|-------|-------|----------|
-| **Top-Up** 🎨 | 100 | $5 | $0.050 |
-| **Boost** 🚀 | 500 | $20 | $0.040 |
+Blot packs have been removed in favor of the Corbin dropdown method.
 
-### Pack Rules
+**Previous system:**
+- Top-Up: 100 Blots ($5)
+- Boost: 500 Blots ($20)
 
-1. **Never expire** — Use them whenever
-2. **Consumed AFTER subscription Blots** — Subscription depletes first
-3. **Stack with any tier** — Even Free users can buy packs
+**New system:**
+- Users upgrade via dropdown selector
+- Mid-cycle upgrades add prorated blots immediately
+- Simpler codebase, better upgrade path
 4. **No refunds** — Stripe handles disputes
 
 ### When to Recommend Packs
@@ -307,7 +327,7 @@ Day 4: If still failed
 
 ---
 
-## Database Schema
+## Database Schema (Simplified - Corbin Method)
 
 ### profiles Table
 
@@ -318,17 +338,19 @@ CREATE TABLE profiles (
   
   -- Subscription (2-tier model)
   plan TEXT NOT NULL DEFAULT 'free' CHECK (plan IN ('free', 'creator', 'studio')),
-  plan_blots INTEGER NOT NULL DEFAULT 50,  -- Selected Blot level (300, 500, 800, etc.)
+  plan_blots INTEGER NOT NULL DEFAULT 75,  -- Selected Blot level (500, 1000, etc.)
   
-  -- Blot balances (separate pools)
-  subscription_blots INTEGER NOT NULL DEFAULT 50,  -- Resets monthly
-  pack_blots INTEGER NOT NULL DEFAULT 0,           -- Never expires
+  -- Single blot pool (simplified from dual pools)
+  blots INTEGER NOT NULL DEFAULT 75,  -- Current balance, resets monthly
   blots_reset_at TIMESTAMPTZ,
+  
+  -- Free tier commercial tracking
+  commercial_projects_used INTEGER NOT NULL DEFAULT 0,  -- Max 1 for free tier
   
   -- Stripe
   stripe_customer_id TEXT,
   stripe_subscription_id TEXT,
-  stripe_price_id TEXT,  -- Current price ID for upgrade handling
+  stripe_price_id TEXT,
   payment_failed_at TIMESTAMPTZ,
   
   -- Storage
@@ -346,6 +368,7 @@ CREATE TABLE profiles (
 );
 
 CREATE INDEX profiles_stripe_customer_idx ON profiles(stripe_customer_id);
+CREATE INDEX profiles_commercial_projects_idx ON profiles(commercial_projects_used) WHERE plan = 'free';
 ```
 
 ### blot_transactions Table
@@ -355,11 +378,10 @@ CREATE TABLE blot_transactions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   owner_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   
-  -- Transaction type
+  -- Transaction type (pack_purchase removed)
   type TEXT NOT NULL CHECK (type IN (
     'subscription_reset',    -- Monthly reset
     'subscription_upgrade',  -- Mid-cycle upgrade
-    'pack_purchase',         -- Bought a pack
     'generation',            -- Used for page generation
     'edit',                  -- Used for page edit
     'hero',                  -- Used for hero creation
@@ -367,43 +389,32 @@ CREATE TABLE blot_transactions (
     'refund'                 -- Refunded (job failed)
   )),
   
-  -- Amounts (positive = credit, negative = debit)
+  -- Amounts (single pool now)
   subscription_delta INTEGER NOT NULL DEFAULT 0,
-  pack_delta INTEGER NOT NULL DEFAULT 0,
+  pack_delta INTEGER NOT NULL DEFAULT 0,  -- Kept for history, always 0 for new records
   
   -- Context
   description TEXT,
   job_id UUID REFERENCES jobs(id) ON DELETE SET NULL,
   stripe_session_id TEXT,
   stripe_invoice_id TEXT,
-  pack_id TEXT,  -- 'topup' or 'boost'
   
   -- Timestamps
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-
-CREATE INDEX blot_transactions_owner_idx ON blot_transactions(owner_id);
-CREATE INDEX blot_transactions_created_idx ON blot_transactions(created_at DESC);
-
--- RLS
-ALTER TABLE blot_transactions ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Users can view own transactions"
-  ON blot_transactions FOR SELECT
-  USING (auth.uid() = owner_id);
 ```
 
-### Helper Functions
+### Helper Functions (Simplified)
 
 ```sql
--- Get total available Blots
+-- Get available Blots (single pool)
 CREATE OR REPLACE FUNCTION get_available_blots(user_id UUID)
 RETURNS INTEGER AS $$
-  SELECT COALESCE(subscription_blots, 0) + COALESCE(pack_blots, 0)
+  SELECT COALESCE(blots, 0)
   FROM profiles WHERE owner_id = user_id;
 $$ LANGUAGE sql STABLE;
 
--- Deduct Blots (subscription first, then pack)
+-- Deduct Blots (simplified - single pool)
 CREATE OR REPLACE FUNCTION deduct_blots(
   user_id UUID, 
   amount INTEGER,
@@ -413,60 +424,26 @@ CREATE OR REPLACE FUNCTION deduct_blots(
 ) RETURNS BOOLEAN AS $$
 DECLARE
   profile_row profiles%ROWTYPE;
-  sub_deduct INTEGER;
-  pack_deduct INTEGER;
 BEGIN
-  -- Lock row for update
   SELECT * INTO profile_row FROM profiles WHERE owner_id = user_id FOR UPDATE;
   
-  -- Check sufficient balance
-  IF (profile_row.subscription_blots + profile_row.pack_blots) < amount THEN
+  IF profile_row.blots < amount THEN
     RETURN FALSE;
   END IF;
   
-  -- Calculate deduction split (subscription first)
-  IF profile_row.subscription_blots >= amount THEN
-    sub_deduct := amount;
-    pack_deduct := 0;
-  ELSE
-    sub_deduct := profile_row.subscription_blots;
-    pack_deduct := amount - sub_deduct;
-  END IF;
-  
-  -- Update balances
   UPDATE profiles SET
-    subscription_blots = subscription_blots - sub_deduct,
-    pack_blots = pack_blots - pack_deduct,
+    blots = blots - amount,
     updated_at = NOW()
   WHERE owner_id = user_id;
   
-  -- Log transaction
   INSERT INTO blot_transactions (owner_id, type, subscription_delta, pack_delta, description, job_id)
-  VALUES (user_id, tx_type, -sub_deduct, -pack_deduct, tx_description, tx_job_id);
+  VALUES (user_id, tx_type, -amount, 0, tx_description, tx_job_id);
   
   RETURN TRUE;
 END;
 $$ LANGUAGE plpgsql;
 
--- Add pack Blots
-CREATE OR REPLACE FUNCTION add_pack_blots(
-  user_id UUID,
-  amount INTEGER,
-  p_pack_id TEXT,
-  session_id TEXT
-) RETURNS VOID AS $$
-BEGIN
-  UPDATE profiles SET
-    pack_blots = pack_blots + amount,
-    updated_at = NOW()
-  WHERE owner_id = user_id;
-  
-  INSERT INTO blot_transactions (owner_id, type, pack_delta, pack_id, stripe_session_id, description)
-  VALUES (user_id, 'pack_purchase', amount, p_pack_id, session_id, 'Blot pack: ' || p_pack_id);
-END;
-$$ LANGUAGE plpgsql;
-
--- Reset subscription Blots (on renewal)
+-- Reset Blots (on renewal)
 CREATE OR REPLACE FUNCTION reset_subscription_blots(
   user_id UUID,
   new_amount INTEGER,
@@ -474,18 +451,18 @@ CREATE OR REPLACE FUNCTION reset_subscription_blots(
 ) RETURNS VOID AS $$
 BEGIN
   UPDATE profiles SET
-    subscription_blots = new_amount,
+    blots = new_amount,
     blots_reset_at = NOW() + INTERVAL '1 month',
     payment_failed_at = NULL,
     updated_at = NOW()
   WHERE owner_id = user_id;
   
-  INSERT INTO blot_transactions (owner_id, type, subscription_delta, stripe_invoice_id, description)
-  VALUES (user_id, 'subscription_reset', new_amount, invoice_id, 'Monthly subscription reset');
+  INSERT INTO blot_transactions (owner_id, type, subscription_delta, pack_delta, stripe_invoice_id, description)
+  VALUES (user_id, 'subscription_reset', new_amount, 0, invoice_id, 'Monthly reset: ' || new_amount || ' Blots');
 END;
 $$ LANGUAGE plpgsql;
 
--- Add Blots on upgrade (difference only)
+-- Add Blots on upgrade
 CREATE OR REPLACE FUNCTION add_upgrade_blots(
   user_id UUID,
   blot_difference INTEGER,
@@ -493,12 +470,12 @@ CREATE OR REPLACE FUNCTION add_upgrade_blots(
 ) RETURNS VOID AS $$
 BEGIN
   UPDATE profiles SET
-    subscription_blots = subscription_blots + blot_difference,
+    blots = blots + blot_difference,
     updated_at = NOW()
   WHERE owner_id = user_id;
   
-  INSERT INTO blot_transactions (owner_id, type, subscription_delta, stripe_invoice_id, description)
-  VALUES (user_id, 'subscription_upgrade', blot_difference, invoice_id, 'Upgrade: +' || blot_difference || ' Blots');
+  INSERT INTO blot_transactions (owner_id, type, subscription_delta, pack_delta, stripe_invoice_id, description)
+  VALUES (user_id, 'subscription_upgrade', blot_difference, 0, invoice_id, 'Upgrade: +' || blot_difference || ' Blots');
 END;
 $$ LANGUAGE plpgsql;
 
@@ -532,10 +509,10 @@ $$ LANGUAGE plpgsql;
 
 | Lookup Key | Type | Amount | Metadata |
 |------------|------|--------|----------|
-| `creator_monthly` | Per unit, Monthly | $3.00/unit | tier=creator, interval=monthly, blots_per_unit=100 |
-| `creator_annual` | Per unit, Yearly | $2.50/unit | tier=creator, interval=yearly, blots_per_unit=100 |
-| `studio_monthly` | Per unit, Monthly | $2.00/unit | tier=studio, interval=monthly, blots_per_unit=100 |
-| `studio_annual` | Per unit, Yearly | $1.75/unit | tier=studio, interval=yearly, blots_per_unit=100 |
+| `creator_monthly` | Per unit, Monthly | $1.60/unit | tier=creator, interval=monthly, blots_per_unit=100 |
+| `creator_annual` | Per unit, Yearly | $1.28/unit | tier=creator, interval=yearly, blots_per_unit=100 |
+| `studio_monthly` | Per unit, Monthly | $1.00/unit | tier=studio, interval=monthly, blots_per_unit=100 |
+| `studio_annual` | Per unit, Yearly | $0.80/unit | tier=studio, interval=yearly, blots_per_unit=100 |
 | `pack_topup` | One-time | $5.00 | type=blot_pack, pack_id=topup, blots=100 |
 | `pack_boost` | One-time | $20.00 | type=blot_pack, pack_id=boost, blots=500 |
 

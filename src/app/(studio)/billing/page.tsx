@@ -15,7 +15,6 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { BlotPackSelector } from '@/components/billing/blot-pack-selector';
 import { LowBlotsBanner } from '@/components/billing/low-blots-banner';
 import {
   useBalance,
@@ -41,25 +40,27 @@ const formatDate = (date: string) =>
 
 const PLAN_FEATURES: Record<string, string[]> = {
   free: [
-    '50 Blots/month',
+    '75 Blots to try',
     '3 projects max',
     '25 GB storage',
     'Personal use only',
+    '1 commercial project trial',
+    'Watermark on exports',
   ],
   creator: [
-    'Up to 800 Blots/month',
+    '500 - 4,500 Blots/month',
     'Unlimited projects',
     '25 GB storage',
     'Commercial license',
-    'Priority support',
+    'No watermark',
   ],
   studio: [
-    'Up to 5,000 Blots/month',
+    '7,500 - 15,000 Blots/month',
     'Unlimited projects',
     '50 GB storage',
     'Commercial license',
+    'No watermark',
     'Priority support',
-    'Team collaboration',
   ],
 };
 
@@ -80,10 +81,7 @@ function BillingContent() {
     const success = searchParams.get('success');
     const canceled = searchParams.get('canceled');
 
-    if (success === 'pack') {
-      toast.success('Blot pack purchased successfully!');
-      router.replace('/billing');
-    } else if (success === 'subscription') {
+    if (success === 'subscription') {
       toast.success(`Welcome to ${balance?.plan || 'your new plan'}!`);
       router.replace('/billing');
     } else if (canceled === 'true') {
@@ -152,11 +150,6 @@ function BillingContent() {
           {/* Low Blots Banner */}
           <LowBlotsBanner
             balance={balance.total}
-            onBuyPack={() =>
-              document
-                .getElementById('packs')
-                ?.scrollIntoView({ behavior: 'smooth' })
-            }
             onUpgrade={() =>
               document
                 .getElementById('plans')
@@ -256,8 +249,7 @@ function BillingContent() {
                 </span>
               </div>
               <p className="text-sm text-zinc-500 mb-3">
-                {balance.subscription.toLocaleString()} subscription +{' '}
-                {balance.pack.toLocaleString()} packs
+                {balance.subscription.toLocaleString()} Blots remaining this period
               </p>
               <div className="w-full h-2 bg-zinc-700 rounded-full overflow-hidden">
                 <div
@@ -370,53 +362,51 @@ function BillingContent() {
                   )}
                 >
                   Yearly{' '}
-                  <span className="text-green-500 ml-1">Save 17%</span>
+                  <span className="text-green-500 ml-1">Save 20%</span>
                 </span>
               </div>
 
-              {/* Plan Options */}
-              <div className="grid grid-cols-3 gap-4 mb-6">
-                {PLAN_TIERS[selectedTier].map((plan) => {
-                  const isSelected = selectedBlots === plan.blots;
-                  const price =
-                    selectedInterval === 'monthly' ? plan.monthly : plan.yearly;
-
-                  return (
-                    <button
-                      key={plan.blots}
-                      onClick={() => setSelectedBlots(plan.blots)}
-                      className={cn(
-                        'relative p-4 rounded-lg border transition-all text-left',
-                        isSelected
-                          ? 'border-blue-500 bg-blue-500/10'
-                          : 'border-zinc-700 bg-zinc-800/30 hover:border-zinc-600'
-                      )}
-                    >
-                      {plan.popular && (
-                        <div className="absolute -top-2 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-blue-500 text-white text-xs rounded">
-                          Popular
-                        </div>
-                      )}
-                      <div className="text-center">
-                        <p className="text-2xl font-bold text-white">
-                          {plan.blots.toLocaleString()}
-                        </p>
-                        <p className="text-sm text-zinc-400">Blots/month</p>
-                        <p className="text-xl font-bold text-white mt-3">
-                          ${price}
-                        </p>
-                        <p className="text-xs text-zinc-500">
-                          per {selectedInterval === 'monthly' ? 'month' : 'year'}
-                        </p>
-                      </div>
-                      {isSelected && (
-                        <div className="absolute top-2 right-2">
-                          <Check className="w-5 h-5 text-blue-500" />
-                        </div>
-                      )}
-                    </button>
-                  );
-                })}
+              {/* Plan Options - Dropdown Selector (Corbin Method) */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-zinc-400 mb-2">
+                  Monthly Blots
+                </label>
+                <select
+                  value={selectedBlots}
+                  onChange={(e) => setSelectedBlots(Number(e.target.value))}
+                  className="w-full p-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
+                >
+                  {PLAN_TIERS[selectedTier].map((plan) => (
+                    <option key={plan.blots} value={plan.blots}>
+                      {plan.blots.toLocaleString()} Blots/mo - $
+                      {selectedInterval === 'monthly' ? plan.monthly : (plan.yearly / 12).toFixed(2)}
+                      /mo
+                    </option>
+                  ))}
+                </select>
+                
+                {/* Selected Plan Summary */}
+                <div className="mt-4 p-4 bg-zinc-800/50 rounded-lg border border-zinc-700">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-2xl font-bold text-white">
+                        {selectedBlots.toLocaleString()}
+                      </p>
+                      <p className="text-sm text-zinc-400">Blots/month</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-2xl font-bold text-blue-400">
+                        ${PLAN_TIERS[selectedTier].find(p => p.blots === selectedBlots)?.[selectedInterval === 'monthly' ? 'monthly' : 'yearly'] || 0}
+                      </p>
+                      <p className="text-xs text-zinc-500">
+                        per {selectedInterval === 'monthly' ? 'month' : 'year'}
+                      </p>
+                    </div>
+                  </div>
+                  <p className="text-xs text-zinc-500 mt-3">
+                    Updates take effect immediately with prorated billing.
+                  </p>
+                </div>
               </div>
 
               {/* Features */}
@@ -470,15 +460,30 @@ function BillingContent() {
             </section>
           )}
 
-          {/* Section D: Blot Packs */}
-          <section id="packs" className="bg-zinc-900 rounded-lg border border-zinc-800 p-6">
+          {/* Section D: Need More Blots? - Upgrade prompt (No packs) */}
+          <section className="bg-zinc-900 rounded-lg border border-zinc-800 p-6">
             <h2 className="text-lg font-semibold text-white mb-2">
               Need More Blots?
             </h2>
-            <p className="text-sm text-zinc-400 mb-6">
-              One-time purchases. Never expire.
+            <p className="text-sm text-zinc-400 mb-4">
+              {isFreePlan 
+                ? 'Upgrade to Creator or Studio for more Blots and commercial licensing.'
+                : 'Upgrade your plan to get more Blots. Changes take effect immediately with prorated billing.'}
             </p>
-            <BlotPackSelector />
+            {!isFreePlan && (
+              <Button
+                variant="secondary"
+                onClick={handleManageSubscription}
+                disabled={portal.isPending}
+              >
+                {portal.isPending ? (
+                  <Loader className="w-4 h-4 animate-spin mr-2" />
+                ) : (
+                  <ExternalLink className="w-4 h-4 mr-2" />
+                )}
+                Upgrade in Customer Portal
+              </Button>
+            )}
           </section>
         </div>
       </div>

@@ -8,7 +8,7 @@ import { InsufficientBlotsError, NotFoundError } from '@/lib/errors';
 export interface BlotBalance {
   userId: string;
   blots: number;
-  plan: 'free' | 'starter' | 'creator' | 'pro';
+  plan: 'free' | 'creator' | 'studio';
 }
 
 export interface BlotCheckResult {

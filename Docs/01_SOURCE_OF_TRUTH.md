@@ -180,17 +180,17 @@ Email:        Resend + React Email
 
 | Lookup Key | Type | Amount |
 |------------|------|--------|
-| `creator_monthly` | Per unit, Recurring Monthly | $3.00/unit |
-| `creator_annual` | Per unit, Recurring Yearly | $2.50/unit |
-| `studio_monthly` | Per unit, Recurring Monthly | $2.00/unit |
-| `studio_annual` | Per unit, Recurring Yearly | $1.75/unit |
+| `creator_monthly` | Per unit, Recurring Monthly | $1.60/unit |
+| `creator_annual` | Per unit, Recurring Yearly | $1.28/unit |
+| `studio_monthly` | Per unit, Recurring Monthly | $1.00/unit |
+| `studio_annual` | Per unit, Recurring Yearly | $0.80/unit |
 | `pack_topup` | One-time | $5.00 |
 | `pack_boost` | One-time | $20.00 |
 
 ### Checkout Logic
 
 ```typescript
-// Creator 500/mo = 5 units × $3.00 = $15/mo
+// Creator 500/mo = 5 units × $1.60 = $8.00/mo
 stripe.checkout.sessions.create({
   line_items: [{
     price: STRIPE_PRICE_CREATOR_MONTHLY,

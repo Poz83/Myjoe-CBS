@@ -10,7 +10,18 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const limit = parseInt(request.nextUrl.searchParams.get('limit') || '10');
+    // Parse and validate limit parameter
+    const limitParam = request.nextUrl.searchParams.get('limit') || '10';
+    const parsedLimit = parseInt(limitParam, 10);
+
+    // Validate limit is a positive number between 1-50
+    if (isNaN(parsedLimit) || parsedLimit < 1) {
+      return NextResponse.json(
+        { error: 'Invalid limit parameter - must be a positive integer' },
+        { status: 400 }
+      );
+    }
+    const limit = Math.min(parsedLimit, 50);
 
     const { data: transactions, error } = await supabase
       .from('blot_transactions')
@@ -28,9 +39,9 @@ export async function GET(request: NextRequest) {
       transactions: transactions.map(t => ({
         id: t.id,
         type: t.type,
-        delta: t.subscription_delta + t.pack_delta,
-        subscriptionDelta: t.subscription_delta,
-        packDelta: t.pack_delta,
+        delta: (t.subscription_delta ?? 0) + (t.pack_delta ?? 0),
+        subscriptionDelta: t.subscription_delta ?? 0,
+        packDelta: t.pack_delta ?? 0,
         description: t.description,
         createdAt: t.created_at,
       })),

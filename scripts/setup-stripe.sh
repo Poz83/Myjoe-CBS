@@ -23,10 +23,10 @@ echo ""
 # Create subscription prices
 echo "Creating subscription prices..."
 
-# Creator Monthly: $3.00/unit
+# Creator Monthly: $1.60/unit
 CREATOR_MONTHLY=$(stripe prices create \
   --product="$PRODUCT_ID" \
-  --unit-amount=300 \
+  --unit-amount=160 \
   --currency=usd \
   --recurring[interval]=month \
   --lookup-key=creator_monthly \
@@ -36,10 +36,10 @@ CREATOR_MONTHLY=$(stripe prices create \
   --format=json | grep -o '"id": "[^"]*"' | head -1 | cut -d'"' -f4)
 echo "Creator Monthly: $CREATOR_MONTHLY"
 
-# Creator Annual: $2.50/unit
+# Creator Annual: $1.28/unit
 CREATOR_ANNUAL=$(stripe prices create \
   --product="$PRODUCT_ID" \
-  --unit-amount=250 \
+  --unit-amount=128 \
   --currency=usd \
   --recurring[interval]=year \
   --lookup-key=creator_annual \
@@ -49,10 +49,10 @@ CREATOR_ANNUAL=$(stripe prices create \
   --format=json | grep -o '"id": "[^"]*"' | head -1 | cut -d'"' -f4)
 echo "Creator Annual: $CREATOR_ANNUAL"
 
-# Studio Monthly: $2.00/unit
+# Studio Monthly: $1.00/unit
 STUDIO_MONTHLY=$(stripe prices create \
   --product="$PRODUCT_ID" \
-  --unit-amount=200 \
+  --unit-amount=100 \
   --currency=usd \
   --recurring[interval]=month \
   --lookup-key=studio_monthly \
@@ -62,10 +62,10 @@ STUDIO_MONTHLY=$(stripe prices create \
   --format=json | grep -o '"id": "[^"]*"' | head -1 | cut -d'"' -f4)
 echo "Studio Monthly: $STUDIO_MONTHLY"
 
-# Studio Annual: $1.75/unit
+# Studio Annual: $0.80/unit
 STUDIO_ANNUAL=$(stripe prices create \
   --product="$PRODUCT_ID" \
-  --unit-amount=175 \
+  --unit-amount=80 \
   --currency=usd \
   --recurring[interval]=year \
   --lookup-key=studio_annual \

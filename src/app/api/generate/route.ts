@@ -10,6 +10,7 @@ import { checkContentSafety } from '@/server/ai/content-safety';
 import { triggerGenerationJob } from '@/server/jobs';
 import { BLOT_COSTS } from '@/lib/constants';
 import type { Audience } from '@/lib/constants';
+import { rateLimit } from '@/lib/rate-limit';
 
 /**
  * Validation schema for starting a generation job
@@ -37,6 +38,10 @@ export async function POST(request: NextRequest) {
         { status: 401 }
       );
     }
+
+    // Rate limit: expensive operation (generation)
+    const rateLimitResult = rateLimit(user.id, 'expensive');
+    if (rateLimitResult) return rateLimitResult;
 
     // Parse and validate request body
     const body = await request.json();

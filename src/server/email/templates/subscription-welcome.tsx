@@ -44,7 +44,7 @@ export function SubscriptionWelcomeEmail({ plan }: SubscriptionWelcomeEmailProps
           </Text>
 
           <Section style={buttonContainer}>
-            <Button style={button} href={`${process.env.NEXT_PUBLIC_APP_URL || 'https://myjoe.app'}/studio`}>
+            <Button style={button} href={`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/studio`}>
               Start Creating
             </Button>
           </Section>
@@ -53,7 +53,7 @@ export function SubscriptionWelcomeEmail({ plan }: SubscriptionWelcomeEmailProps
 
           <Text style={footer}>
             Need help? Reply to this email or visit our{' '}
-            <a href={`${process.env.NEXT_PUBLIC_APP_URL || 'https://myjoe.app'}/support`} style={link}>
+            <a href={`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/studio`} style={link}>
               support center
             </a>
             .

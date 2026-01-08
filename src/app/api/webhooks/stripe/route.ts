@@ -3,13 +3,14 @@ import { headers } from 'next/headers';
 import { stripe } from '@/server/billing/stripe';
 import { createClient } from '@/lib/supabase/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
-import { TIERS, BLOT_PACKS } from '@/lib/constants';
+import { TIERS, BLOTS_PER_UNIT } from '@/lib/constants';
 import {
   sendSubscriptionWelcomeEmail,
   sendPaymentFailedEmail,
   sendSubscriptionCancelledEmail,
 } from '@/server/email';
 import Stripe from 'stripe';
+import { rateLimit } from '@/lib/rate-limit';
 
 function getNextResetDate(): string {
   const now = new Date();
@@ -24,8 +25,16 @@ function getStorageForTier(tier: string): number {
 }
 
 export async function POST(request: NextRequest) {
-  const body = await request.text();
+  // Get IP for rate limiting (use x-forwarded-for for proxied requests)
   const headersList = await headers();
+  const forwardedFor = headersList.get('x-forwarded-for');
+  const ip = forwardedFor?.split(',')[0]?.trim() || 'unknown';
+
+  // Rate limit by IP to prevent webhook abuse
+  const rateLimitResult = rateLimit(`webhook:${ip}`, 'webhook');
+  if (rateLimitResult) return rateLimitResult;
+
+  const body = await request.text();
   const signature = headersList.get('stripe-signature');
 
   if (!signature) {
@@ -60,29 +69,7 @@ export async function POST(request: NextRequest) {
           break;
         }
 
-        // Handle blot pack purchase (one-time payment)
-        if (metadata.type === 'blot_pack') {
-          const blots = parseInt(metadata.blots, 10);
-          const packId = metadata.packId as keyof typeof BLOT_PACKS;
-
-          if (isNaN(blots) || blots <= 0) {
-            console.error('Invalid blots amount in pack purchase', { blots: metadata.blots });
-            break;
-          }
-
-          // Add blots to pack_blots pool and record transaction
-          await supabaseAdmin.rpc('add_pack_blots', {
-            user_id: userId,
-            amount: blots,
-            p_pack_id: packId,
-            session_id: session.id,
-          });
-
-          console.log(`Added ${blots} pack blots to user ${userId} from ${packId}`);
-          break;
-        }
-
-        // Handle subscription purchase
+        // Handle subscription purchase (Corbin method - no packs)
         const tier = metadata.tier as string;
         const blots = parseInt(metadata.blots, 10);
 
@@ -98,7 +85,7 @@ export async function POST(request: NextRequest) {
           .update({
             plan: tier,
             plan_blots: blots,
-            subscription_blots: blots,
+            blots: blots, // Single blots column (simplified)
             storage_limit_bytes: storageBytes,
             stripe_subscription_id: session.subscription as string,
             blots_reset_at: getNextResetDate(),
@@ -148,12 +135,16 @@ export async function POST(request: NextRequest) {
 
         if (profile.plan === 'free' || !profile.plan_blots) break;
 
-        // Reset subscription blots to plan amount
-        await supabaseAdmin.rpc('reset_subscription_blots', {
-          user_id: profile.owner_id,
-          new_amount: profile.plan_blots,
-          invoice_id: invoice.id,
-        });
+        // Reset blots to plan amount (simplified single-pool)
+        await supabase
+          .from('profiles')
+          .update({
+            blots: profile.plan_blots,
+            blots_reset_at: getNextResetDate(),
+          })
+          .eq('owner_id', profile.owner_id);
+        
+        console.log(`Reset blots to ${profile.plan_blots} for user ${profile.owner_id}`);
 
         break;
       }
@@ -201,13 +192,13 @@ export async function POST(request: NextRequest) {
 
         if (!profile) break;
 
-        // Downgrade to free (preserve pack_blots)
+        // Downgrade to free tier
         const { error: updateError } = await supabase
           .from('profiles')
           .update({
             plan: 'free',
             plan_blots: TIERS.free.blots,
-            subscription_blots: TIERS.free.blots,
+            blots: TIERS.free.blots,
             storage_limit_bytes: getStorageForTier('free'),
             stripe_subscription_id: null,
           })
@@ -220,6 +211,64 @@ export async function POST(request: NextRequest) {
               await sendSubscriptionCancelledEmail(user.email);
             } catch (emailError) {
               console.error('Error sending cancellation email:', emailError);
+            }
+          }
+        }
+        break;
+      }
+
+      case 'customer.subscription.updated': {
+        // Handle mid-cycle upgrades/downgrades (Corbin method)
+        const subscription = event.data.object as Stripe.Subscription;
+        const previousAttributes = event.data.previous_attributes as Partial<Stripe.Subscription> | undefined;
+        const customerId = subscription.customer as string;
+
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('owner_id, plan, plan_blots, blots')
+          .eq('stripe_customer_id', customerId)
+          .single();
+
+        if (!profile) break;
+
+        // Check for quantity change (upgrade/downgrade within tier)
+        if (previousAttributes?.items) {
+          const oldQty = previousAttributes.items.data?.[0]?.quantity || 0;
+          const newQty = subscription.items.data?.[0]?.quantity || 0;
+          
+          if (newQty !== oldQty) {
+            const newBlots = newQty * BLOTS_PER_UNIT;
+            const blotDiff = (newQty - oldQty) * BLOTS_PER_UNIT;
+            
+            // Get tier from subscription metadata
+            const tier = subscription.metadata?.tier || profile.plan;
+            const storageBytes = getStorageForTier(tier);
+            
+            if (blotDiff > 0) {
+              // Upgrade: Add prorated blots immediately
+              await supabase
+                .from('profiles')
+                .update({
+                  plan: tier,
+                  plan_blots: newBlots,
+                  blots: profile.blots + blotDiff, // Add difference to current balance
+                  storage_limit_bytes: storageBytes,
+                })
+                .eq('owner_id', profile.owner_id);
+              
+              console.log(`Upgraded user ${profile.owner_id}: +${blotDiff} blots (${oldQty} -> ${newQty} units)`);
+            } else {
+              // Downgrade: Update plan_blots, keep current blots until reset
+              await supabase
+                .from('profiles')
+                .update({
+                  plan: tier,
+                  plan_blots: newBlots,
+                  storage_limit_bytes: storageBytes,
+                })
+                .eq('owner_id', profile.owner_id);
+              
+              console.log(`Downgraded user ${profile.owner_id}: plan_blots now ${newBlots} (${oldQty} -> ${newQty} units)`);
             }
           }
         }

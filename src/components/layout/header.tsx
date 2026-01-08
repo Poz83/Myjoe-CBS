@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useLayoutStore } from '@/stores/layout-store';
 import { Cloud, CloudOff, Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { UserMenu } from '@/components/features/auth/user-menu';
 import { BlotDisplay } from '@/components/billing/blot-display';
 
@@ -46,10 +47,17 @@ export function Header() {
         <div className="flex items-center gap-4">
           <Link
             href="/"
-            className="text-xl font-bold text-white hover:text-zinc-300 transition-colors"
+            className="flex items-center hover:opacity-80 transition-opacity"
             aria-label="Myjoe - Go to home page"
           >
-            Myjoe
+            <Image
+              src="/myjoe-logo.png"
+              alt="Myjoe Coloring Studios"
+              width={140}
+              height={40}
+              priority
+              className="h-10 w-auto"
+            />
           </Link>
         </div>
 

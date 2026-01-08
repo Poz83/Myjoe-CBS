@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createSubscriptionCheckout } from '@/server/billing/stripe';
 import { createClient } from '@/lib/supabase/server';
 import { TIERS } from '@/lib/constants';
+import { rateLimit } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,6 +12,10 @@ export async function POST(request: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    // Rate limit: checkout operations
+    const rateLimitResult = rateLimit(user.id, 'checkout');
+    if (rateLimitResult) return rateLimitResult;
 
     const body = await request.json();
     const { tier, blots, interval } = body;

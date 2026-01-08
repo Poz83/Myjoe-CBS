@@ -1,9 +1,11 @@
 'use client';
 
-import { GripVertical, Image as ImageIcon } from 'lucide-react';
+import { useState } from 'react';
+import { GripVertical, Image as ImageIcon, Expand, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ThumbnailLightbox, ThumbnailPreview } from '@/components/studio/thumbnail-lightbox';
 import { cn } from '@/lib/utils';
 import type { Database } from '@/lib/supabase/types';
 
@@ -15,6 +17,7 @@ interface PageThumbnailsProps {
   onSelectPage: (pageId: string) => void;
   onGeneratePages?: () => void;
   isLoading?: boolean;
+  getImageUrl?: (page: Page) => string | null;
 }
 
 export function PageThumbnails({
@@ -23,7 +26,25 @@ export function PageThumbnails({
   onSelectPage,
   onGeneratePages,
   isLoading = false,
+  getImageUrl,
 }: PageThumbnailsProps) {
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+
+  // Build lightbox images
+  const lightboxImages = pages.map((page, index) => ({
+    id: page.id,
+    src: getImageUrl?.(page) || '',
+    alt: `Page ${index + 1}`,
+    label: page.scene_brief || `Page ${index + 1}`,
+  }));
+
+  const handleExpandPage = (index: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setLightboxIndex(index);
+    setLightboxOpen(true);
+  };
+
   return (
     <div className="h-full flex flex-col bg-zinc-900 border-r border-zinc-800">
       <Tabs defaultValue="pages" className="flex-1 flex flex-col">
@@ -47,60 +68,100 @@ export function PageThumbnails({
               ) : pages.length === 0 ? (
                 // Empty state
                 <div className="flex flex-col items-center justify-center py-8 px-4 text-center">
-                  <ImageIcon className="w-12 h-12 text-zinc-600 mb-3" />
+                  <div className="w-16 h-16 rounded-xl bg-zinc-800/50 border border-zinc-700/50 flex items-center justify-center mb-4">
+                    <ImageIcon className="w-8 h-8 text-zinc-600" />
+                  </div>
                   <p className="text-sm text-zinc-400 mb-4">No pages yet</p>
-                  <Button variant="primary" size="sm" onClick={onGeneratePages}>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={onGeneratePages}
+                    icon={<Sparkles className="w-4 h-4" />}
+                  >
                     Generate Pages
                   </Button>
                 </div>
               ) : (
-                // Page list
+                // Page list with thumbnails
                 pages.map((page, index) => {
                   const isSelected = page.id === selectedPageId;
+                  const imageUrl = getImageUrl?.(page);
+
                   return (
-                    <button
+                    <ThumbnailPreview
                       key={page.id}
-                      onClick={() => onSelectPage(page.id)}
-                      className={cn(
-                        'w-full flex items-center gap-2 p-2 rounded-lg transition-all group',
-                        'hover:bg-zinc-800',
-                        isSelected && 'bg-zinc-800 ring-2 ring-blue-500'
-                      )}
+                      src={imageUrl || ''}
+                      alt={`Page ${index + 1}`}
+                      onExpand={() => {
+                        setLightboxIndex(index);
+                        setLightboxOpen(true);
+                      }}
                     >
-                      {/* Drag Handle */}
-                      <div className="flex-shrink-0 text-zinc-600 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <GripVertical className="w-4 h-4" />
-                      </div>
-
-                      {/* Thumbnail */}
-                      <div className="relative flex-shrink-0">
-                        <div className="w-20 h-20 bg-zinc-800 rounded border border-zinc-700 flex items-center justify-center">
-                          {/* Placeholder for thumbnail image */}
-                          <ImageIcon className="w-8 h-8 text-zinc-600" />
-                        </div>
-                        {/* Page Number Badge */}
-                        <div className="absolute -top-1 -left-1 w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center">
-                          <span className="text-xs font-semibold text-white">
-                            {index + 1}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Page Info */}
-                      <div className="flex-1 text-left">
-                        <p className={cn(
-                          'text-sm font-medium',
-                          isSelected ? 'text-white' : 'text-zinc-300'
-                        )}>
-                          Page {index + 1}
-                        </p>
-                        {page.scene_brief && (
-                          <p className="text-xs text-zinc-500 line-clamp-2">
-                            {page.scene_brief}
-                          </p>
+                      <button
+                        onClick={() => onSelectPage(page.id)}
+                        className={cn(
+                          'w-full flex items-center gap-2 p-2 rounded-lg transition-all group',
+                          'hover:bg-zinc-800',
+                          isSelected && 'bg-zinc-800 ring-2 ring-blue-500'
                         )}
-                      </div>
-                    </button>
+                      >
+                        {/* Drag Handle */}
+                        <div className="flex-shrink-0 text-zinc-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <GripVertical className="w-4 h-4" />
+                        </div>
+
+                        {/* Thumbnail */}
+                        <div className="relative flex-shrink-0">
+                          <div className="w-20 h-20 bg-zinc-800 rounded border border-zinc-700 overflow-hidden flex items-center justify-center">
+                            {imageUrl ? (
+                              <img
+                                src={imageUrl}
+                                alt={`Page ${index + 1}`}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <ImageIcon className="w-8 h-8 text-zinc-600" />
+                            )}
+                          </div>
+                          {/* Page Number Badge */}
+                          <div className="absolute -top-1 -left-1 w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center">
+                            <span className="text-xs font-semibold text-white">
+                              {index + 1}
+                            </span>
+                          </div>
+                          {/* Expand Button on Hover */}
+                          {imageUrl && (
+                            <button
+                              onClick={(e) => handleExpandPage(index, e)}
+                              className={cn(
+                                'absolute top-1 right-1 w-6 h-6 rounded-md',
+                                'bg-black/60 backdrop-blur-sm',
+                                'flex items-center justify-center',
+                                'opacity-0 group-hover:opacity-100 transition-opacity',
+                                'hover:bg-black/80'
+                              )}
+                            >
+                              <Expand className="w-3 h-3 text-white" />
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Page Info */}
+                        <div className="flex-1 text-left min-w-0">
+                          <p className={cn(
+                            'text-sm font-medium',
+                            isSelected ? 'text-white' : 'text-zinc-300'
+                          )}>
+                            Page {index + 1}
+                          </p>
+                          {page.scene_brief && (
+                            <p className="text-xs text-zinc-500 line-clamp-2 break-words">
+                              {page.scene_brief}
+                            </p>
+                          )}
+                        </div>
+                      </button>
+                    </ThumbnailPreview>
                   );
                 })
               )}
@@ -113,8 +174,9 @@ export function PageThumbnails({
                   variant="secondary"
                   className="w-full"
                   onClick={onGeneratePages}
+                  icon={<Sparkles className="w-4 h-4" />}
                 >
-                  Generate Pages
+                  Add More Pages
                 </Button>
               </div>
             )}
@@ -135,6 +197,14 @@ export function PageThumbnails({
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Lightbox for expanded view */}
+      <ThumbnailLightbox
+        open={lightboxOpen}
+        onOpenChange={setLightboxOpen}
+        images={lightboxImages}
+        initialIndex={lightboxIndex}
+      />
     </div>
   );
 }

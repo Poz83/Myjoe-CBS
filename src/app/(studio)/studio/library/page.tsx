@@ -5,6 +5,7 @@ import { Plus, User } from 'lucide-react';
 import { useHeroes, useDeleteHero } from '@/hooks/use-heroes';
 import { HeroCard, HeroCardSkeleton } from '@/components/features/hero/hero-card';
 import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/ui/empty-state';
 
 export default function LibraryPage() {
   const router = useRouter();
@@ -58,18 +59,12 @@ export default function LibraryPage() {
 
       {/* Empty state */}
       {!isLoading && (!heroes || heroes.length === 0) && (
-        <div className="flex flex-col items-center justify-center py-16 px-8">
-          <div className="w-16 h-16 rounded-full bg-zinc-800 flex items-center justify-center mb-4">
-            <User className="w-8 h-8 text-zinc-400" />
-          </div>
-          <h2 className="text-xl font-semibold text-white mb-2">No heroes yet</h2>
-          <p className="text-zinc-400 mb-6 text-center max-w-md">
-            Create your first hero character. Heroes are reusable characters that can appear across multiple coloring book projects.
-          </p>
-          <Button onClick={handleCreateHero} variant="primary" icon={<Plus className="w-4 h-4" />}>
-            Create Your First Hero
-          </Button>
-        </div>
+        <EmptyState
+          icon={User}
+          title="No heroes yet"
+          description="Create your first hero character. Heroes are reusable characters that can appear across multiple coloring book projects."
+          action={{ label: 'Create Your First Hero', onClick: handleCreateHero }}
+        />
       )}
 
       {/* Heroes grid */}

@@ -23,14 +23,16 @@ export const BLOT_COSTS = {
 // === BLOTS PER UNIT (for Stripe unit-based pricing) ===
 export const BLOTS_PER_UNIT = 100;
 
-// === TIER CONFIGURATION ===
+// === TIER CONFIGURATION (Semi-Aggressive Pricing - Corbin Method) ===
 export const TIERS = {
   free: {
     name: 'Free',
-    blots: 50,
+    blots: 75,
     storageGb: 25,
     maxProjects: 3,
     commercial: false,
+    commercialProjectsAllowed: 1, // One-time trial for KDP testing
+    watermark: true,
     prioritySupport: false,
   },
   creator: {
@@ -38,54 +40,58 @@ export const TIERS = {
     storageGb: 25,
     maxProjects: null,
     commercial: true,
+    watermark: false,
     prioritySupport: false,
-    unitRate: { monthly: 3.00, yearly: 2.50 },
-    blotOptions: [300, 500, 800] as const,
+    unitRate: { monthly: 1.60, yearly: 1.28 }, // 20% annual discount
+    blotOptions: [500, 1000, 2000, 3000, 4500] as const,
   },
   studio: {
     name: 'Studio',
     storageGb: 50,
     maxProjects: null,
     commercial: true,
+    watermark: false,
     prioritySupport: true,
-    unitRate: { monthly: 2.00, yearly: 1.75 },
-    blotOptions: [2500, 4000, 5000] as const,
+    unitRate: { monthly: 1.00, yearly: 0.80 }, // 20% annual discount
+    blotOptions: [7500, 10000, 15000] as const,
   },
 } as const;
 
-// === PLAN TIERS (for UI selectors) ===
+// === PLAN TIERS (for UI dropdown selectors - Corbin Method) ===
 export const PLAN_TIERS = {
   creator: [
-    { blots: 300, monthly: 9, yearly: 90, popular: false },
-    { blots: 500, monthly: 15, yearly: 150, popular: true },
-    { blots: 800, monthly: 24, yearly: 240, popular: false },
+    { blots: 500, monthly: 8, yearly: 76.80, popular: false },
+    { blots: 1000, monthly: 16, yearly: 153.60, popular: true },
+    { blots: 2000, monthly: 32, yearly: 307.20, popular: false },
+    { blots: 3000, monthly: 48, yearly: 460.80, popular: false },
+    { blots: 4500, monthly: 72, yearly: 691.20, popular: false }, // CEILING
   ],
   studio: [
-    { blots: 2500, monthly: 50, yearly: 525, popular: false },
-    { blots: 4000, monthly: 80, yearly: 840, popular: true },
-    { blots: 5000, monthly: 100, yearly: 1050, popular: false },
+    { blots: 7500, monthly: 75, yearly: 720, popular: false },
+    { blots: 10000, monthly: 100, yearly: 960, popular: true },
+    { blots: 15000, monthly: 150, yearly: 1440, popular: false },
   ],
 } as const;
 
 // === PLAN LIMITS (for storage enforcement) ===
 export const PLAN_LIMITS = {
-  free: { blots: 50, storageBytes: 26843545600, priceCents: 0 },       // 25 GB
-  creator: { blots: 800, storageBytes: 26843545600, priceCents: 2400 }, // 25 GB
-  studio: { blots: 5000, storageBytes: 53687091200, priceCents: 10000 }, // 50 GB
+  free: { blots: 75, storageBytes: 26843545600, priceCents: 0 },        // 25 GB
+  creator: { blots: 4500, storageBytes: 26843545600, priceCents: 7200 }, // 25 GB, max tier
+  studio: { blots: 15000, storageBytes: 53687091200, priceCents: 15000 }, // 50 GB, max tier
 } as const;
 
-// === BLOT PACKS (from docs: only 2 packs) ===
-export const BLOT_PACKS = {
-  topup: { name: 'Top-Up', blots: 100, priceCents: 500, emoji: '🎨' },
-  boost: { name: 'Boost', blots: 500, priceCents: 2000, emoji: '🚀', popular: true },
-} as const;
+// BLOT_PACKS removed - using Corbin's 2-tier dropdown method instead
 
-export type PackId = keyof typeof BLOT_PACKS;
 export type TierName = keyof typeof PLAN_TIERS;
 export type Tier = keyof typeof TIERS;
 export type Interval = 'monthly' | 'yearly';
 
 // === STRIPE PRICE IDS (from env) ===
+// Semi-aggressive pricing (20% annual discount):
+// - creator_monthly: $1.60/unit → price_1Sn7ZDRb0thGyayr2gQNFGlL
+// - creator_annual:  $1.28/unit → price_1Sn7ZDRb0thGyayrokJSnZFC
+// - studio_monthly:  $1.00/unit → price_1Sn7ZDRb0thGyayrnIANu0F8
+// - studio_annual:   $0.80/unit → price_1Sn7ZDRb0thGyayrWRlIdXdl
 export const STRIPE_PRICES = {
   creator: {
     monthly: process.env.STRIPE_PRICE_CREATOR_MONTHLY || '',
@@ -94,10 +100,6 @@ export const STRIPE_PRICES = {
   studio: {
     monthly: process.env.STRIPE_PRICE_STUDIO_MONTHLY || '',
     yearly: process.env.STRIPE_PRICE_STUDIO_ANNUAL || '',
-  },
-  packs: {
-    topup: process.env.STRIPE_PRICE_TOPUP || '',
-    boost: process.env.STRIPE_PRICE_BOOST || '',
   },
 } as const;
 
@@ -183,7 +185,6 @@ export const MAX_PROMPT_LENGTH = 500;
 // === PROJECT LIMITS (per plan) ===
 export const PROJECT_LIMITS = {
   free: 3,
-  starter: 10,
-  creator: 50,
-  pro: Infinity,
+  creator: null, // Unlimited
+  studio: null,  // Unlimited
 } as const;

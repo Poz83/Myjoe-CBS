@@ -6,14 +6,12 @@ import { Button } from '@/components/ui/button';
 
 interface LowBlotsBannerProps {
   balance: number;
-  onBuyPack?: () => void;
   onUpgrade?: () => void;
   showLinks?: boolean;
 }
 
 export function LowBlotsBanner({
   balance,
-  onBuyPack,
   onUpgrade,
   showLinks = false,
 }: LowBlotsBannerProps) {
@@ -26,39 +24,24 @@ export function LowBlotsBanner({
         <div>
           <p className="font-medium text-amber-400">Running Low on Blots</p>
           <p className="text-sm text-amber-400/80">
-            You have {balance} Blots remaining
+            You have {balance} Blots remaining. Upgrade your plan for more.
           </p>
         </div>
       </div>
       <div className="flex gap-2 flex-shrink-0">
         {showLinks ? (
-          <>
-            <Link
-              href="/billing"
-              className="inline-flex items-center justify-center h-8 px-3 text-sm font-medium rounded-md bg-zinc-700 text-white hover:bg-zinc-600 transition-colors"
-            >
-              Buy Pack
-            </Link>
-            <Link
-              href="/billing"
-              className="inline-flex items-center justify-center h-8 px-3 text-sm font-medium rounded-md bg-blue-600 text-white hover:bg-blue-500 transition-colors"
-            >
-              Upgrade Plan
-            </Link>
-          </>
+          <Link
+            href="/billing"
+            className="inline-flex items-center justify-center h-8 px-3 text-sm font-medium rounded-md bg-blue-600 text-white hover:bg-blue-500 transition-colors"
+          >
+            Upgrade Plan
+          </Link>
         ) : (
-          <>
-            {onBuyPack && (
-              <Button variant="secondary" size="sm" onClick={onBuyPack}>
-                Buy Pack
-              </Button>
-            )}
-            {onUpgrade && (
-              <Button size="sm" onClick={onUpgrade}>
-                Upgrade Plan
-              </Button>
-            )}
-          </>
+          onUpgrade && (
+            <Button size="sm" onClick={onUpgrade}>
+              Upgrade Plan
+            </Button>
+          )
         )}
       </div>
     </div>

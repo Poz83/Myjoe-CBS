@@ -1,186 +1,138 @@
 # Stripe Setup (Corbin's Unit-Based Method)
 
 > **One Product, Four Prices, Infinite Flexibility**
+> 
+> Semi-Aggressive Pricing with 20% Annual Discount
 
 ---
 
 ## The Method
 
 Instead of creating separate products for each plan:
-- ❌ "Creator 250 Plan" product
-- ❌ "Creator 500 Plan" product  
-- ❌ "Studio 2000 Plan" product
+- "Creator 500 Plan" product
+- "Creator 1000 Plan" product
+- "Studio 7500 Plan" product
 
 Create ONE product with FOUR price rates:
-- ✅ "Myjoe Blots" product
-- ✅ 4 price IDs (different per-Blot rates)
-- ✅ Checkout sends: Price ID + Quantity
+- "Myjoe Blots (100-pack)" product
+- 4 price IDs (different per-unit rates)
+- Checkout sends: Price ID + Quantity
 
 ---
 
-## Step 1: Create Single Product
+## Pricing Structure
 
-Go to **Product catalog → Add product**
+### Unit Rates (Per 100 Blots)
 
-```
-Name:        Myjoe Blots
-Description: Monthly Blot allocation for AI coloring book generation
-Image:       [Upload Myjoe logo or Blot icon]
-```
+| Tier | Monthly | Annual | Discount |
+|------|---------|--------|----------|
+| Creator | $1.60 | $1.28 | 20% |
+| Studio | $1.00 | $0.80 | 20% |
 
-**DO NOT add a price yet.** Save the product first.
+### Resulting Prices
 
----
+| Tier | Blots | Monthly | Annual/mo | Books/mo |
+|------|-------|---------|-----------|----------|
+| **Free** | 75 | $0 | $0 | Trial |
+| Creator | 500 | $8 | $6.40 | ~2 |
+| Creator | 1,000 | $16 | $12.80 | ~4 |
+| Creator | 2,000 | $32 | $25.60 | ~9 |
+| Creator | 3,000 | $48 | $38.40 | ~14 |
+| Creator | 4,500 | $72 | $57.60 | ~21 (CEILING) |
+| Studio | 7,500 | $75 | $60 | ~35 |
+| Studio | 10,000 | $100 | $80 | ~47 |
+| Studio | 15,000 | $150 | $120 | ~70 |
 
-## Step 2: Create 4 Price IDs
-
-Click into your "Myjoe Blots" product, then **Add price** four times:
-
-### Price 1: Creator Monthly
-
-```
-Pricing model:  Recurring
-Price:          $0.03 per unit
-Billing period: Monthly
-Lookup key:     creator_monthly
-
-Metadata:
-├── tier: creator
-└── interval: monthly
-```
-
-### Price 2: Creator Annual
+### Upgrade Psychology
 
 ```
-Pricing model:  Recurring  
-Price:          $0.025 per unit
-Billing period: Yearly
-Lookup key:     creator_annual
-
-Metadata:
-├── tier: creator
-└── interval: yearly
-```
-
-### Price 3: Studio Monthly
-
-```
-Pricing model:  Recurring
-Price:          $0.022 per unit
-Billing period: Monthly
-Lookup key:     studio_monthly
-
-Metadata:
-├── tier: studio
-└── interval: monthly
-```
-
-### Price 4: Studio Annual
-
-```
-Pricing model:  Recurring
-Price:          $0.018 per unit
-Billing period: Yearly
-Lookup key:     studio_annual
-
-Metadata:
-├── tier: studio
-└── interval: yearly
+Creator 4500 ($72) --> Studio 7500 ($75)
+                       |
+            Only $3 more for 3,000 extra blots!
+            (67% more blots for 4% more cost)
 ```
 
 ---
 
-## Step 3: Create Pack Prices (One-Time)
+## Step 1: Product Already Created
 
-Still in "Myjoe Blots" product, add 2 more prices:
+Product exists in Stripe:
+- **Name:** Myjoe Blots (100-pack)
+- **ID:** prod_TkbaBjo3CzwutD
+- **Type:** Service
 
-### Top-Up Pack
+---
 
-```
-Pricing model:  One time
-Price:          $5.00
-Lookup key:     pack_topup
+## Step 2: Price IDs (Created)
 
-Metadata:
-├── type: blot_pack
-├── pack_id: topup
-└── blots: 100
-```
-
-### Boost Pack
+### Creator Tier
 
 ```
-Pricing model:  One time
-Price:          $20.00
-Lookup key:     pack_boost
+creator_monthly ($1.60/unit):
+  ID: price_1Sn7ZDRb0thGyayr2gQNFGlL
+  Type: Recurring monthly
+  
+creator_annual ($1.28/unit):
+  ID: price_1Sn7ZDRb0thGyayrokJSnZFC
+  Type: Recurring yearly
+```
 
-Metadata:
-├── type: blot_pack
-├── pack_id: boost
-└── blots: 500
+### Studio Tier
+
+```
+studio_monthly ($1.00/unit):
+  ID: price_1Sn7ZDRb0thGyayrnIANu0F8
+  Type: Recurring monthly
+  
+studio_annual ($0.80/unit):
+  ID: price_1Sn7ZDRb0thGyayrWRlIdXdl
+  Type: Recurring yearly
 ```
 
 ---
 
-## Step 4: Copy Price IDs
-
-Your "Myjoe Blots" product now has **6 prices**:
-
-| Lookup Key | Price ID | Rate/Amount |
-|------------|----------|-------------|
-| creator_monthly | `price_1ABC...` | $0.03/unit |
-| creator_annual | `price_1DEF...` | $0.025/unit |
-| studio_monthly | `price_1GHI...` | $0.022/unit |
-| studio_annual | `price_1JKL...` | $0.018/unit |
-| pack_topup | `price_1MNO...` | $5 one-time |
-| pack_boost | `price_1PQR...` | $20 one-time |
-
----
-
-## Step 5: Environment Variables
+## Step 3: Environment Variables
 
 ```bash
-# Just 6 price IDs (not 14!)
-STRIPE_PRICE_CREATOR_MONTHLY=price_1ABC...
-STRIPE_PRICE_CREATOR_ANNUAL=price_1DEF...
-STRIPE_PRICE_STUDIO_MONTHLY=price_1GHI...
-STRIPE_PRICE_STUDIO_ANNUAL=price_1JKL...
-STRIPE_PRICE_PACK_TOPUP=price_1MNO...
-STRIPE_PRICE_PACK_BOOST=price_1PQR...
+# Stripe Price IDs (Semi-Aggressive Pricing)
+STRIPE_PRICE_CREATOR_MONTHLY=price_1Sn7ZDRb0thGyayr2gQNFGlL
+STRIPE_PRICE_CREATOR_ANNUAL=price_1Sn7ZDRb0thGyayrokJSnZFC
+STRIPE_PRICE_STUDIO_MONTHLY=price_1Sn7ZDRb0thGyayrnIANu0F8
+STRIPE_PRICE_STUDIO_ANNUAL=price_1Sn7ZDRb0thGyayrWRlIdXdl
 ```
 
 ---
 
-## Step 6: Checkout Code
+## Step 4: Checkout Code
 
 ```typescript
-// src/lib/constants/billing.ts
+// src/lib/constants/index.ts
 
-export const BLOT_RATES = {
-  creator: { monthly: 0.03, annual: 0.025 },
-  studio: { monthly: 0.022, annual: 0.018 },
-} as const;
-
-export const STRIPE_PRICES = {
+export const TIERS = {
+  free: {
+    name: 'Free',
+    blots: 75,
+    commercial: false,
+    commercialProjectsAllowed: 1, // One trial
+    watermark: true,
+  },
   creator: {
-    monthly: process.env.STRIPE_PRICE_CREATOR_MONTHLY!,
-    annual: process.env.STRIPE_PRICE_CREATOR_ANNUAL!,
+    name: 'Creator',
+    commercial: true,
+    watermark: false,
+    unitRate: { monthly: 1.60, yearly: 1.28 },
+    blotOptions: [500, 1000, 2000, 3000, 4500],
   },
   studio: {
-    monthly: process.env.STRIPE_PRICE_STUDIO_MONTHLY!,
-    annual: process.env.STRIPE_PRICE_STUDIO_ANNUAL!,
+    name: 'Studio',
+    commercial: true,
+    watermark: false,
+    unitRate: { monthly: 1.00, yearly: 0.80 },
+    blotOptions: [7500, 10000, 15000],
   },
-  packs: {
-    topup: process.env.STRIPE_PRICE_PACK_TOPUP!,
-    boost: process.env.STRIPE_PRICE_PACK_BOOST!,
-  },
-} as const;
+};
 
-// Pre-defined quantities for UI
-export const BLOT_OPTIONS = {
-  creator: [250, 500, 800],
-  studio: [2000, 3500, 5000],
-} as const;
+export const BLOTS_PER_UNIT = 100;
 ```
 
 ```typescript
@@ -191,24 +143,24 @@ export async function createSubscriptionCheckout(
   email: string,
   tier: 'creator' | 'studio',
   blots: number,
-  interval: 'monthly' | 'annual'
+  interval: 'monthly' | 'yearly'
 ): Promise<string> {
+  const { STRIPE_PRICES, BLOTS_PER_UNIT } = await getStripeConfig();
   const customerId = await getOrCreateCustomer(userId, email);
   const priceId = STRIPE_PRICES[tier][interval];
+  const quantity = blots / BLOTS_PER_UNIT; // e.g., 500 blots = 5 units
   
   const session = await stripe.checkout.sessions.create({
     mode: 'subscription',
     customer: customerId,
-    line_items: [{
-      price: priceId,
-      quantity: blots,  // ← THE MAGIC: quantity determines plan
-    }],
+    line_items: [{ price: priceId, quantity }],
     metadata: { userId, tier, blots: blots.toString() },
     subscription_data: {
       metadata: { userId, tier, blots: blots.toString() },
     },
-    success_url: `${APP_URL}/billing?success=1`,
-    cancel_url: `${APP_URL}/billing`,
+    success_url: `${APP_URL}/studio/settings?tab=billing&success=subscription`,
+    cancel_url: `${APP_URL}/studio/settings?tab=billing&canceled=true`,
+    allow_promotion_codes: true,
   });
   
   return session.url!;
@@ -220,55 +172,77 @@ export async function createSubscriptionCheckout(
 ## What Users See at Checkout
 
 ```
-┌─────────────────────────────────────────────────────┐
-│                                                     │
-│  Myjoe Blots                                        │
-│                                                     │
-│  500 × $0.03                                        │
-│                                                     │
-│  Subtotal                              $15.00/mo    │
-│                                                     │
-│  [Pay $15.00]                                       │
-│                                                     │
-└─────────────────────────────────────────────────────┘
++-----------------------------------------------------+
+|                                                     |
+|  Myjoe Blots (100-pack)                             |
+|                                                     |
+|  10 x $1.60                                         |
+|                                                     |
+|  Subtotal                              $16.00/mo    |
+|                                                     |
+|  [Pay $16.00]                                       |
+|                                                     |
++-----------------------------------------------------+
 ```
 
 **Transparency:** User sees exactly what they're buying.
 
 ---
 
-## Resulting Prices
+## Free Tier Configuration
 
-| Selection | Quantity × Rate | Price |
-|-----------|-----------------|-------|
-| Creator 250 Monthly | 250 × $0.03 | **$7.50** |
-| Creator 500 Monthly | 500 × $0.03 | **$15** |
-| Creator 800 Monthly | 800 × $0.03 | **$24** |
-| Creator 250 Annual | 250 × $0.025 × 12 | **$75/yr** |
-| Creator 500 Annual | 500 × $0.025 × 12 | **$150/yr** |
-| Creator 800 Annual | 800 × $0.025 × 12 | **$240/yr** |
-| Studio 2000 Monthly | 2000 × $0.022 | **$44** |
-| Studio 3500 Monthly | 3500 × $0.022 | **$77** |
-| Studio 5000 Monthly | 5000 × $0.022 | **$110** |
+```
+FREE TIER:
++-- 75 blots (15 pages worth)
++-- Personal use only
++-- 1 commercial project trial (for KDP testing)
++-- Watermark on exports
++-- 3 projects max
++-- No credit card required
+```
 
-*Note: Adjust rates slightly to hit round numbers if needed*
+### Why This Free Tier Works
+
+1. **Hook them with the magic** - Enough to experience hero consistency
+2. **Clear upgrade path** - Commercial use requires Creator ($8+)
+3. **1 commercial trial** - Let them test with real KDP before paying
+4. **Watermark** - Brand visibility + clear upgrade incentive
 
 ---
 
-## Adjusted Rates for Round Pricing
+## Webhook Events Required
 
-If you want exact round prices:
+```typescript
+// Events to listen for:
+- checkout.session.completed  // New subscription
+- invoice.payment_succeeded   // Monthly renewal (reset blots)
+- invoice.payment_failed      // Payment issues
+- customer.subscription.updated // Mid-cycle upgrade
+- customer.subscription.deleted // Cancellation
+```
 
-| Tier/Interval | Target Prices | Rate |
-|---------------|---------------|------|
-| Creator Monthly | $9, $15, $24 | Custom per qty |
-| Creator Annual | $75, $125, $200 | Custom per qty |
-| Studio Monthly | $49, $79, $99 | Custom per qty |
-| Studio Annual | $410, $660, $830 | Custom per qty |
+### customer.subscription.updated Handler
 
-**Option A:** Accept non-round prices ($7.50, $44, $77)
-**Option B:** Create 6 price IDs with fixed amounts (like before)
-**Option C:** Adjust quantities to hit targets (e.g., 300 instead of 250)
+Handles mid-cycle upgrades (the key to Corbin's method):
+
+```typescript
+case 'customer.subscription.updated': {
+  const subscription = event.data.object;
+  const previousAttributes = event.data.previous_attributes;
+  
+  if (previousAttributes?.items) {
+    const oldQty = previousAttributes.items.data?.[0]?.quantity || 0;
+    const newQty = subscription.items.data?.[0]?.quantity || 0;
+    
+    if (newQty > oldQty) {
+      // UPGRADE: Add blot difference immediately
+      const blotDiff = (newQty - oldQty) * BLOTS_PER_UNIT;
+      await addBlotsToUser(userId, blotDiff);
+    }
+    // DOWNGRADE: Just update plan_blots, current blots stay until reset
+  }
+}
+```
 
 ---
 
@@ -277,27 +251,42 @@ If you want exact round prices:
 | Benefit | Impact |
 |---------|--------|
 | **1 product** | Clean Stripe dashboard |
-| **4 price IDs** | vs 12 in named-product approach |
-| **Transparent** | User sees "500 × $0.03" |
+| **4 price IDs** | Simple configuration |
+| **Transparent** | User sees "10 x $1.60" |
 | **Flexible** | Add 600 Blots option without new price |
-| **Future slider** | Let users pick exact quantity |
-| **Enterprise ready** | "Need 15,000 Blots? No problem" |
+| **Upgrade-friendly** | Dropdown lets users scale easily |
+| **No packs** | Simpler codebase, forces proper upgrades |
+
+---
+
+## Competitive Positioning
+
+| Platform | Entry Price | Credits | Myjoe Entry | Winner |
+|----------|-------------|---------|-------------|--------|
+| ColorBliss | $7 | 250 | $8 / 500 | Myjoe (2x value) |
+| ColoringBook AI | $6.99 | 100 | $8 / 500 | Myjoe (5x value) |
+| Colorvia | $9.99 | 100 | $8 / 500 | Myjoe (price + value) |
+
+**Plus:** Only Myjoe has hero consistency across all pages.
 
 ---
 
 ## Quick Reference
 
 ```
-PRODUCT: Myjoe Blots
-├── creator_monthly: $0.03/unit (recurring)
-├── creator_annual: $0.025/unit (recurring yearly)
-├── studio_monthly: $0.022/unit (recurring)
-├── studio_annual: $0.018/unit (recurring yearly)
-├── pack_topup: $5 one-time
-└── pack_boost: $20 one-time
+PRODUCT: Myjoe Blots (100-pack)
+  +-- creator_monthly: $1.60/unit (recurring)
+  +-- creator_annual:  $1.28/unit (recurring yearly)
+  +-- studio_monthly:  $1.00/unit (recurring)
+  +-- studio_annual:   $0.80/unit (recurring yearly)
 
-CHECKOUT:
-├── Creator-500-Monthly: price=creator_monthly, qty=500 → $15
-├── Studio-2000-Monthly: price=studio_monthly, qty=2000 → $44
-└── Pack-Boost: price=pack_boost, qty=1 → $20
+CHECKOUT EXAMPLES:
+  +-- Creator-1000-Monthly: price=creator_monthly, qty=10 --> $16
+  +-- Studio-7500-Annual:   price=studio_annual, qty=75 --> $60/mo
+  
+FREE TIER:
+  +-- 75 blots
+  +-- Personal use only
+  +-- 1 commercial project trial
+  +-- Watermark on exports
 ```

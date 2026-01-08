@@ -169,10 +169,12 @@ export default function ProjectEditorPage() {
             selectedPageId={selectedPageId}
             onSelectPage={setSelectedPageId}
             onGeneratePages={() => {
-              // TODO: Implement page generation
-              console.log('Generate pages');
+              if (needsGeneration) {
+                setRightPanelCollapsed(false);
+              }
             }}
             isLoading={projectLoading}
+            getImageUrl={(page) => `/api/r2/pages/${page.id}/current.png`}
           />
 
           {/* Collapse Toggle */}
@@ -192,10 +194,44 @@ export default function ProjectEditorPage() {
         <div className="overflow-hidden min-w-[400px]">
           <PagePreview
             page={selectedPage}
+            imageUrl={selectedPage ? `/api/r2/pages/${selectedPage.id}/current.png` : null}
             onGeneratePages={() => {
-              // TODO: Implement page generation
-              console.log('Generate pages');
+              // Handled by GenerationStart panel or clicking generate
+              if (needsGeneration) {
+                setRightPanelCollapsed(false);
+              }
             }}
+            onRegenerate={() => {
+              // TODO: Implement regenerate
+              console.log('Regenerate page');
+            }}
+            onEdit={() => {
+              // TODO: Implement edit - navigate to page editor
+              if (selectedPage) {
+                window.location.href = `/studio/projects/${projectId}/pages/${selectedPage.id}`;
+              }
+            }}
+            onSimplify={() => {
+              // TODO: Implement simplify quick action
+              console.log('Simplify page');
+            }}
+            onAddDetail={() => {
+              // TODO: Implement add detail quick action
+              console.log('Add detail to page');
+            }}
+            onExport={() => setExportModalOpen(true)}
+            onDuplicate={() => {
+              // TODO: Implement duplicate page
+              console.log('Duplicate page');
+            }}
+            onDelete={() => {
+              // TODO: Implement delete page
+              console.log('Delete page');
+            }}
+            isGenerating={isGenerating}
+            blotBalance={profile?.blots || 0}
+            styleReady={!needsCalibration}
+            showToolbar={!needsGeneration}
           />
         </div>
 

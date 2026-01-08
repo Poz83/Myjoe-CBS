@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Loader2, CheckCircle2, FileText, FolderArchive, Clock, Download } from 'lucide-react';
+import { Loader2, CheckCircle2, FileText, FolderArchive, Clock, Download, AlertTriangle } from 'lucide-react';
 import { Dialog } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useStartExport, useExportStatus, formatFileSize, type ExportFormat } from '@/hooks/use-export';
+import { useBalance } from '@/hooks/use-billing';
 import { cn } from '@/lib/utils';
 
 interface ExportDialogProps {
@@ -50,8 +51,12 @@ export function ExportDialog({
   const [jobId, setJobId] = useState<string | null>(null);
 
   // Hooks
+  const { data: balance } = useBalance();
   const startExport = useStartExport();
   const exportStatus = useExportStatus(state === 'processing' ? jobId : null);
+  
+  // Check if user is on free tier
+  const isFreePlan = balance?.plan === 'free';
 
   // Reset state when dialog opens
   useEffect(() => {
@@ -103,9 +108,26 @@ export function ExportDialog({
       case 'options':
         return (
           <>
-            <p className="text-zinc-400 mb-6">
+            <p className="text-zinc-400 mb-4">
               Export &quot;{projectName}&quot; for printing or sharing.
             </p>
+
+            {/* Free tier warning */}
+            {isFreePlan && (
+              <div className="mb-6 p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-medium text-amber-400">Free Tier Export</p>
+                    <ul className="text-sm text-amber-400/80 mt-1 space-y-1">
+                      <li>• Exports include a small &quot;Made with Myjoe&quot; watermark</li>
+                      <li>• Personal use only (no commercial license)</li>
+                      <li>• Upgrade to Creator ($8/mo) for watermark-free commercial exports</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Format selection */}
             <div className="space-y-3 mb-6">
