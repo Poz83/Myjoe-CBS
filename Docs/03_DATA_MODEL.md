@@ -12,7 +12,7 @@
 │ plan_blots      │  └────│                 │  │  │ │ page_type       │  │
 │ subscription_   │       │ name            │  │  │ │ current_version │  │
 │   blots         │       │ audience        │  │  │ │ scene_brief     │  │
-│ pack_blots      │       │ style_preset    │  │  │ └─────────────────┘  │
+│ commercial_projects_used │ style_preset    │  │  │ └─────────────────┘  │
 │ stripe_*        │       │ ...             │  │  │                      │
 └─────────────────┘       └─────────────────┘  │  │ ┌────────────────────┘
                                                │  │ │
@@ -74,8 +74,8 @@ CREATE TABLE profiles (
   plan_blots INTEGER NOT NULL DEFAULT 50,  -- Selected Blot level (300, 500, 800, etc.)
   
   -- Blot balances (two separate pools)
-  subscription_blots INTEGER NOT NULL DEFAULT 50,  -- Resets monthly
-  pack_blots INTEGER NOT NULL DEFAULT 0,           -- Never expires
+  blots INTEGER NOT NULL DEFAULT 75,                -- Single pool, resets monthly
+  commercial_projects_used INTEGER NOT NULL DEFAULT 0, -- Free tier tracking
   blots_reset_at TIMESTAMPTZ,
   
   -- Stripe integration
@@ -547,7 +547,7 @@ INSERT INTO global_config (key, value, description) VALUES
 -- Get total available Blots (subscription + pack)
 CREATE OR REPLACE FUNCTION get_available_blots(user_id UUID)
 RETURNS INTEGER AS $$
-  SELECT COALESCE(subscription_blots, 0) + COALESCE(pack_blots, 0)
+  SELECT COALESCE(blots, 0)
   FROM profiles WHERE owner_id = user_id;
 $$ LANGUAGE sql STABLE;
 
@@ -567,24 +567,14 @@ BEGIN
   -- Lock the row for update
   SELECT * INTO profile_row FROM profiles WHERE owner_id = user_id FOR UPDATE;
   
-  -- Check sufficient total balance
-  IF (profile_row.subscription_blots + profile_row.pack_blots) < amount THEN
+  -- Check sufficient balance
+  IF profile_row.blots < amount THEN
     RETURN FALSE;
   END IF;
-  
-  -- Calculate split: subscription first, then pack
-  IF profile_row.subscription_blots >= amount THEN
-    sub_deduct := amount;
-    pack_deduct := 0;
-  ELSE
-    sub_deduct := profile_row.subscription_blots;
-    pack_deduct := amount - sub_deduct;
-  END IF;
-  
-  -- Update balances
+
+  -- Update balance
   UPDATE profiles SET
-    subscription_blots = subscription_blots - sub_deduct,
-    pack_blots = pack_blots - pack_deduct,
+    blots = blots - amount,
     updated_at = NOW()
   WHERE owner_id = user_id;
   
@@ -599,27 +589,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Add pack Blots (on purchase)
-CREATE OR REPLACE FUNCTION add_pack_blots(
-  user_id UUID,
-  amount INTEGER,
-  p_pack_id TEXT,
-  session_id TEXT
-) RETURNS VOID AS $$
-BEGIN
-  UPDATE profiles SET
-    pack_blots = pack_blots + amount,
-    updated_at = NOW()
-  WHERE owner_id = user_id;
-  
-  INSERT INTO blot_transactions (
-    owner_id, type, pack_delta, pack_id, stripe_session_id, description
-  ) VALUES (
-    user_id, 'pack_purchase', amount, p_pack_id, session_id, 
-    'Blot pack: ' || p_pack_id || ' (+' || amount || ')'
-  );
-END;
-$$ LANGUAGE plpgsql;
 
 -- Reset subscription Blots (on renewal)
 CREATE OR REPLACE FUNCTION reset_subscription_blots(
@@ -629,7 +598,7 @@ CREATE OR REPLACE FUNCTION reset_subscription_blots(
 ) RETURNS VOID AS $$
 BEGIN
   UPDATE profiles SET
-    subscription_blots = new_amount,
+    blots = new_amount,
     blots_reset_at = NOW() + INTERVAL '1 month',
     payment_failed_at = NULL,
     updated_at = NOW()
@@ -652,7 +621,7 @@ CREATE OR REPLACE FUNCTION add_upgrade_blots(
 ) RETURNS VOID AS $$
 BEGIN
   UPDATE profiles SET
-    subscription_blots = subscription_blots + blot_difference,
+    blots = blots + blot_difference,
     updated_at = NOW()
   WHERE owner_id = user_id;
   
@@ -675,7 +644,7 @@ CREATE OR REPLACE FUNCTION refund_blots(
 BEGIN
   -- Refund to subscription pool (simpler than tracking original source)
   UPDATE profiles SET
-    subscription_blots = subscription_blots + amount,
+    blots = blots + amount,
     updated_at = NOW()
   WHERE owner_id = user_id;
   
@@ -902,7 +871,6 @@ CREATE TYPE job_item_status AS ENUM (...);
 -- 5. Functions
 -- get_available_blots
 -- deduct_blots
--- add_pack_blots
 -- reset_subscription_blots
 -- add_upgrade_blots
 -- refund_blots

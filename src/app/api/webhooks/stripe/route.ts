@@ -144,7 +144,6 @@ export async function POST(request: NextRequest) {
           })
           .eq('owner_id', profile.owner_id);
         
-        console.log(`Reset blots to ${profile.plan_blots} for user ${profile.owner_id}`);
 
         break;
       }
@@ -256,7 +255,6 @@ export async function POST(request: NextRequest) {
                 })
                 .eq('owner_id', profile.owner_id);
               
-              console.log(`Upgraded user ${profile.owner_id}: +${blotDiff} blots (${oldQty} -> ${newQty} units)`);
             } else {
               // Downgrade: Update plan_blots, keep current blots until reset
               await supabase
@@ -268,7 +266,6 @@ export async function POST(request: NextRequest) {
                 })
                 .eq('owner_id', profile.owner_id);
               
-              console.log(`Downgraded user ${profile.owner_id}: plan_blots now ${newBlots} (${oldQty} -> ${newQty} units)`);
             }
           }
         }
@@ -276,7 +273,6 @@ export async function POST(request: NextRequest) {
       }
 
       default:
-        console.log(`Unhandled event type: ${event.type}`);
     }
   } catch (error) {
     console.error('Error processing webhook:', error);

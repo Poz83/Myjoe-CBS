@@ -74,7 +74,6 @@ export async function processHeroJob(jobId: string): Promise<void> {
 
   try {
     // 3. Generate hero reference sheet
-    console.log(`Generating hero sheet for job ${jobId}: ${metadata.name}`);
 
     const result = await generateHeroSheet({
       name: metadata.name,
@@ -171,7 +170,6 @@ export async function processHeroJob(jobId: string): Promise<void> {
     // 13. Finalize billing (refund unused blots if any)
     await finalizeJobBilling(userId, jobId);
 
-    console.log(`Hero job ${jobId} completed successfully`);
   } catch (error) {
     console.error(`Hero job ${jobId} failed:`, error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';

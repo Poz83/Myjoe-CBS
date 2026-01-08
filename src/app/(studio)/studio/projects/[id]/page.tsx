@@ -137,7 +137,6 @@ export default function ProjectEditorPage() {
         viewMode={viewMode}
         onNameChange={(name) => {
           // TODO: Implement name update mutation
-          console.log('Update project name:', name);
         }}
         onViewModeChange={handleViewModeChange}
         onOpenBilling={() => setBillingModalOpen(true)}
@@ -203,7 +202,6 @@ export default function ProjectEditorPage() {
             }}
             onRegenerate={() => {
               // TODO: Implement regenerate
-              console.log('Regenerate page');
             }}
             onEdit={() => {
               // TODO: Implement edit - navigate to page editor
@@ -213,20 +211,16 @@ export default function ProjectEditorPage() {
             }}
             onSimplify={() => {
               // TODO: Implement simplify quick action
-              console.log('Simplify page');
             }}
             onAddDetail={() => {
               // TODO: Implement add detail quick action
-              console.log('Add detail to page');
             }}
             onExport={() => setExportModalOpen(true)}
             onDuplicate={() => {
               // TODO: Implement duplicate page
-              console.log('Duplicate page');
             }}
             onDelete={() => {
               // TODO: Implement delete page
-              console.log('Delete page');
             }}
             isGenerating={isGenerating}
             blotBalance={profile?.blots || 0}
@@ -247,15 +241,12 @@ export default function ProjectEditorPage() {
               page={selectedPage}
               onRegenerate={() => {
                 // TODO: Implement regenerate
-                console.log('Regenerate page');
               }}
               onEdit={() => {
                 // TODO: Implement edit
-                console.log('Edit page');
               }}
               onSimplify={() => {
                 // TODO: Implement simplify
-                console.log('Simplify page');
               }}
             />
           )}

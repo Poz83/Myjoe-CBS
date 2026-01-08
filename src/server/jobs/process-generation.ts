@@ -76,7 +76,6 @@ export async function processGenerationJob(jobId: string): Promise<void> {
     if (hero?.reference_key) {
       try {
         heroReferenceUrl = await getSignedDownloadUrl(hero.reference_key);
-        console.log(`Hero reference URL available for job ${jobId}: ${hero.name}`);
       } catch (error) {
         console.warn(`Failed to get hero reference URL for job ${jobId}:`, error);
       }
@@ -129,7 +128,6 @@ export async function processGenerationJob(jobId: string): Promise<void> {
       // Check if job was cancelled mid-processing
       const currentJob = await getJob(jobId, userId);
       if (currentJob.status === 'cancelled') {
-        console.log(`Job ${jobId} was cancelled, stopping processing`);
         break;
       }
 

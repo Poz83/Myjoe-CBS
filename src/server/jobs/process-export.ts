@@ -79,11 +79,9 @@ export async function processExportJob(jobId: string): Promise<void> {
       };
     });
 
-    console.log(`Fetching ${pagesWithVersions.length} page images for export job ${jobId}...`);
     const pages = await Promise.all(pageImagePromises);
 
     // 6. Generate PDF or ZIP based on format
-    console.log(`Generating ${metadata.format} for export job ${jobId}...`);
     let exportBuffer: Buffer;
     let extension: string;
     let contentType: string;
@@ -113,7 +111,6 @@ export async function processExportJob(jobId: string): Promise<void> {
     const random = Math.random().toString(36).substring(2, 9);
     const assetKey = `users/${userId}/projects/${project.id}/exports/${timestamp}-${random}.${extension}`;
 
-    console.log(`Uploading export to R2: ${assetKey}`);
     await uploadFile({
       key: assetKey,
       body: exportBuffer,
@@ -141,7 +138,6 @@ export async function processExportJob(jobId: string): Promise<void> {
     // 9. Update project status to 'exported'
     await updateProject(job.project_id!, userId, { status: 'exported' });
 
-    console.log(`Export job ${jobId} completed successfully`);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error(`Export job ${jobId} failed:`, error);

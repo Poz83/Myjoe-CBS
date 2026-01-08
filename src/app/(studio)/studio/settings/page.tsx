@@ -104,7 +104,6 @@ function SettingsContent() {
               email={user?.email || ''}
               displayName=""
               onDisplayNameChange={async (name) => {
-                console.log('Update display name:', name);
               }}
             />
           )}
@@ -112,10 +111,8 @@ function SettingsContent() {
           {tab === 'account' && (
             <SettingsAccount
               onExportData={async () => {
-                console.log('Export data');
               }}
               onDeleteAccount={async () => {
-                console.log('Delete account');
               }}
             />
           )}
@@ -125,7 +122,6 @@ function SettingsContent() {
           {tab === 'preferences' && (
             <SettingsPreferences
               onSave={async (prefs) => {
-                console.log('Save preferences:', prefs);
               }}
             />
           )}

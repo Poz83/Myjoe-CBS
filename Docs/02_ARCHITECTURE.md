@@ -231,8 +231,6 @@ src/
 │   │   │   │   └── route.ts      # GET balance
 │   │   │   ├── checkout/
 │   │   │   │   └── route.ts      # POST subscription
-│   │   │   ├── pack-checkout/
-│   │   │   │   └── route.ts      # POST pack purchase
 │   │   │   └── portal/
 │   │   │       └── route.ts      # POST portal session
 │   │   ├── webhooks/
@@ -272,7 +270,6 @@ src/
 │   │   │   ├── blot-display.tsx
 │   │   │   ├── blot-calculator.tsx
 │   │   │   ├── tier-card.tsx
-│   │   │   ├── pack-selector.tsx
 │   │   │   ├── out-of-blots-modal.tsx
 │   │   │   └── usage-chart.tsx
 │   │   └── safety/

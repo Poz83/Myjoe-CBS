@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     
     const { data: profile, error } = await supabase
       .from('profiles')
-      .select('subscription_blots, pack_blots, plan_blots, plan, blots_reset_at, storage_used_bytes, storage_limit_bytes')
+      .select('blots, plan_blots, plan, blots_reset_at, storage_used_bytes, storage_limit_bytes')
       .eq('owner_id', user.id)
       .single();
 
@@ -23,13 +23,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const subscription = profile.subscription_blots ?? 0;
-    const pack = profile.pack_blots ?? 0;
-
     return NextResponse.json({
-      subscription,
-      pack,
-      total: subscription + pack,
+      blots: profile.blots ?? 0,
       planBlots: profile.plan_blots,
       plan: profile.plan,
       resetsAt: profile.blots_reset_at,

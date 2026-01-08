@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
 
     const { data: transactions, error } = await supabase
       .from('blot_transactions')
-      .select('id, type, subscription_delta, pack_delta, description, created_at')
+      .select('id, type, delta, description, created_at')
       .eq('owner_id', user.id)
       .order('created_at', { ascending: false })
       .limit(Math.min(limit, 50));
@@ -39,9 +39,7 @@ export async function GET(request: NextRequest) {
       transactions: transactions.map(t => ({
         id: t.id,
         type: t.type,
-        delta: (t.subscription_delta ?? 0) + (t.pack_delta ?? 0),
-        subscriptionDelta: t.subscription_delta ?? 0,
-        packDelta: t.pack_delta ?? 0,
+        delta: t.delta ?? 0,
         description: t.description,
         createdAt: t.created_at,
       })),

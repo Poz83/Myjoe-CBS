@@ -30,20 +30,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const supabase = await createClient();
-    
-    // Log the incoming request for debugging
-    console.log('Auth callback received:', {
-      hasCode: !!code,
-      codeLength: code?.length,
-      hasError: !!error,
-      error,
-      errorDescription,
-      next,
-      fullUrl: requestUrl.toString(),
-      origin: requestUrl.origin,
-      pathname: requestUrl.pathname,
-    });
-    
+
     const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
 
     if (exchangeError) {

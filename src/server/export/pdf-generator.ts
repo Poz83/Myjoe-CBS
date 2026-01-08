@@ -92,7 +92,6 @@ export async function generateExportZip(input: ExportInput): Promise<Buffer> {
   }
 
   // 3. Vectorize all PNGs and add to SVG folder
-  console.log(`Vectorizing ${sortedPages.length} pages...`);
   const pngBuffers = sortedPages.map((p) => p.imageBuffer);
   const svgResults = await vectorizeBatch(pngBuffers, {
     threshold: 140,
@@ -110,7 +109,6 @@ export async function generateExportZip(input: ExportInput): Promise<Buffer> {
   }
 
   // Generate final ZIP buffer
-  console.log(`Generating ZIP archive...`);
   const zipBuffer = await zip.generateAsync({
     type: 'nodebuffer',
     compression: 'DEFLATE',

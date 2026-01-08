@@ -37,13 +37,13 @@ export function SettingsBilling() {
   }
 
   const storagePercentage = Math.min(100, (balance.storageUsed / balance.storageLimit) * 100);
-  const blotPercentage = balance.planBlots > 0 ? Math.min(100, (balance.subscription / balance.planBlots) * 100) : 0;
+  const blotPercentage = balance.planBlots > 0 ? Math.min(100, (balance.blots / balance.planBlots) * 100) : 0;
 
   return (
     <div className="space-y-8">
       {/* Low Blots Banner */}
       <LowBlotsBanner
-        balance={balance.total}
+        balance={balance.blots}
         onUpgrade={handleManageSubscription}
       />
 
@@ -74,16 +74,16 @@ export function SettingsBilling() {
         <div className="mt-6 p-4 bg-zinc-800/30 rounded-lg">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium text-zinc-400">Blots Available</span>
-            <span className="text-2xl font-bold text-blue-400">{balance.total.toLocaleString()}</span>
+            <span className="text-2xl font-bold text-blue-400">{balance.blots.toLocaleString()}</span>
           </div>
           <p className="text-sm text-zinc-500 mb-3">
-            {balance.subscription} Blots remaining this period
+            {balance.blots} Blots remaining this period
           </p>
           <div className="w-full h-2 bg-zinc-700 rounded-full overflow-hidden">
             <div className="h-full bg-blue-500 rounded-full transition-all" style={{ width: `${blotPercentage}%` }} />
           </div>
           {balance.resetsAt && (
-            <p className="text-xs text-zinc-500 mt-2">Subscription Blots reset on {formatDate(balance.resetsAt)}</p>
+            <p className="text-xs text-zinc-500 mt-2">Blots reset on {formatDate(balance.resetsAt)}</p>
           )}
         </div>
       </div>

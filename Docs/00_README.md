@@ -51,7 +51,7 @@ AI-powered coloring book studio for Amazon KDP publishers. Users create professi
 | AI Planning | GPT-4o-mini |
 | AI Images | **Flux via Replicate** (lineart, dev, pro) |
 | AI Safety | OpenAI Moderation API + GPT-4V |
-| Payments | Stripe (unit-based subscriptions + packs) |
+| Payments | Stripe (unit-based subscriptions) |
 | Hosting | Vercel |
 | Analytics | PostHog |
 | Errors | Sentry |
@@ -63,8 +63,7 @@ AI-powered coloring book studio for Amazon KDP publishers. Users create professi
 | Provider | Cost | Notes |
 |----------|------|-------|
 | **Myjoe (Flux-LineArt)** | ~$0.55 | Best value |
-| **Myjoe (Flux Dev+LoRA)** | ~$1.00 | Best quality |
-| GPT Image 1.5 | ~$2.00 | Previous approach |
+| **Myjoe (Flux-Pro)** | ~$5.60 | Best quality |
 | DALL-E 3 | ~$1.60 | No consistency |
 
 ---

@@ -69,7 +69,6 @@ export async function generatePage(options: GeneratePageOptions): Promise<PageRe
         safetyPassed = safetyResult.safe;
         
         if (!safetyPassed && safetyResult.recommendation === 'regenerate' && attempt < maxRetries) {
-          console.log(`Safety check failed, regenerating (attempt ${attempt + 1}/${maxRetries + 1})`);
           continue; // Auto-retry
         }
       }

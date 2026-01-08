@@ -22,14 +22,6 @@ export interface Balance {
   storageLimit: number;
   /** Commercial projects used (for free tier tracking) */
   commercialProjectsUsed: number;
-  
-  // Legacy fields for backward compatibility (deprecated)
-  /** @deprecated Use `blots` instead */
-  subscription: number;
-  /** @deprecated Always 0 - packs removed in Corbin method */
-  pack: number;
-  /** @deprecated Use `blots` instead */
-  total: number;
 }
 
 export interface Transaction {
@@ -40,12 +32,6 @@ export interface Transaction {
   description: string | null;
   createdAt: string;
   jobId: string | null;
-  
-  // Legacy fields (deprecated)
-  /** @deprecated Use `delta` instead */
-  subscriptionDelta: number;
-  /** @deprecated Always 0 - packs removed */
-  packDelta: number;
 }
 
 export interface UsagePoint {
@@ -64,20 +50,15 @@ export function useBalance() {
       const res = await fetch('/api/billing/balance');
       if (!res.ok) throw new Error('Failed to fetch balance');
       const data = await res.json();
-      
-      // Normalize response to ensure all fields exist
+
       return {
-        blots: data.blots ?? data.subscription ?? 0,
+        blots: data.blots ?? 0,
         planBlots: data.planBlots ?? 0,
         plan: data.plan ?? 'free',
         resetsAt: data.resetsAt ?? null,
         storageUsed: data.storageUsed ?? 0,
         storageLimit: data.storageLimit ?? 0,
         commercialProjectsUsed: data.commercialProjectsUsed ?? 0,
-        // Legacy compatibility
-        subscription: data.blots ?? data.subscription ?? 0,
-        pack: 0,
-        total: data.blots ?? data.total ?? 0,
       };
     },
     staleTime: 30_000,
@@ -92,19 +73,15 @@ export function useTransactions(limit = 10) {
       const res = await fetch(`/api/billing/transactions?limit=${limit}`);
       if (!res.ok) throw new Error('Failed to fetch transactions');
       const data = await res.json();
-      
-      // Normalize transactions
+
       return {
         transactions: (data.transactions || []).map((tx: Record<string, unknown>) => ({
           id: tx.id,
           type: tx.type,
-          delta: tx.delta ?? tx.subscriptionDelta ?? 0,
+          delta: tx.delta ?? 0,
           description: tx.description ?? null,
           createdAt: tx.createdAt ?? tx.created_at,
           jobId: tx.jobId ?? tx.job_id ?? null,
-          // Legacy
-          subscriptionDelta: tx.subscriptionDelta ?? tx.delta ?? 0,
-          packDelta: 0,
         })),
       };
     },

@@ -116,7 +116,6 @@ export async function spendBlots(
     throw new Error(`Failed to spend blots: ${error.message}`);
   }
 
-  console.log(`Blots spent: ${amount} for "${reason}" (user: ${userId}, new balance: ${newBalance})`);
 
   return {
     success: true,
@@ -172,7 +171,6 @@ export async function reserveBlots(
     throw new Error(`Failed to update job blots_reserved: ${jobError.message}`);
   }
 
-  console.log(`Blots reserved: ${amount} for job ${jobId} (user: ${userId})`);
 
   return {
     success: true,
@@ -237,7 +235,6 @@ export async function refundBlots(
     // Don't rollback - user already has their blots back
   }
 
-  console.log(`Blots refunded: ${amount} for job ${jobId} - ${reason} (user: ${userId})`);
 
   return {
     success: true,
@@ -344,7 +341,6 @@ export async function addBlots(
     throw new Error(`Failed to add blots: ${error.message}`);
   }
 
-  console.log(`Blots added: ${amount} for "${reason}" (user: ${userId}, new balance: ${newBalance})`);
 
   return {
     success: true,

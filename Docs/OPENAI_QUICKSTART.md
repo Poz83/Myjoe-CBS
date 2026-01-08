@@ -67,7 +67,8 @@ npm run dev
 ### Generate Pages for a Project
 
 ```typescript
-import { planAndCompile, generateImage, cleanupImage } from '@/server/ai';
+import { planAndCompile, cleanupImage } from '@/server/ai';
+import { generateWithFlux, downloadImage } from '@/server/ai/flux-generator';
 
 // 1. Plan the book
 const pages = await planAndCompile({
@@ -82,12 +83,19 @@ const pages = await planAndCompile({
   }
 });
 
-// 2. Generate a page
-const rawImage = await generateImage({
-  prompt: pages[0].compiledPrompt,
+// 2. Generate a page with Flux
+const fluxResult = await generateWithFlux({
+  compiledPrompt: pages[0].compiledPrompt,
   negativePrompt: pages[0].negativePrompt,
-  quality: 'high',
+  fluxModel: 'flux-pro',
+  trimSize: '8.5x11'
 });
+
+if (!fluxResult.success) {
+  throw new Error('Flux generation failed');
+}
+
+const rawImage = await downloadImage(fluxResult.imageUrl!);
 
 // 3. Cleanup to pure B&W, 300 DPI
 const finalImage = await cleanupImage(rawImage, {

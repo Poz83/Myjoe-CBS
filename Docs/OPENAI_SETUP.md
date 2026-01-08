@@ -1,10 +1,13 @@
-# OpenAI Setup Guide
+# OpenAI Setup Guide (GPT-4o-mini + Safety)
 
 ## Overview
 
-Myjoe uses OpenAI for two critical functions:
+Myjoe uses OpenAI for three critical functions:
 1. **GPT-4o-mini** - Planning and prompt compilation
-2. **DALL-E 3** - Image generation
+2. **Moderation API** - Content safety checks
+3. **GPT-4V** - Post-generation safety for children's content
+
+**Important:** Myjoe does NOT use OpenAI for image generation. All images are generated using **Flux via Replicate**.
 
 ---
 
@@ -46,12 +49,20 @@ Based on current OpenAI pricing:
 | Operation | Model | Cost per Call | Used For |
 |-----------|-------|---------------|----------|
 | Planning (40 pages) | GPT-4o-mini | ~$0.003 | Prompt compilation |
-| Generate 1 page | DALL-E 3 HD | ~$0.08 | Image generation |
-| Style calibration (4 samples) | DALL-E 3 Standard | ~$0.16 | Style anchor selection |
-| Hero reference sheet | DALL-E 3 HD | ~$0.08 | Character consistency |
-| Inpainting edit | DALL-E 2 | ~$0.02 | Paintbrush edits |
+| Content moderation | Moderation API | ~$0.0001 | Safety checks |
+| Image safety (children's) | GPT-4V | ~$0.005 | Post-generation safety |
 
-**Total for 40-page book:** ~$3.50 (actual cost may vary with retries)
+**Total for 40-page book:** ~$0.008 (actual cost may vary with retries)
+
+### Image Generation Costs
+
+Image generation uses **Flux via Replicate**, not OpenAI:
+- **Flux-LineArt:** ~$0.035 per page
+- **Flux-Pro:** ~$0.14 per page
+- **Style calibration:** ~$0.14 for 4 samples
+- **Hero reference sheet:** ~$0.14 (Flux-Pro)
+
+**Total for 40-page book:** ~$1.40-$5.60 (Flux costs)
 
 ---
 
@@ -116,16 +127,19 @@ const pages = await planAndCompile({
 Creates images using DALL-E with optional reference images.
 
 ```typescript
-import { generateImage } from '@/server/ai';
+import { generateWithFlux } from '@/server/ai/flux-generator';
 
-const imageBuffer = await generateImage({
-  prompt: compiledPage.compiledPrompt,
+const result = await generateWithFlux({
+  compiledPrompt: compiledPage.compiledPrompt,
   negativePrompt: compiledPage.negativePrompt,
-  heroReference: heroReferenceBuffer, // Optional
-  styleAnchor: styleAnchorBuffer,     // Optional
-  size: '1024x1024',
-  quality: 'high'
+  fluxModel: 'flux-pro',
+  trimSize: '8.5x11'
 });
+
+if (result.success) {
+  const imageBuffer = await downloadImage(result.imageUrl!);
+  // Use imageBuffer...
+}
 ```
 
 #### 3. Cleanup Image (`cleanup.ts`)
