@@ -1,12 +1,15 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { useLayoutStore } from '@/stores/layout-store';
-import { Cloud, CloudOff, Loader2, Palette } from 'lucide-react';
+import { Cloud, CloudOff, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { UserMenu } from '@/components/features/auth/user-menu';
+import { BlotDisplay } from '@/components/billing/blot-display';
 
 export function Header() {
-  const { autoSaveStatus, blotBalance } = useLayoutStore();
+  const router = useRouter();
+  const { autoSaveStatus } = useLayoutStore();
 
   const getAutoSaveIndicator = () => {
     switch (autoSaveStatus) {
@@ -41,7 +44,11 @@ export function Header() {
       <div className="h-full flex items-center justify-between px-4">
         {/* Left: Logo */}
         <div className="flex items-center gap-4">
-          <Link href="/" className="text-xl font-bold text-white hover:text-zinc-300 transition-colors">
+          <Link
+            href="/"
+            className="text-xl font-bold text-white hover:text-zinc-300 transition-colors"
+            aria-label="Myjoe - Go to home page"
+          >
             Myjoe
           </Link>
         </div>
@@ -59,12 +66,7 @@ export function Header() {
           </div>
 
           {/* Blot balance */}
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-zinc-800 rounded-md">
-            <Palette className="h-4 w-4 text-purple-400" />
-            <span className="text-sm font-medium text-white">
-              {blotBalance.toLocaleString()}
-            </span>
-          </div>
+          <BlotDisplay onClick={() => router.push('/billing')} />
 
           {/* User menu */}
           <UserMenu />
