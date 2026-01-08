@@ -13,26 +13,58 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    const { data: profile, error } = await supabase
+    // First, try to get profile with all possible columns
+    let { data: profile, error } = await supabase
       .from('profiles')
-      .select('blots, plan_blots, plan, blots_reset_at, storage_used_bytes, storage_limit_bytes')
+      .select('*')
       .eq('owner_id', user.id)
       .single();
 
-    if (error || !profile) {
+    // If profile doesn't exist, create it with free tier defaults
+    // Only use columns that exist in the base schema
+    if (error?.code === 'PGRST116' || !profile) {
+      console.log('Profile not found for user', user.id, '- creating new profile');
+      
+      const { data: newProfile, error: insertError } = await supabase
+        .from('profiles')
+        .insert({
+          owner_id: user.id,
+          plan: 'free',
+          blots: 75,
+        })
+        .select('*')
+        .single();
+
+      if (insertError) {
+        console.error('Failed to create profile:', insertError);
+        return NextResponse.json(
+          { error: 'Failed to create profile', details: insertError.message },
+          { status: 500 }
+        );
+      }
+
+      profile = newProfile;
+    } else if (error) {
+      // Some other error occurred
+      console.error('Profile fetch error:', error);
       return NextResponse.json(
-        { error: 'Profile not found' },
-        { status: 404 }
+        { error: 'Failed to fetch profile', details: error.message },
+        { status: 500 }
       );
     }
 
+    // Handle both old (blots) and new (subscription_blots) column names
+    const blots = profile.blots ?? profile.subscription_blots ?? 0;
+    const planBlots = profile.plan_blots ?? blots;
+
     return NextResponse.json({
-      blots: profile.blots ?? 0,
-      planBlots: profile.plan_blots,
-      plan: profile.plan,
+      blots,
+      planBlots,
+      plan: profile.plan ?? 'free',
       resetsAt: profile.blots_reset_at,
-      storageUsed: profile.storage_used_bytes,
-      storageLimit: profile.storage_limit_bytes,
+      storageUsed: profile.storage_used_bytes ?? 0,
+      storageLimit: profile.storage_limit_bytes ?? 1073741824,
+      commercialProjectsUsed: profile.commercial_projects_used ?? 0,
     });
   } catch (error) {
     console.error('Balance error:', error);

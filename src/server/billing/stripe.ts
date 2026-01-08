@@ -40,8 +40,8 @@ export async function createSubscriptionCheckout(
     line_items: [{ price: priceId, quantity }],
     metadata: { userId, tier, blots: blots.toString(), type: 'subscription' },
     subscription_data: { metadata: { userId, tier, blots: blots.toString() } },
-    success_url: `${APP_URL}/studio/settings?tab=billing&success=subscription`,
-    cancel_url: `${APP_URL}/studio/settings?tab=billing&canceled=true`,
+    success_url: `${APP_URL}/dashboard/billing?success=subscription`,
+    cancel_url: `${APP_URL}/dashboard/billing?canceled=true`,
     allow_promotion_codes: true,
   });
 
@@ -53,7 +53,7 @@ export async function createSubscriptionCheckout(
 export async function createPortalSession(customerId: string): Promise<string> {
   const session = await stripe.billingPortal.sessions.create({
     customer: customerId,
-    return_url: `${APP_URL}/studio/settings?tab=billing`,
+    return_url: `${APP_URL}/dashboard/billing`,
   });
   return session.url;
 }

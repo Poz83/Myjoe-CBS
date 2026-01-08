@@ -36,6 +36,13 @@ export interface UpdateProjectInput {
   description?: string | null;
   heroId?: string | null;
   status?: 'draft' | 'generating' | 'ready' | 'exported';
+  // Project settings (editable)
+  page_count?: number;
+  trim_size?: TrimSize;
+  style_preset?: StylePreset;
+  audience?: Audience;
+  line_thickness_pts?: number | null;
+  line_thickness_auto?: boolean;
 }
 
 /**

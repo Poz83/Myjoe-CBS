@@ -28,6 +28,7 @@ export interface StorageSchema {
   
   // Draft data for forms (prevents data loss on refresh)
   draftProject: DraftProject | null;
+  draftProjectSettings: DraftProjectSettings | null;
   draftHero: DraftHero | null;
   draftPrompt: DraftPrompt | null;
   
@@ -73,6 +74,19 @@ export interface DraftPrompt {
   pageId?: string;
   prompt: string;
   type: 'generation' | 'edit' | 'regenerate';
+  savedAt: number;
+}
+
+export interface DraftProjectSettings {
+  projectId: string;
+  name: string;
+  pageCount: number;
+  trimSize: string;
+  stylePreset: string;
+  audience: string;
+  lineThicknessPts: number | null;
+  lineThicknessAuto: boolean;
+  idea: string;
   savedAt: number;
 }
 

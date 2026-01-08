@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { UserMenu } from '@/components/features/auth/user-menu';
 import { BlotDisplay } from '@/components/billing/blot-display';
 import { useRouter } from 'next/navigation';
 
@@ -16,10 +15,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <Link href="/dashboard" className="hover:opacity-80 transition-opacity">
             <Image src="/myjoe-logo.png" alt="Myjoe" width={120} height={36} className="h-9 w-auto" />
           </Link>
-          <div className="flex items-center gap-4">
-            <BlotDisplay onClick={() => router.push('/dashboard/billing')} />
-            <UserMenu />
-          </div>
+          <BlotDisplay onClick={() => router.push('/dashboard/billing')} />
         </div>
       </header>
       <main className="pt-16">{children}</main>

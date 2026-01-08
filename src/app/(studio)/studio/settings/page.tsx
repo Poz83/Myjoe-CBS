@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense } from 'react';
+import { Suspense, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ChevronLeft, User, Shield, CreditCard, Settings, Code } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -28,6 +28,16 @@ function SettingsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const tab = (searchParams.get('tab') as SettingsTab) || 'profile';
+
+  // Redirect billing tab to new dashboard billing page
+  useEffect(() => {
+    if (tab === 'billing') {
+      const params = new URLSearchParams(searchParams);
+      params.delete('tab'); // Remove tab parameter
+      const queryString = params.toString();
+      router.replace(`/dashboard/billing${queryString ? `?${queryString}` : ''}`);
+    }
+  }, [tab, searchParams, router]);
 
   const { user, isLoading: userLoading } = useUser();
   const { isLoading: profileLoading } = useProfile(user?.id);

@@ -1,7 +1,7 @@
 'use client';
 
-import { Header } from '@/components/layout/header';
-import { Sidebar } from '@/components/layout/sidebar';
+import { StudioNavBar } from '@/components/layout/studio-nav-bar';
+import { StudioLeftNav } from '@/components/layout/studio-left-nav';
 import { Inspector } from '@/components/layout/inspector';
 import { useLayoutStore } from '@/stores/layout-store';
 import { useEffect, useState } from 'react';
@@ -12,7 +12,7 @@ export default function StudioLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { sidebarCollapsed, inspectorCollapsed, setInspectorCollapsed } = useLayoutStore();
+  const { inspectorCollapsed, setInspectorCollapsed } = useLayoutStore();
   const [windowWidth, setWindowWidth] = useState(0);
 
   // Handle window resize
@@ -54,21 +54,17 @@ export default function StudioLayout({
 
   return (
     <div className="h-screen flex flex-col bg-[#0D0D0D] overflow-hidden">
-      {/* Fixed Header */}
-      <Header />
+      {/* Top Navigation Bar */}
+      <StudioNavBar />
 
-      {/* Main 3-column layout */}
+      {/* Main Layout: Far Left Nav | Content | Inspector */}
       <div className="flex-1 flex pt-14 overflow-hidden">
-        {/* Left Sidebar */}
-        <aside className="flex-shrink-0 h-full overflow-hidden">
-          <Sidebar />
-        </aside>
+        {/* Far Left Navigation */}
+        <StudioLeftNav />
 
-        {/* Main Content Area */}
-        <main className="flex-1 min-w-[400px] bg-[#171717] overflow-auto">
-          <div className="h-full">
-            {children}
-          </div>
+        {/* Main Content Area (will contain settings panel + canvas) */}
+        <main className="flex-1 min-w-[400px] bg-[#171717] overflow-hidden">
+          {children}
         </main>
 
         {/* Right Inspector */}

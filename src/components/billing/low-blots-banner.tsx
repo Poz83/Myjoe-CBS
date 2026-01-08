@@ -31,7 +31,7 @@ export function LowBlotsBanner({
       <div className="flex gap-2 flex-shrink-0">
         {showLinks ? (
           <Link
-            href="/billing"
+            href="/dashboard/billing"
             className="inline-flex items-center justify-center h-8 px-3 text-sm font-medium rounded-md bg-blue-600 text-white hover:bg-blue-500 transition-colors"
           >
             Upgrade Plan

@@ -74,7 +74,7 @@ export function Header() {
           </div>
 
           {/* Blot balance */}
-          <BlotDisplay onClick={() => router.push('/billing')} />
+          <BlotDisplay onClick={() => router.push('/dashboard/billing')} />
 
           {/* User menu */}
           <UserMenu />

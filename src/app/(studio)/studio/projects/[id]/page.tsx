@@ -6,20 +6,18 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useProject } from '@/hooks/use-projects';
 import { useProfile } from '@/hooks/use-profile';
 import { useUser } from '@/hooks/use-user';
-import { EditorToolbar } from '@/components/studio/editor-toolbar';
-import { BillingModal } from '@/components/studio/billing-modal';
-import { type ViewMode } from '@/components/studio/view-mode-tabs';
-import { PageThumbnails } from '@/components/features/project/page-thumbnails';
-import { PagePreview } from '@/components/features/project/page-preview';
+import { useProjectSettings } from '@/hooks/use-project-settings';
+import { ProjectSettingsPanel } from '@/components/features/project/project-settings-panel';
+import { ThumbnailGrid } from '@/components/features/project/thumbnail-grid';
 import { PageInspector } from '@/components/features/project/page-inspector';
 import {
   StyleCalibrationModal,
   CalibrationBanner,
 } from '@/components/features/project/style-calibration';
-import { GenerationStart } from '@/components/features/project/generation-start';
 import { GenerationProgress } from '@/components/features/project/generation-progress';
 import { ExportDialog } from '@/components/features/export/export-dialog';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { BillingModal } from '@/components/studio/billing-modal';
+import { ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export default function ProjectEditorPage() {
@@ -30,26 +28,22 @@ export default function ProjectEditorPage() {
   const { user } = useUser();
   const { data: project, isLoading: projectLoading } = useProject(projectId);
   const { profile } = useProfile(user?.id);
+  const { settings, isLoading: settingsLoading } = useProjectSettings(projectId);
 
   const [selectedPageId, setSelectedPageId] = useState<string | null>(null);
-  const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(false);
-  const [rightPanelCollapsed, setRightPanelCollapsed] = useState(false);
+  const [settingsPanelCollapsed, setSettingsPanelCollapsed] = useState(false);
+  const [inspectorCollapsed, setInspectorCollapsed] = useState(false);
   const [calibrationModalOpen, setCalibrationModalOpen] = useState(false);
   const [exportModalOpen, setExportModalOpen] = useState(false);
   const [billingModalOpen, setBillingModalOpen] = useState(false);
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<ViewMode>('pages');
+  const [isGenerating, setIsGenerating] = useState(false);
 
   // Check if project needs calibration
   const needsCalibration = project && !project.style_anchor_key;
 
-  // Check if project needs generation (calibrated but no pages generated yet)
-  const needsGeneration = project &&
-    project.style_anchor_key &&
-    project.status === 'draft';
-
   // Check if generation is in progress
-  const isGenerating = project?.status === 'generating' || !!activeJobId;
+  const isGeneratingStatus = project?.status === 'generating' || !!activeJobId || isGenerating;
 
   // Auto-select first page when project loads
   useEffect(() => {
@@ -62,7 +56,7 @@ export default function ProjectEditorPage() {
   const selectedPage = project?.pages?.find((p) => p.id === selectedPageId) || null;
 
   // Loading state
-  if (projectLoading) {
+  if (projectLoading || settingsLoading) {
     return (
       <div className="h-full flex items-center justify-center">
         <p className="text-zinc-400">Loading project...</p>
@@ -79,69 +73,95 @@ export default function ProjectEditorPage() {
     );
   }
 
-  // Calculate grid template columns based on collapse states
-  const getGridColumns = () => {
-    if (leftPanelCollapsed && rightPanelCollapsed) {
-      return '0px 1fr 0px';
-    } else if (leftPanelCollapsed) {
-      return '0px 1fr 360px';
-    } else if (rightPanelCollapsed) {
-      return '300px 1fr 0px';
+  // Default settings if not loaded yet
+  const defaultSettings = {
+    name: project.name,
+    pageCount: project.page_count,
+    trimSize: project.trim_size,
+    stylePreset: project.style_preset,
+    audience: project.audience,
+    lineThicknessPts: (project as any).line_thickness_pts ?? null,
+    lineThicknessAuto: (project as any).line_thickness_auto ?? true,
+    idea: project.description || '',
+  };
+
+  const currentSettings = settings || defaultSettings;
+
+  // Handle generation
+  const handleGenerate = async (idea: string) => {
+    if (!idea.trim() || isGeneratingStatus) return;
+
+    setIsGenerating(true);
+    try {
+      const response = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          projectId,
+          idea,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to start generation');
+      }
+
+      const result = await response.json();
+      setActiveJobId(result.jobId);
+      
+      // Refresh project data
+      queryClient.invalidateQueries({ queryKey: ['projects', projectId] });
+    } catch (error) {
+      console.error('Generation error:', error);
+      alert(error instanceof Error ? error.message : 'Failed to start generation');
+    } finally {
+      setIsGenerating(false);
     }
-    return '300px 1fr 360px';
   };
 
   // Handle calibration completion
   const handleCalibrationComplete = () => {
     setCalibrationModalOpen(false);
-    // Refresh project data to get updated style_anchor_key
     queryClient.invalidateQueries({ queryKey: ['projects', projectId] });
-  };
-
-  // Handle generation started
-  const handleGenerationStarted = (jobId: string) => {
-    setActiveJobId(jobId);
   };
 
   // Handle generation complete
   const handleGenerationComplete = () => {
     setActiveJobId(null);
-    // Refresh project data to get new pages
+    setIsGenerating(false);
     queryClient.invalidateQueries({ queryKey: ['projects', projectId] });
   };
 
   // Handle generation cancelled
   const handleGenerationCancel = () => {
     setActiveJobId(null);
-    // Refresh project data
+    setIsGenerating(false);
     queryClient.invalidateQueries({ queryKey: ['projects', projectId] });
   };
 
-  // Handle view mode change - open export modal when export tab selected
-  const handleViewModeChange = (mode: ViewMode) => {
-    setViewMode(mode);
-    if (mode === 'export') {
-      setExportModalOpen(true);
+  // Calculate grid template columns
+  const getGridColumns = () => {
+    if (settingsPanelCollapsed && inspectorCollapsed) {
+      return '0px 1fr 0px';
+    } else if (settingsPanelCollapsed) {
+      return '0px 1fr 360px';
+    } else if (inspectorCollapsed) {
+      return '300px 1fr 0px';
     }
+    return '300px 1fr 360px';
   };
+
+  // Convert pages to thumbnail format
+  const thumbnailPages = (project.pages || []).map((page) => ({
+    id: page.id,
+    sortOrder: page.sort_order,
+    imageUrl: null,
+    isLoading: false,
+  }));
 
   return (
     <div className="h-full flex flex-col">
-      {/* Header */}
-      <EditorToolbar
-        projectId={project.id}
-        projectName={project.name}
-        status={project.status}
-        blotBalance={profile?.blots || 0}
-        styleReady={!needsCalibration}
-        viewMode={viewMode}
-        onNameChange={(name) => {
-          // TODO: Implement name update mutation
-        }}
-        onViewModeChange={handleViewModeChange}
-        onOpenBilling={() => setBillingModalOpen(true)}
-      />
-
       {/* Calibration Banner - show if not calibrated */}
       {needsCalibration && (
         <div className="px-4 py-3 border-b border-zinc-800">
@@ -152,7 +172,7 @@ export default function ProjectEditorPage() {
         </div>
       )}
 
-      {/* 3-Column Grid Layout */}
+      {/* 3-Column Grid Layout: Settings Panel | Canvas | Inspector */}
       <div
         className="flex-1 overflow-hidden"
         style={{
@@ -161,107 +181,70 @@ export default function ProjectEditorPage() {
           transition: 'grid-template-columns 0.2s ease-in-out',
         }}
       >
-        {/* Left Panel - Page Thumbnails */}
-        <div className={cn('relative overflow-hidden', leftPanelCollapsed && 'w-0')}>
-          <PageThumbnails
-            pages={project.pages || []}
-            selectedPageId={selectedPageId}
-            onSelectPage={setSelectedPageId}
-            onGeneratePages={() => {
-              if (needsGeneration) {
-                setRightPanelCollapsed(false);
-              }
-            }}
-            isLoading={projectLoading}
-            getImageUrl={(page) => `/api/r2/pages/${page.id}/current.png`}
+        {/* Left Panel - Project Settings */}
+        <div className={cn('relative overflow-hidden', settingsPanelCollapsed && 'w-0')}>
+          <ProjectSettingsPanel
+            projectId={projectId}
+            initialSettings={currentSettings}
+            onGenerate={handleGenerate}
+            isGenerating={isGeneratingStatus}
+            disabled={needsCalibration}
           />
 
           {/* Collapse Toggle */}
-          <button
-            onClick={() => setLeftPanelCollapsed(!leftPanelCollapsed)}
-            className="absolute top-1/2 -translate-y-1/2 -right-3 z-10 w-6 h-12 bg-zinc-800 border border-zinc-700 rounded-r flex items-center justify-center hover:bg-zinc-700 transition-colors"
-          >
-            {leftPanelCollapsed ? (
+          {!settingsPanelCollapsed && (
+            <button
+              onClick={() => setSettingsPanelCollapsed(true)}
+              className="absolute top-1/2 -translate-y-1/2 -right-3 z-10 w-6 h-12 bg-zinc-800 border border-zinc-700 rounded-r flex items-center justify-center hover:bg-zinc-700 transition-colors"
+            >
               <ChevronRight className="w-4 h-4 text-zinc-400" />
-            ) : (
-              <ChevronLeft className="w-4 h-4 text-zinc-400" />
-            )}
-          </button>
+            </button>
+          )}
         </div>
 
-        {/* Center Panel - Page Preview */}
-        <div className="overflow-hidden min-w-[400px]">
-          <PagePreview
+        {/* Center Panel - Thumbnail Grid */}
+        <div className="overflow-hidden min-w-[400px] bg-[#171717]">
+          {settingsPanelCollapsed && (
+            <button
+              onClick={() => setSettingsPanelCollapsed(false)}
+              className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-6 h-12 bg-zinc-800 border border-zinc-700 rounded-r flex items-center justify-center hover:bg-zinc-700 transition-colors"
+            >
+              <ChevronRight className="w-4 h-4 text-zinc-400 rotate-180" />
+            </button>
+          )}
+          <ThumbnailGrid
+            pages={thumbnailPages}
+            selectedPageId={selectedPageId}
+            onSelectPage={setSelectedPageId}
+            getImageUrl={(page) => `/api/r2/pages/${page.id}/current.png`}
+            emptyMessage="Your canvas is ready"
+          />
+        </div>
+
+        {/* Right Panel - Inspector */}
+        <div className={cn('relative overflow-hidden', inspectorCollapsed && 'w-0')}>
+          <PageInspector
             page={selectedPage}
-            imageUrl={selectedPage ? `/api/r2/pages/${selectedPage.id}/current.png` : null}
-            onGeneratePages={() => {
-              // Handled by GenerationStart panel or clicking generate
-              if (needsGeneration) {
-                setRightPanelCollapsed(false);
-              }
-            }}
             onRegenerate={() => {
               // TODO: Implement regenerate
             }}
             onEdit={() => {
-              // TODO: Implement edit - navigate to page editor
-              if (selectedPage) {
-                window.location.href = `/studio/projects/${projectId}/pages/${selectedPage.id}`;
-              }
+              // TODO: Implement edit
             }}
             onSimplify={() => {
-              // TODO: Implement simplify quick action
+              // TODO: Implement simplify
             }}
-            onAddDetail={() => {
-              // TODO: Implement add detail quick action
-            }}
-            onExport={() => setExportModalOpen(true)}
-            onDuplicate={() => {
-              // TODO: Implement duplicate page
-            }}
-            onDelete={() => {
-              // TODO: Implement delete page
-            }}
-            isGenerating={isGenerating}
-            blotBalance={profile?.blots || 0}
-            styleReady={!needsCalibration}
-            showToolbar={!needsGeneration}
           />
-        </div>
-
-        {/* Right Panel - Inspector or Generation Start */}
-        <div className={cn('relative overflow-hidden', rightPanelCollapsed && 'w-0')}>
-          {needsGeneration ? (
-            <GenerationStart
-              project={project}
-              onStarted={handleGenerationStarted}
-            />
-          ) : (
-            <PageInspector
-              page={selectedPage}
-              onRegenerate={() => {
-                // TODO: Implement regenerate
-              }}
-              onEdit={() => {
-                // TODO: Implement edit
-              }}
-              onSimplify={() => {
-                // TODO: Implement simplify
-              }}
-            />
-          )}
 
           {/* Collapse Toggle */}
-          <button
-            onClick={() => setRightPanelCollapsed(!rightPanelCollapsed)}
-            className="absolute top-1/2 -translate-y-1/2 -left-3 z-10 w-6 h-12 bg-zinc-800 border border-zinc-700 rounded-l flex items-center justify-center hover:bg-zinc-700 transition-colors"
-          >
-            {rightPanelCollapsed ? (
-              <ChevronLeft className="w-4 h-4 text-zinc-400" />
-            ) : (
-              <ChevronRight className="w-4 h-4 text-zinc-400" />
-            )}
-          </button>
+          {!inspectorCollapsed && (
+            <button
+              onClick={() => setInspectorCollapsed(true)}
+              className="absolute top-1/2 -translate-y-1/2 -left-3 z-10 w-6 h-12 bg-zinc-800 border border-zinc-700 rounded-l flex items-center justify-center hover:bg-zinc-700 transition-colors"
+            >
+              <ChevronRight className="w-4 h-4 text-zinc-400 rotate-180" />
+            </button>
+          )}
         </div>
       </div>
 
@@ -288,9 +271,6 @@ export default function ProjectEditorPage() {
         open={exportModalOpen}
         onOpenChange={(open) => {
           setExportModalOpen(open);
-          if (!open && viewMode === 'export') {
-            setViewMode('pages');
-          }
         }}
         projectId={projectId}
         projectName={project.name}

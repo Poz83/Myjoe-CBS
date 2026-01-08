@@ -16,7 +16,7 @@ interface BlotsLowEmailProps {
 
 export function BlotsLowEmail({ blots, plan }: BlotsLowEmailProps) {
   const isFree = plan === 'free';
-  const upgradeUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/studio/settings?tab=billing`;
+  const upgradeUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard/billing`;
 
   return (
     <Html>

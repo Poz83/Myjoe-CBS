@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Check } from 'lucide-react';
+import { Check, ChevronDown } from 'lucide-react';
 
 const PLAN_TIERS = {
   creator: [
@@ -154,18 +154,27 @@ export function PricingSection() {
 
             {/* Blot Selector */}
             <div className="mb-6">
-              <label className="text-xs text-zinc-500 mb-2 block">Choose your Blots</label>
-              <select
-                value={creatorIndex}
-                onChange={(e) => setCreatorIndex(Number(e.target.value))}
-                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 text-white font-medium focus:outline-none focus:ring-2 focus:ring-accent-cyan focus:border-transparent cursor-pointer"
-              >
-                {PLAN_TIERS.creator.map((tier, i) => (
-                  <option key={tier.blots} value={i}>
-                    {tier.blots.toLocaleString()} Blots — {pagesPerMonth(tier.blots).toLocaleString()} pages/mo
-                  </option>
-                ))}
-              </select>
+              <label className="text-xs text-zinc-400 font-medium mb-2 block">
+                Select Your Plan
+              </label>
+              <div className="relative group">
+                <select
+                  value={creatorIndex}
+                  onChange={(e) => setCreatorIndex(Number(e.target.value))}
+                  className="w-full bg-zinc-800/80 border-2 border-zinc-700 rounded-xl px-4 pr-12 py-3.5 text-white font-medium focus:outline-none focus:ring-2 focus:ring-accent-cyan/50 focus:border-accent-cyan/50 cursor-pointer transition-all duration-200 hover:bg-zinc-800 hover:border-accent-cyan/30 hover:shadow-lg hover:shadow-accent-cyan/10 hover:scale-[1.01] appearance-none"
+                >
+                  {PLAN_TIERS.creator.map((tier, i) => (
+                    <option key={tier.blots} value={i}>
+                      {tier.blots.toLocaleString()} Blots — {pagesPerMonth(tier.blots).toLocaleString()} pages/mo
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-accent-cyan pointer-events-none transition-all duration-200 group-hover:scale-110 group-hover:text-accent-cyan/80 animate-pulse-subtle" />
+              </div>
+              <p className="text-xs text-zinc-500 mt-2 flex items-center gap-1.5">
+                <span>💡</span>
+                <span>Multiple package sizes available</span>
+              </p>
             </div>
 
             <ul className="space-y-3 mb-8">
@@ -212,18 +221,27 @@ export function PricingSection() {
 
             {/* Blot Selector */}
             <div className="mb-6">
-              <label className="text-xs text-zinc-500 mb-2 block">Choose your Blots</label>
-              <select
-                value={studioIndex}
-                onChange={(e) => setStudioIndex(Number(e.target.value))}
-                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 text-white font-medium focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent cursor-pointer"
-              >
-                {PLAN_TIERS.studio.map((tier, i) => (
-                  <option key={tier.blots} value={i}>
-                    {tier.blots.toLocaleString()} Blots — {pagesPerMonth(tier.blots).toLocaleString()} pages/mo
-                  </option>
-                ))}
-              </select>
+              <label className="text-xs text-zinc-400 font-medium mb-2 block">
+                Select Your Plan
+              </label>
+              <div className="relative group">
+                <select
+                  value={studioIndex}
+                  onChange={(e) => setStudioIndex(Number(e.target.value))}
+                  className="w-full bg-zinc-800/80 border-2 border-zinc-700 rounded-xl px-4 pr-12 py-3.5 text-white font-medium focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 cursor-pointer transition-all duration-200 hover:bg-zinc-800 hover:border-purple-500/30 hover:shadow-lg hover:shadow-purple-500/10 hover:scale-[1.01] appearance-none"
+                >
+                  {PLAN_TIERS.studio.map((tier, i) => (
+                    <option key={tier.blots} value={i}>
+                      {tier.blots.toLocaleString()} Blots — {pagesPerMonth(tier.blots).toLocaleString()} pages/mo
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-purple-400 pointer-events-none transition-all duration-200 group-hover:scale-110 group-hover:text-purple-300 animate-pulse-subtle" />
+              </div>
+              <p className="text-xs text-zinc-500 mt-2 flex items-center gap-1.5">
+                <span>💡</span>
+                <span>Multiple package sizes available</span>
+              </p>
             </div>
 
             <ul className="space-y-3 mb-8">

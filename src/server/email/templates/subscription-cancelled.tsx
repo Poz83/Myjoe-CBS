@@ -36,7 +36,7 @@ export function SubscriptionCancelledEmail() {
           </Text>
 
           <Section style={buttonContainer}>
-            <Button style={button} href={`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/studio/settings?tab=billing`}>
+            <Button style={button} href={`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard/billing`}>
               Resubscribe
             </Button>
           </Section>

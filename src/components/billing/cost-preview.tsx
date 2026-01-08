@@ -91,7 +91,7 @@ export function CostPreview({
                   You need {Math.abs(balanceAfter)} more Blots to complete this action.
                 </p>
                 <Link
-                  href="/billing"
+                  href="/dashboard/billing"
                   className="text-sm text-blue-400 hover:text-blue-300 mt-2 inline-block"
                 >
                   Purchase more Blots

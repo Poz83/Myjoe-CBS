@@ -5,9 +5,6 @@ import { checkStorageQuota } from '@/server/storage/quota';
 // Force dynamic rendering since this route uses cookies
 export const dynamic = 'force-dynamic';
 
-// Force dynamic rendering since this route uses cookies
-export const dynamic = 'force-dynamic';
-
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient();

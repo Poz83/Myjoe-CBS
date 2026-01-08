@@ -44,12 +44,13 @@ function BillingContent() {
   const isFreePlan = balance.plan === 'free';
 
   return (
-    <div className="max-w-2xl mx-auto px-6 py-10">
+    <div className="max-w-4xl mx-auto px-6 py-10">
       <button onClick={() => router.push('/dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-white mb-6 transition-colors">
         <ChevronLeft className="w-4 h-4" /> Back
       </button>
 
-      <h1 className="text-2xl font-bold text-white mb-8">Billing</h1>
+      <h1 className="text-3xl font-bold text-white mb-2">Billing & Usage</h1>
+      <p className="text-zinc-500 mb-10">Manage your subscription and view usage</p>
 
       {/* Current Plan */}
       <div className="bg-zinc-900/50 rounded-xl border border-white/5 p-6 mb-6">
@@ -85,37 +86,68 @@ function BillingContent() {
       {/* Upgrade */}
       {isFreePlan && (
         <div className="bg-zinc-900/50 rounded-xl border border-white/5 p-6">
-          <h2 className="font-semibold text-white mb-4">Upgrade</h2>
+          <h2 className="text-xl font-bold text-white mb-2">Upgrade Your Plan</h2>
+          <p className="text-zinc-400 text-sm mb-6">Get more Blots and unlock commercial features</p>
 
-          <div className="flex gap-2 mb-4">
+          <div className="flex gap-2 mb-6">
             {(['creator', 'studio'] as const).map((t) => (
               <button key={t} onClick={() => { setTier(t); setBlots(t === 'creator' ? 500 : 4000); }}
-                className={cn('px-4 py-2 rounded-lg text-sm capitalize transition-all', tier === t ? 'bg-blue-500 text-white' : 'bg-zinc-800 text-zinc-400')}>
+                className={cn(
+                  'flex-1 px-5 py-3 rounded-xl text-sm capitalize transition-all font-medium',
+                  tier === t 
+                    ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20' 
+                    : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
+                )}>
                 {t}
               </button>
             ))}
           </div>
 
-          <div className="flex items-center gap-3 mb-4 text-sm">
-            <span className={interval === 'monthly' ? 'text-white' : 'text-zinc-500'}>Monthly</span>
-            <button onClick={() => setInterval(i => i === 'monthly' ? 'yearly' : 'monthly')} className="w-10 h-5 bg-zinc-700 rounded-full relative">
-              <div className={cn('w-4 h-4 bg-blue-500 rounded-full absolute top-0.5 transition-all', interval === 'yearly' ? 'left-5' : 'left-0.5')} />
+          <div className="flex items-center justify-center gap-3 mb-6 text-sm bg-zinc-800/50 rounded-lg p-1">
+            <button 
+              onClick={() => setInterval('monthly')}
+              className={cn(
+                'flex-1 py-2 px-4 rounded-md transition-all font-medium',
+                interval === 'monthly' ? 'bg-zinc-700 text-white' : 'text-zinc-500 hover:text-zinc-300'
+              )}
+            >
+              Monthly
             </button>
-            <span className={interval === 'yearly' ? 'text-white' : 'text-zinc-500'}>Yearly <span className="text-green-500">-20%</span></span>
+            <button 
+              onClick={() => setInterval('yearly')}
+              className={cn(
+                'flex-1 py-2 px-4 rounded-md transition-all font-medium flex items-center justify-center gap-2',
+                interval === 'yearly' ? 'bg-zinc-700 text-white' : 'text-zinc-500 hover:text-zinc-300'
+              )}
+            >
+              Yearly
+              <span className="text-green-500 text-xs bg-green-500/10 px-2 py-0.5 rounded-full">-20%</span>
+            </button>
           </div>
 
-          <select value={blots} onChange={(e) => setBlots(Number(e.target.value))}
-            className="w-full p-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white mb-4">
-            {PLAN_TIERS[tier].map((p) => (
-              <option key={p.blots} value={p.blots}>{p.blots.toLocaleString()} Blots - ${interval === 'monthly' ? p.monthly : (p.yearly / 12).toFixed(0)}/mo</option>
-            ))}
-          </select>
+          <div className="bg-zinc-800/50 rounded-xl p-4 mb-6">
+            <label className="text-sm text-zinc-400 mb-2 block">Select Blots Amount</label>
+            <select value={blots} onChange={(e) => setBlots(Number(e.target.value))}
+              className="w-full p-3 bg-zinc-900 border border-zinc-700 rounded-lg text-white font-medium">
+              {PLAN_TIERS[tier].map((p) => (
+                <option key={p.blots} value={p.blots}>
+                  {p.blots.toLocaleString()} Blots/month - ${interval === 'monthly' ? p.monthly : (p.yearly / 12).toFixed(0)}/mo
+                </option>
+              ))}
+            </select>
+          </div>
 
-          <ul className="space-y-2 mb-6">
-            {FEATURES[tier].map((f, i) => (
-              <li key={i} className="flex items-center gap-2 text-sm text-zinc-400"><Check className="w-4 h-4 text-green-500" />{f}</li>
-            ))}
-          </ul>
+          <div className="bg-blue-500/5 border border-blue-500/20 rounded-xl p-4 mb-6">
+            <h3 className="text-sm font-semibold text-blue-400 mb-3">Included Features</h3>
+            <ul className="space-y-2">
+              {FEATURES[tier].map((f, i) => (
+                <li key={i} className="flex items-center gap-2 text-sm text-zinc-300">
+                  <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
+                  {f}
+                </li>
+              ))}
+            </ul>
+          </div>
 
           <Button className="w-full" onClick={() => checkout.mutate({ tier, blots, interval })} loading={checkout.isPending}>
             Upgrade to {TIERS[tier].name}

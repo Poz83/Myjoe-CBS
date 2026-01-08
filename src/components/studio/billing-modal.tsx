@@ -46,7 +46,7 @@ export function BillingModal({
 
   const handleGoToBilling = () => {
     onOpenChange(false);
-    router.push('/billing');
+    router.push('/dashboard/billing');
   };
 
   return (

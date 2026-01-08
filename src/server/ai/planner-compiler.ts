@@ -52,7 +52,8 @@ interface PlannerInput {
   pageCount: number;
   audience: Audience;
   stylePreset: StylePreset;
-  lineWeight: string;
+  lineWeight: string; // Legacy: 'thick' | 'medium' | 'fine'
+  lineThicknessPts?: number | null; // New: 2-8 points, null means use lineWeight
   complexity: string;
   heroDescription?: string;
   heroReferenceUrl?: string | null; // For future ControlNet/image-guided generation
@@ -99,11 +100,29 @@ export async function planAndCompile(input: PlannerInput): Promise<PlannerResult
   const fluxConfig = FLUX_TRIGGERS[input.fluxModel || 'flux-lineart'];
   const negativePrompt = buildNegativePrompt(input.audience);
   
+  // Determine line weight from thickness (pts) or fallback to legacy lineWeight
+  let lineWeight = input.lineWeight;
+  let lineWeightDescription = LINE_WEIGHT_PROMPTS[input.lineWeight as keyof typeof LINE_WEIGHT_PROMPTS];
+  
+  if (input.lineThicknessPts !== null && input.lineThicknessPts !== undefined) {
+    // Convert points to line weight category
+    if (input.lineThicknessPts >= 6) {
+      lineWeight = 'thick';
+      lineWeightDescription = `bold thick black outlines, ${input.lineThicknessPts}pt line weight, chunky shapes, prominent lines`;
+    } else if (input.lineThicknessPts >= 4) {
+      lineWeight = 'medium';
+      lineWeightDescription = `clean medium black outlines, ${input.lineThicknessPts}pt line weight, balanced detail`;
+    } else {
+      lineWeight = 'fine';
+      lineWeightDescription = `delicate fine black outlines, ${input.lineThicknessPts}pt line weight, intricate details`;
+    }
+  }
+  
   const prompt = SYSTEM_PROMPT
     .replace(/{fluxTrigger}/g, fluxConfig.trigger || fluxConfig.template)
     .replace('{pageCount}', String(input.pageCount))
-    .replace('{lineWeight}', input.lineWeight)
-    .replace('{lineWeightDescription}', LINE_WEIGHT_PROMPTS[input.lineWeight as keyof typeof LINE_WEIGHT_PROMPTS])
+    .replace('{lineWeight}', lineWeight)
+    .replace('{lineWeightDescription}', lineWeightDescription)
     .replace('{complexity}', input.complexity)
     .replace('{complexityDescription}', COMPLEXITY_PROMPTS[input.complexity as keyof typeof COMPLEXITY_PROMPTS])
     .replace('{audience}', input.audience)

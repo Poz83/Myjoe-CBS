@@ -14,6 +14,13 @@ const updateProjectSchema = z.object({
   description: z.string().nullable().optional(),
   heroId: z.string().uuid().nullable().optional(),
   status: z.enum(['draft', 'generating', 'ready', 'exported']).optional(),
+  // Project settings (editable)
+  page_count: z.number().int().min(1).max(45).optional(),
+  trim_size: z.enum(['8.5x11', '8.5x8.5', '6x9']).optional(),
+  style_preset: z.enum(['bold-simple', 'kawaii', 'whimsical', 'cartoon', 'botanical']).optional(),
+  audience: z.enum(['toddler', 'children', 'tween', 'teen', 'adult']).optional(),
+  line_thickness_pts: z.number().int().min(2).max(8).nullable().optional(),
+  line_thickness_auto: z.boolean().optional(),
 });
 
 /**
@@ -121,23 +128,38 @@ export async function PATCH(
 
     const input = validationResult.data;
 
-    // Check if trying to update DNA fields (not allowed)
-    const dnaFields = ['audience', 'stylePreset', 'pageCount', 'lineWeight', 'complexity', 'trimSize'];
-    const attemptedDnaUpdate = Object.keys(body).some(key => 
-      dnaFields.includes(key)
+    // Check if trying to update immutable DNA fields (not allowed)
+    // Note: page_count, trim_size, style_preset, audience are now editable via settings panel
+    // But line_weight and complexity are still derived and immutable
+    const immutableDnaFields = ['lineWeight', 'complexity'];
+    const attemptedImmutableUpdate = Object.keys(body).some(key => 
+      immutableDnaFields.includes(key)
     );
 
-    if (attemptedDnaUpdate) {
+    if (attemptedImmutableUpdate) {
       return NextResponse.json(
         {
-          error: 'Cannot modify project DNA fields (audience, stylePreset, pageCount, etc.)',
+          error: 'Cannot modify immutable DNA fields (lineWeight, complexity)',
           correlationId,
         },
         { status: 400 }
       );
     }
 
-    const project = await updateProject(projectId, user.id, input);
+    // Map API fields to database fields
+    const updateInput: any = {};
+    if (input.name !== undefined) updateInput.name = input.name;
+    if (input.description !== undefined) updateInput.description = input.description;
+    if (input.heroId !== undefined) updateInput.hero_id = input.heroId;
+    if (input.status !== undefined) updateInput.status = input.status;
+    if (input.page_count !== undefined) updateInput.page_count = input.page_count;
+    if (input.trim_size !== undefined) updateInput.trim_size = input.trim_size;
+    if (input.style_preset !== undefined) updateInput.style_preset = input.style_preset;
+    if (input.audience !== undefined) updateInput.audience = input.audience;
+    if (input.line_thickness_pts !== undefined) updateInput.line_thickness_pts = input.line_thickness_pts;
+    if (input.line_thickness_auto !== undefined) updateInput.line_thickness_auto = input.line_thickness_auto;
+
+    const project = await updateProject(projectId, user.id, updateInput);
 
     return NextResponse.json(project);
   } catch (error) {

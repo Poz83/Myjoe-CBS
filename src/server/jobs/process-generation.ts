@@ -24,6 +24,7 @@ import { planAndCompile, type CompiledPage } from '@/server/ai/planner-compiler'
 import { generatePage } from '@/server/ai/generate-page';
 import { createThumbnail } from '@/server/ai/cleanup';
 import { uploadFile, generateR2Key, getSignedDownloadUrl } from '@/server/storage/r2';
+import { detectLineThickness } from '@/server/ai/line-thickness-detector';
 import { BLOT_COSTS } from '@/lib/constants';
 import type { Audience, StylePreset, TrimSize, FluxModel } from '@/lib/constants';
 
@@ -91,13 +92,32 @@ export async function processGenerationJob(jobId: string): Promise<void> {
       return;
     }
 
-    // 5. Plan all pages using planner-compiler
+    // 5. Determine line thickness (auto-detect if needed)
+    let lineThicknessPts: number | null = (project as any).line_thickness_pts ?? null;
+    const lineThicknessAuto = (project as any).line_thickness_auto ?? true;
+    
+    if (lineThicknessAuto && (lineThicknessPts === null || lineThicknessPts === undefined)) {
+      // Auto-detect line thickness based on audience and idea
+      try {
+        lineThicknessPts = await detectLineThickness(
+          project.audience as Audience,
+          metadata.idea
+        );
+      } catch (error) {
+        console.error('Line thickness auto-detection failed:', error);
+        // Fallback to audience-based default
+        lineThicknessPts = null;
+      }
+    }
+
+    // 6. Plan all pages using planner-compiler
     const planResult = await planAndCompile({
       userIdea: metadata.idea,
       pageCount: pendingItems.length,
       audience: project.audience as Audience,
       stylePreset: project.style_preset as StylePreset,
       lineWeight: project.line_weight,
+      lineThicknessPts,
       complexity: project.complexity,
       heroDescription: hero?.compiled_prompt,
       heroReferenceUrl, // For future ControlNet/image-guided generation
@@ -116,7 +136,7 @@ export async function processGenerationJob(jobId: string): Promise<void> {
       return;
     }
 
-    // 7. Map compiled pages to job items
+    // 8. Map compiled pages to job items
     const compiledPages = planResult.pages!;
     const itemPageMap = pendingItems.map((item, index) => ({
       item,
