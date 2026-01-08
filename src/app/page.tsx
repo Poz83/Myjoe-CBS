@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import NextImage from 'next/image';
+import { AuthHandler } from '@/components/auth-handler';
 import {
   Sparkles,
   Download,
@@ -37,6 +38,7 @@ export default function LandingPage({ searchParams }: LandingPageProps) {
 
   return (
     <main className="min-h-screen bg-[#0D0D0D] text-white overflow-x-hidden">
+      <AuthHandler />
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-[#0D0D0D]/80 backdrop-blur-lg border-b border-zinc-800/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
