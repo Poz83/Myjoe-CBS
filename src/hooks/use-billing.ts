@@ -99,3 +99,31 @@ export function useCustomerPortal() {
     },
   });
 }
+
+interface SubscriptionCheckoutParams {
+  tier: 'creator' | 'studio';
+  blots: number;
+  interval: 'monthly' | 'yearly';
+}
+
+export function useSubscriptionCheckout() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ tier, blots, interval }: SubscriptionCheckoutParams) => {
+      const res = await fetch('/api/billing/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tier, blots, interval }),
+      });
+      if (!res.ok) throw new Error('Failed to create checkout');
+      return res.json();
+    },
+    onSuccess: (data) => {
+      if (data.url) window.location.href = data.url;
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['balance'] });
+    },
+  });
+}
