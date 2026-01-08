@@ -182,6 +182,14 @@ export const MAX_PAGES = 45;
 export const MAX_VERSIONS = 10;
 export const MAX_PROMPT_LENGTH = 500;
 
+// === GENERATION DEFAULTS ===
+export const GENERATION_DEFAULTS = {
+  MAX_RETRIES: 2,
+  MAX_RETRIES_LIMIT: 10,
+  CHILD_AUDIENCES: ['toddler', 'children'] as const,
+  RETRY_DELAYS: [1000, 2000, 4000] as const, // 1s, 2s, 4s
+} as const;
+
 // === PROJECT LIMITS (per plan) ===
 export const PROJECT_LIMITS = {
   free: 3,

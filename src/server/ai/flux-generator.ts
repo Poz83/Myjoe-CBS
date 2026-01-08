@@ -1,5 +1,6 @@
 import Replicate from 'replicate';
 import { FLUX_MODELS, TRIM_SIZES } from '@/lib/constants';
+import { logger } from '@/lib/logger';
 import type { FluxModel } from '@/lib/constants';
 
 const replicate = new Replicate({
@@ -48,10 +49,15 @@ export async function generateWithFlux(options: GenerateOptions): Promise<Genera
       seed: params.seed,
     };
   } catch (error) {
-    console.error('Flux generation error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Generation failed';
+    logger.error('Flux generation failed', {
+      fluxModel,
+      trimSize,
+      error: errorMessage
+    });
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Generation failed',
+      error: errorMessage,
     };
   }
 }
